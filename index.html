@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Morning Star Post Acute â Daily Management Board</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ââ HEADER ââ */
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hdr-left h1{font-size:16px;font-weight:800;letter-spacing:.5px}
+.hdr-left .sub{font-size:11px;opacity:.7;margin-top:1px}
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:8px;padding:3px}
+.tab{background:transparent;border:none;color:rgba(255,255,255,.6);padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;white-space:nowrap}
+.tab.active{background:#fff;color:var(--primary)}
+.tab:hover:not(.active){color:#fff;background:rgba(255,255,255,.12)}
+.tab .tab-badge{background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
+
+/* ââ LAYOUT ââ */
+.page{max-width:1200px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.card-hdr{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-hdr .icon{font-size:16px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+
+/* ââ KPI STRIP ââ */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border-radius:var(--radius);padding:14px 10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.green::before{background:var(--success)}.kpi.amber::before{background:var(--warn)}.kpi.red::before{background:var(--danger)}.kpi.blue::before{background:var(--primary-light)}
+.kpi-val{font-size:28px;font-weight:800;line-height:1}
+.kpi.green .kpi-val{color:var(--success)}.kpi.amber .kpi-val{color:var(--warn)}.kpi.red .kpi-val{color:var(--danger)}.kpi.blue .kpi-val{color:var(--primary-light)}
+.kpi-label{font-size:10px;color:var(--text-light);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.kpi-sub{font-size:11px;color:var(--text-light);margin-top:2px}
+
+/* ââ ALERTS ââ */
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.alert-red{background:#fdedec;color:var(--danger);border-left:4px solid var(--danger)}
+.alert-amber{background:#fef9e7;color:#856404;border-left:4px solid var(--warn)}
+.alert-green{background:#eafaf1;color:var(--success);border-left:4px solid var(--success)}
+
+/* ââ TABLES ââ */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+th{font-weight:700;color:var(--text-light);text-transform:uppercase;font-size:10px;letter-spacing:.5px;background:#fafbfc}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.b-green{background:#eafaf1;color:var(--success)}.b-red{background:#fdedec;color:var(--danger)}.b-amber{background:#fef9e7;color:var(--warn)}.b-gray{background:#f0f0f0;color:var(--text-light)}.b-blue{background:#eaf2f8;color:var(--primary-light)}
+
+/* ââ AGENDA ââ */
+.agenda-item{padding:10px 0;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:flex-start}
+.agenda-item:last-child{border-bottom:none}
+.agenda-num{background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.agenda-title{font-weight:700;font-size:13px}
+.agenda-time{font-size:11px;color:var(--text-light);background:#f0f2f5;padding:1px 6px;border-radius:4px;margin-left:6px}
+.agenda-data{font-size:12px;color:var(--text);margin-top:3px;line-height:1.5}
+
+/* ââ SURVEY TAGS ââ */
+.tag-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
+.tag-row:last-child{border-bottom:none}
+.tag-code{font-weight:700;min-width:70px}
+.tag-bar{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden}
+.tag-fill{height:100%;border-radius:4px}
+
+/* ââ FILTER TABS ââ */
+.filter-tabs{display:flex;gap:4px;margin-bottom:12px}
+.ftab{padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.ftab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+
+/* ââ ROOM ROUNDS FORM ââ */
+.form-wrap{max-width:600px;margin:0 auto}
+.section-header{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.section-desc{font-size:13px;color:var(--text-light);margin-bottom:16px}
+.step-dots{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--border);transition:.3s}
+.dot.active{background:var(--primary);transform:scale(1.2)}.dot.done{background:var(--success)}
+.field{margin-bottom:14px}
+.field>label{font-size:14px;font-weight:600;margin-bottom:6px;display:block}
+.req{color:var(--danger)}
+select,input[type=text],input[type=date],textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;background:#fff;color:var(--text);-webkit-appearance:none}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(41,128,185,.1)}
+textarea{resize:vertical;min-height:70px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+.toggle-row:last-child{border-bottom:none}
+.mini-toggle{display:flex;gap:5px}
+.mbtn{padding:7px 13px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.mbtn:active{transform:scale(.95)}
+.mbtn.sy{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.mbtn.sn{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.mbtn.sna{border-color:var(--text-light);background:#f0f0f0;color:var(--text-light)}
+.big-toggle{display:flex;gap:8px}
+.big-btn{flex:1;padding:12px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:15px;font-weight:600;cursor:pointer;text-align:center;transition:.2s}
+.big-btn:active{transform:scale(.97)}
+.big-btn.by{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.big-btn.bn{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.sat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sat-btn{padding:12px 8px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+.sat-btn.sel{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.pri-row{display:flex;gap:8px}
+.pri-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+.pri-btn.pl{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.pri-btn.pm{border-color:var(--warn);background:#fef9e7;color:var(--warn)}
+.pri-btn.ph{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.bed-card{background:#f8f9fa;border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
+.bed-label{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:10px}
+.action-card{background:#f8f9fa;border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
+.btn{padding:14px 24px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;width:100%}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:var(--primary-light)}
+.btn-s{background:var(--success);color:#fff}
+.btn-o{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-row{display:flex;gap:10px;margin-top:10px}
+.btn-row .btn{flex:1}
+.success-screen{text-align:center;padding:50px 20px}
+.success-icon{font-size:56px;margin-bottom:12px;color:var(--success)}
+.success-title{font-size:22px;font-weight:700;color:var(--success);margin-bottom:6px}
+.success-sub{font-size:14px;color:var(--text-light);margin-bottom:28px}
+
+/* Issue list */
+.issue-list{list-style:none}
+.issue-item{padding:10px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;font-size:13px}
+.issue-item:last-child{border-bottom:none}
+.issue-room{background:var(--primary);color:#fff;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap}
+.issue-text{flex:1}
+.ip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
+.ip-high{background:#fdedec;color:var(--danger)}.ip-med{background:#fef9e7;color:var(--warn)}.ip-low{background:#eafaf1;color:var(--success)}
+
+.data-actions{display:flex;gap:6px;flex-wrap:wrap}
+.data-btn{padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--text);transition:.2s}
+.data-btn:hover{border-color:var(--primary);color:var(--primary)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:200;animation:fadeUp .3s}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.empty-state{text-align:center;padding:30px;color:var(--text-light)}
+.hidden{display:none}
+.footer{text-align:center;padding:20px;font-size:12px;color:var(--text-light)}
+
+/* Chart container */
+.chart-wrap{position:relative;height:180px;margin-top:8px}
+
+@media(max-width:768px){
+  .two-col,.three-col{grid-template-columns:1fr}
+  .kpi-strip{grid-template-columns:repeat(2,1fr)}
+  .kpi-strip .kpi:last-child{grid-column:span 2}
+  .header{flex-direction:column;gap:8px;align-items:stretch;padding:10px 14px}
+  .tabs{justify-content:center;flex-wrap:wrap}
+  .tab{padding:6px 10px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// MORNING STAR POST ACUTE â DAILY MANAGEMENT BOARD
+// Includes: Census, OT, Rounding, Showers, Asana Actions,
+//           Survey Compliance, Revenue Rates, Standup Agenda,
+//           + NEW: Room Rounds Form
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+// ââ CONFIG: Populated by the daily-management-board skill each morning ââ
+// These values are placeholders. The skill replaces them with live data.
+const BOARD_DATA = {
+  generatedAt: new Date().toLocaleString(),
+  // Census
+  census: { current: '--', beds: 57, budgetADC: '--', admitsToday: '--', dischargesToday: '--', pending: '--', occupancyPct: '--' },
+  // OT
+  ot: { yesterdayHrs: '--', wtdHrs: '--', mtdHrs: '--', budgetMtd: '--', topEmployees: [] },
+  // Rounding (auto-calculated from rounds data below)
+  // Showers
+  showers: { yesterdayRate: '--', refusals: '--', mtdRefusalRate: '--', flaggedResidents: [] },
+  // Action Items (Asana)
+  asanaActions: { open: [], overdue: 0, dueToday: 0, dueThisWeek: 0, criticalOverdue: 0 },
+  // Survey Compliance
+  surveyTags: [],
+  // Revenue Rates
+  rates: { mcrPPD: '$823.17', hmoPPD: '$704.48', mcalPPD: '$258.54', mgmtFee: '5.5%', badDebt: '3%' },
+  // Payer Mix
+  payerMix: [],
+  // Safety (for standup)
+  safety: { falls24h: '--', incidents: '--', infections: '--' },
+  // Staffing
+  staffing: { callOffs: '--', agencyUse: '--' }
+};
+
+// ââ ROSTER ââ
+const ROSTER=[
+{name:"Regine Davenport",dept:"Admissions",rooms:["1","2"],assigned:true},
+{name:"Valerie Estrada",dept:"Activities",rooms:["3","4"],assigned:true},
+{name:"Kim Beatrez",dept:"Dietary",rooms:["5","6"],assigned:true},
+{name:"Annie Vang",dept:"Medical Records",rooms:["7","8"],assigned:true},
+{name:"Kelsey Kennington",dept:"HR/AP/Payroll",rooms:["9","10"],assigned:true},
+{name:"Yessi Flores",dept:"DSD/IP",rooms:["11","12"],assigned:true},
+{name:"Stephen Badger",dept:"Administrator",rooms:["14","15"],assigned:true},
+{name:"Micaela Vallejo",dept:"Social Services",rooms:["16"],assigned:true},
+{name:"Belem Gonzalez",dept:"Business Office",rooms:["18"],assigned:true},
+{name:"Amandeep Brar",dept:"MDS",rooms:[],assigned:true},
+{name:"Donna Rogers",dept:"DON",rooms:[],assigned:false},
+{name:"Savanna McCormick",dept:"ADON",rooms:[],assigned:false},
+{name:"Joe Fronteras",dept:"Rehab",rooms:[],assigned:false},
+{name:"Sebastian Lopez",dept:"Maintenance/EVS",rooms:[],assigned:false}
+];
+const ALL_ROOMS=["1","2","3","4","5","6","7","8","9","10","11","12","14","15","16","18"];
+const DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
+
+const today=()=>new Date().toISOString().split('T')[0];
+const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const dayOfWeek=()=>new Date().toLocaleDateString('en-US',{weekday:'long'});
+
+// ââ DATA STORE ââ
+let store={rounds:[]};
+function exportJSON(){const b=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rounds-'+today()+'.json';a.click()}
+function importJSON(file,cb){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.rounds){store=d;cb(d.rounds.length)}else cb(-1)}catch(x){cb(-1)}};r.readAsText(file)}
+
+// ââ APP STATE ââ
+let currentTab='board';
+let formState=null;
+let toastMsg='';let toastTimer=null;
+let actionFilter='all';
+function showToast(m){toastMsg=m;render();clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastMsg='';render()},2500)}
+
+// ââ DOM HELPER ââ
+function h(tag,a,...ch){
+  const el=document.createElement(tag);
+  if(a)Object.entries(a).forEach(([k,v])=>{
+    if(k==='className')el.className=v;
+    else if(k==='style'&&typeof v==='object')Object.assign(el.style,v);
+    else if(k.startsWith('on'))el.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==='innerHTML')el.innerHTML=v;
+    else el.setAttribute(k,v);
+  });
+  ch.flat(Infinity).forEach(c=>{if(c!=null&&c!==false)el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c)});
+  return el;
+}
+
+// ââ ROUNDING ANALYTICS (computed from store) ââ
+function getRoundingStats(date){
+  const dr=store.rounds.filter(r=>r.roundDate===date);
+  const names=new Set(dr.map(r=>r.rounderName));
+  const assigned=ROSTER.filter(r=>r.assigned);
+  const missing=assigned.filter(r=>!names.has(r.name));
+  const comp=assigned.length?Math.round(((assigned.length-missing.length)/assigned.length)*100):0;
+  let envIssues=[],resConcerns=[],staffConcerns=[],actions=[];
+  dr.forEach(r=>{
+    const e=r.environment||{};
+    const lbls={roomClean:'Not clean',odorFree:'Odor present',bathroomStocked:'Bathroom not stocked',tempOk:'Temp issue',whiteboardCurrent:'Whiteboard not current'};
+    Object.keys(lbls).forEach(f=>{if(e[f]==='no')envIssues.push({room:r.roomNumber,issue:lbls[f],notes:e.notes})});
+    (r.beds||[]).forEach((b,i)=>{
+      const bl={callLight:'Call light',personalItems:'Personal items',nameOnDoor:'Name on door',o2Tubing:'O2 tubing'};
+      Object.keys(bl).forEach(f=>{if(b[f]==='no')envIssues.push({room:r.roomNumber,issue:'Bed '+(i?'B':'A')+': '+bl[f]})});
+    });
+    if(r.resident?.concerns==='yes')resConcerns.push({room:r.roomNumber,detail:r.resident.concernDetails});
+    if(r.resident?.discomfort==='yes')resConcerns.push({room:r.roomNumber,detail:'Discomfort: '+(r.resident.discomfortDetails||'observed')});
+    if(r.staff?.concerns==='yes')staffConcerns.push({room:r.roomNumber,detail:r.staff.concernDetails});
+    if(r.staff?.engaged==='no')staffConcerns.push({room:r.roomNumber,detail:'Staff not engaged'});
+    (r.actions||[]).forEach(a=>{if(a.description)actions.push({room:r.roomNumber,...a})});
+  });
+  return{dr,names,assigned,missing,comp,envIssues,resConcerns,staffConcerns,actions,rounded:assigned.length-missing.length};
+}
+
+// Week dates helper
+function getWeekDates(refDate){
+  const d=new Date((refDate||today())+'T12:00:00');const day=d.getDay();
+  const mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+  const dates=[];for(let i=0;i<5;i++){const dd=new Date(mon);dd.setDate(mon.getDate()+i);dates.push(dd.toISOString().split('T')[0])}
+  return dates;
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââ
+// TAB 1: MAIN BOARD (all metrics)
+// ââââââââââââââââââââââââââââââââââââââââââ
+function renderBoard(){
+  const D=BOARD_DATA;
+  const rs=getRoundingStats(today());
+  const roundComp=rs.assigned.length?rs.rounded+'/'+rs.assigned.length:'--';
+  const roundPct=rs.comp;
+  const highActions=rs.actions.filter(a=>a.priority==='high').length;
+
+  // KPI color logic
+  const censusClass=D.census.current==='--'?'blue':D.census.current>=D.census.budgetADC?'green':D.census.current>=D.census.budgetADC-2?'amber':'red';
+  const otClass=D.ot.mtdHrs==='--'?'blue':'blue';
+  const roundClass=roundPct===100?'green':roundPct>=80?'amber':roundPct>0?'red':'blue';
+  const showerClass=D.showers.yesterdayRate==='--'?'blue':parseFloat(D.showers.yesterdayRate)>=90?'green':parseFloat(D.showers.yesterdayRate)>=80?'amber':'red';
+  const actionClass=(D.asanaActions.overdue>3||D.asanaActions.criticalOverdue>0)?'red':D.asanaActions.overdue>0?'amber':'green';
+
+  const alerts=[];
+  if(rs.missing.length>0)alerts.push({type:rs.missing.length>2?'alert-red':'alert-amber',msg:'\u26A0 Missing rounders ('+rs.missing.length+'): '+rs.missing.map(m=>m.name).join(', ')});
+  if(highActions>0)alerts.push({type:'alert-red',msg:'\uD83D\uDEA8 '+highActions+' HIGH priority action item'+(highActions>1?'s':'')+' from today\'s rounds'});
+  if(D.asanaActions.criticalOverdue>0)alerts.push({type:'alert-red',msg:'\u{23F0} '+D.asanaActions.criticalOverdue+' Asana task'+(D.asanaActions.criticalOverdue>1?'s':'')+' overdue > 7 days'});
+  if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'\uD83D\uDCE2 Monday â Weekly 2 PM huddle announcement goes out today'});
+
+  return h('div',{className:'page'},
+    // KPI Strip
+    h('div',{className:'kpi-strip'},
+      h('div',{className:'kpi '+censusClass},h('div',{className:'kpi-val'},String(D.census.current)),h('div',{className:'kpi-label'},'Census / '+D.census.beds),h('div',{className:'kpi-sub'},'Budget ADC: '+D.census.budgetADC)),
+      h('div',{className:'kpi '+otClass},h('div',{className:'kpi-val'},String(D.ot.mtdHrs)),h('div',{className:'kpi-label'},'OT Hrs (MTD)'),h('div',{className:'kpi-sub'},'Budget: '+D.ot.budgetMtd)),
+      h('div',{className:'kpi '+roundClass},h('div',{className:'kpi-val'},roundComp),h('div',{className:'kpi-label'},'Rounding'),h('div',{className:'kpi-sub'},roundPct+'% compliance')),
+      h('div',{className:'kpi '+showerClass},h('div',{className:'kpi-val'},String(D.showers.yesterdayRate)),h('div',{className:'kpi-label'},'Showers (Yest)'),h('div',{className:'kpi-sub'},'Refusals: '+D.showers.refusals)),
+      h('div',{className:'kpi '+(D.asanaActions.open.length?actionClass:'green')},h('div',{className:'kpi-val'},String(D.asanaActions.open.length||'0')),h('div',{className:'kpi-label'},'Open Actions'),h('div',{className:'kpi-sub'},'Overdue: '+D.asanaActions.overdue))
+    ),
+
+    // Alerts
+    ...alerts.map(a=>h('div',{className:'alert '+a.type},a.msg)),
+
+    // Row 2: Two columns
+    h('div',{className:'two-col'},
+      // LEFT: Standup Agenda + Census
+      h('div',null,
+        // Standup Agenda (compact)
+        h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð'),'Standup Agenda â SWI v2.0'),
+          ...[
+            {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment â quote, value, shout-out'},
+            {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only â report if any'},
+            {n:3,t:'Census & Flow',tm:'2 min',d:'Census: '+D.census.current+'/'+D.census.beds+' | Admits: '+D.census.admitsToday+' | DC: '+D.census.dischargesToday+' | Pending: '+D.census.pending},
+            {n:4,t:'Staffing & Labor',tm:'1 min',d:'Call-offs: '+D.staffing.callOffs+' | OT flags: '+D.ot.mtdHrs+' MTD'},
+            {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds â '+rs.actions.filter(a=>a.priority==='high').map(a=>'Rm '+a.room).join(', '):'No escalations from rounds'},
+            {n:6,t:'Commitments & Close',tm:'1 min',d:'Each DH states one commitment'}
+          ].map(s=>h('div',{className:'agenda-item'},
+            h('div',{className:'agenda-num'},String(s.n)),
+            h('div',null,
+              h('div',{style:{display:'flex',alignItems:'center'}},h('span',{className:'agenda-title'},s.t),h('span',{className:'agenda-time'},s.tm)),
+              h('div',{className:'agenda-data'},s.d)
+            )
+          ))
+        ),
+        // Census Detail
+        h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¥'),'Census & Flow'),
+          h('table',null,
+            h('tbody',null,
+              ...([['Current Census',D.census.current+' / '+D.census.beds],['Occupancy',D.census.occupancyPct],['Budget ADC',D.census.budgetADC],['Admits Today',D.census.admitsToday],['Discharges Today',D.census.dischargesToday],['Pending Admits',D.census.pending]].map(([k,v])=>
+                h('tr',null,h('td',{style:{fontWeight:'600',width:'50%'}},k),h('td',null,String(v)))
+              ))
+            )
+          )
+        )
+      ),
+      // RIGHT: Revenue, OT, Rounding, Showers
+      h('div',null,
+        // Revenue Rates
+        h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð°'),'Revenue Rate Reference'),
+          h('table',null,
+            h('thead',null,h('tr',null,h('th',null,'Payer'),h('th',null,'PPD Rate'))),
+            h('tbody',null,
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'Medicare A (MCR)'),h('td',null,D.rates.mcrPPD)),
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'HMO'),h('td',null,D.rates.hmoPPD)),
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'Medi-Cal'),h('td',null,D.rates.mcalPPD))
+            )
+          ),
+          h('div',{style:{fontSize:'11px',color:'var(--text-light)',marginTop:'8px'}},'Mgmt Fee: '+D.rates.mgmtFee+' | Bad Debt: '+D.rates.badDebt)
+        ),
+        // OT Breakdown
+        h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'â±ï¸'),'Overtime Breakdown'),
+          h('table',null,
+            h('tbody',null,
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday'),h('td',null,String(D.ot.yesterdayHrs)+' hrs')),
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'Week-to-Date'),h('td',null,String(D.ot.wtdHrs)+' hrs')),
+              h('tr',null,h('td',{style:{fontWeight:'600'}},'Month-to-Date'),h('td',null,String(D.ot.mtdHrs)+' hrs'))
+            )
+          ),
+          D.ot.topEmployees.length?h('div',{style:{marginTop:'10px'}},
+            h('div',{style:{fontSize:'12px',fontWeight:'700',color:'var(--text-light)',marginBottom:'6px'}},'TOP OT EMPLOYEES'),
+            h('table',null,h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Dept'),h('th',null,'Hours'))),
+              h('tbody',null,...D.ot.topEmployees.map(e=>h('tr',null,h('td',null,e.name),h('td',null,e.dept),h('td',null,String(e.hours))))))
+          ):null
+        ),
+        // Shower Snapshot
+        h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¿'),'Shower Compliance'),
+          h('table',null,h('tbody',null,
+            h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday Rate'),h('td',null,String(D.showers.yesterdayRate))),
+            h('tr',null,h('td',{style:{fontWeight:'600'}},'Refusals'),h('td',null,String(D.showers.refusals))),
+            h('tr',null,h('td',{style:{fontWeight:'600'}},'MTD Refusal Rate'),h('td',null,String(D.showers.mtdRefusalRate)))
+          )),
+          D.showers.flaggedResidents.length?h('div',{style:{marginTop:'8px',fontSize:'13px'}},
+            h('strong',null,'Flagged: '),D.showers.flaggedResidents.join(', ')
+          ):null
+        )
+      )
+    ),
+
+    // Rounding Compliance Grid
+    h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð£'),'Rounding Compliance â This Week'),
+      (()=>{
+        const wd=getWeekDates();const dls=['Mon','Tue','Wed','Thu','Fri'];
+        return h('div',{style:{overflowX:'auto'}},h('table',null,
+          h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Department'),...dls.map(d=>h('th',{style:{textAlign:'center'}},d)))),
+          h('tbody',null,
+            ...ROSTER.filter(r=>r.assigned).map(p=>h('tr',null,
+              h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept),
+              ...wd.map(date=>{
+                const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
+                const fut=date>today();const isT=date===today();
+                return h('td',{style:{textAlign:'center'}},fut?'â':did?h('span',{className:'badge b-green'},'Done'):isT?h('span',{className:'badge b-amber'},'Pending'):h('span',{className:'badge b-red'},'Missed'));
+              })
+            )),
+            ...ROSTER.filter(r=>!r.assigned).map(p=>{
+              const anyData=store.rounds.some(r=>getWeekDates().includes(r.roundDate)&&r.rounderName===p.name);
+              if(!anyData)return null;
+              return h('tr',{style:{opacity:'.65'}},
+                h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept+' (Floater)'),
+                ...wd.map(date=>{
+                  const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
+                  return h('td',{style:{textAlign:'center'}},did?h('span',{className:'badge b-green'},'Done'):h('span',{className:'badge b-gray'},'â'));
+                })
+              );
+            }).filter(Boolean)
+          )
+        ));
+      })()
+    ),
+
+    // Rounding Issues (from today)
+    (rs.envIssues.length||rs.resConcerns.length||rs.staffConcerns.length)?h('div',{className:'two-col'},
+      rs.envIssues.length?h('div',{className:'card'},
+        h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð§'),'Environment Issues ('+rs.envIssues.length+')'),
+        h('ul',{className:'issue-list'},...rs.envIssues.map(i=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+i.room),h('span',{className:'issue-text'},i.issue))))
+      ):h('div'),
+      (rs.resConcerns.length||rs.staffConcerns.length)?h('div',null,
+        rs.resConcerns.length?h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¬'),'Resident Concerns ('+rs.resConcerns.length+')'),
+          h('ul',{className:'issue-list'},...rs.resConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
+        ):null,
+        rs.staffConcerns.length?h('div',{className:'card'},
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¥'),'Staff Concerns ('+rs.staffConcerns.length+')'),
+          h('ul',{className:'issue-list'},...rs.staffConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
+        ):null
+      ):h('div')
+    ):null,
+
+    // Survey Compliance
+    D.surveyTags.length?h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð'),'Survey Monitoring Status'),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Tag'),h('th',null,'Description'),h('th',null,'Through'),h('th',null,'Days Left'),h('th',null,'Status'))),
+        h('tbody',null,...D.surveyTags.map(t=>{
+          const cls=t.daysLeft>30?'b-green':t.daysLeft>14?'b-amber':'b-red';
+          return h('tr',null,h('td',{style:{fontWeight:'700'}},t.code),h('td',null,t.description),h('td',null,t.through),h('td',null,String(t.daysLeft)),h('td',null,h('span',{className:'badge '+cls},t.daysLeft>30?'On Track':t.daysLeft>14?'Approaching':'Urgent')));
+        }))
+      )
+    ):null,
+
+    // Action Items (Rounding + Asana combined)
+    (rs.actions.length||D.asanaActions.open.length)?h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'â'),'Action Items'),
+      h('div',{className:'filter-tabs'},
+        ...['all','high','rounding','asana'].map(f=>h('button',{className:'ftab'+(actionFilter===f?' active':''),onClick:()=>{actionFilter=f;render()}},f==='all'?'All':f==='high'?'High Priority':f==='rounding'?'From Rounds':'From Asana'))
+      ),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Item'),h('th',null,'Source'),h('th',null,'Priority'),h('th',null,'Dept/Assignee'))),
+        h('tbody',null,
+          ...rs.actions.filter(a=>actionFilter==='all'||actionFilter==='rounding'||(actionFilter==='high'&&a.priority==='high')).map(a=>
+            h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'â'))
+          ),
+          ...D.asanaActions.open.filter(a=>actionFilter==='all'||actionFilter==='asana'||(actionFilter==='high'&&a.overdueDays>7)).map(a=>
+            h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h(f.room&&f.date):true;
+  return h('div',{className:'page'},h('div',{className:'form-wrap'},
+    h('div',{className:'step-dots'},...steps.map((_,i)=>h('div',{className:'dot'+(i===f.step?' active':i<f.step?' done':'')}))),
+    typeof steps[f.step]==='function'?steps[f.step]():steps[f.step],
+    h('div',{className:'btn-row'},
+      f.step>0?h('button',{className:'btn btn-o',onClick:()=>{f.step--;render()}},'Back'):null,
+      f.step<steps.length-1
+        ?h('button',{className:'btn btn-p',style:{opacity:canNext?1:.5},onClick:()=>{if(canNext){f.step++;render()}}},'Next')
+        :h('button',{className:'btn btn-s',onClick:submitRound},'Submit Round')
+    )
+  ));
+}
+
+function submitRound(){
+  const f=formState;
+  const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),timestamp:new Date().toISOString(),
+    rounderName:f.name,roomNumber:f.room,roundDate:f.date,
+    environment:{...f.env},beds:f.beds.filter(b=>Object.values(b).some(v=>v)),
+    resident:{ableToCheckIn:f.res.able,concerns:f.res.concerns,concernDetails:f.res.concernDetails,discomfort:f.res.discomfort,discomfortDetails:f.res.discomfortDetails,satisfaction:f.res.satisfaction},
+    staff:{checkIn:f.staff.checkIn,concerns:f.staff.concerns,concernDetails:f.staff.details,engaged:f.staff.engaged},
+    actions:f.needsAction==='yes'?f.actions.filter(a=>a.description):[],additionalNotes:f.notes};
+  store.rounds.push(entry);f.submitted=true;
+  showToast('Room '+f.room+' logged!');
+  if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(()=>{});}
+  render();
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââ
+// TAB 3: DATA MANAGEMENT
+// ââââââââââââââââââââââââââââââââââââââââââ
+function renderDataTab(){
+  const fileInput=h('input',{type:'file',accept:'.json',className:'hidden'});
+  fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;importJSON(f,n=>{if(n>0)showToast('Imported '+n+' rounds');else showToast('Import failed')});e.target.value='';});
+
+  const rs=getRoundingStats(today());
+  return h('div',{className:'page'},
+    h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¾'),'Rounds Data Management'),
+      h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
+        ' | Today: ',h('strong',null,String(rs.dr.length)),
+        ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(r=>r.roundDate)).size))
+      ),
+      h('div',{className:'data-actions'},
+        h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
+        h('button',{className:'data-btn',onClick:()=>fileInput.click()},'Import Data (JSON)'),
+        fileInput
+      ),
+      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
+    ),
+    store.rounds.length?h('div',{className:'card'},
+      h('div',{className:'card-hdr'},'Recent Submissions'),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
+        h('tbody',null,...store.rounds.slice(-20).reverse().map(r=>{
+          const envCount=['roomClean','odorFree','bathroomStocked','tempOk','whiteboardCurrent'].filter(f=>r.environment?.[f]==='no').length;
+          return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
+            h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
+            h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
+        }))
+      )
+    ):null
+  );
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââ
+// MAIN RENDER
+// ââââââââââââââââââââââââââââââââââââââââââ
+function render(){
+  const app=document.getElementById('app');app.innerHTML='';
+  const rs=getRoun'Name on door?','nameOnDoor'],['O2 tubing clear?','o2Tubing']].map(([l,k])=>
+        h('div',{className:'toggle-row'},h('span',null,l),mt(bed[k],v=>{bed[k]=v},[{l:'Yes',v:'yes',c:'sy'},{l:'No',v:'no',c:'sn'},{l:'N/A',v:'na',c:'sna'}]))),
+      h('div',{className:'field',style:{marginTop:'8px'}},h('textarea',{placeholder:'Bed notes...',value:bed.notes,rows:'2',onInput:e=>{bed.notes=e.target.value}}))
+    ))
+  ));
+  // S3: Resident
+  steps.push(()=>{
+    const els=[h('div',{className:'section-header'},'Resident Check-In'),h('div',{className:'section-desc'},'Room '+f.room+': How are the residents?'),
+      h('div',{className:'field'},h('label',null,'Able to check in with resident?'),bt(f.res.able,v=>{f.res.able=v},[{l:'Yes',v:'yes',c:'by'},{l:'No (sleeping/away)',v:'no',c:'bn'}]))];
+    if(f.res.able==='yes'){
+      els.push(h('div',{className:'field'},h('label',null,'Any concerns or complaints?'),bt(f.res.concerns,v=>{f.res.concerns=v})));
+      if(f.res.concerns==='yes')els.push(h('div',{className:'field'},h('label',null,'Details'),h('textarea',{placeholder:'Describe...',value:f.res.concernDetails,onInput:e=>{f.res.concernDetails=e.target.value}})));
+      els.push(h('div',{className:'field'},h('label',null,'Signs of discomfort or pain?'),bt(f.res.discomfort,v=>{f.res.discomfort=v})));
+      if(f.res.discomfort==='yes')els.push(h('div',{className:'field'},h('label',null,'Details'),h('textarea',{placeholder:'Describe...',value:f.res.discomfortDetails,onInput:e=>{f.res.discomfortDetails=e.target.value}})));
+      els.push(h('div',{className:'field'},h('label',null,'Overall satisfaction'),h('div',{className:'sat-grid'},...['Satisfied','Mostly Satisfied','Dissatisfied','Could Not Assess'].map(s=>h('button',{className:'sat-btn'+(f.res.satisfaction===s?' sel':''),onClick:()=>{f.res.satisfaction=s;render()}},s)))));
+    }
+    return h('div',{className:'card'},...els);
+  });
+  // S4: Staff
+  steps.push(()=>{
+    const els=[h('div',{className:'section-header'},'Staff Check-In'),h('div',{className:'section-desc'},'Room '+f.room+': Staff observations.'),
+      h('div',{className:'field'},h('label',null,'Able to check in with staff?'),bt(f.staff.checkIn,v=>{f.staff.checkIn=v}))];
+    if(f.staff.checkIn==='yes'){
+      els.push(h('div',{className:'field'},h('label',null,'Concerns, supply needs, or equipment issues?'),bt(f.staff.concerns,v=>{f.staff.concerns=v})));
+      if(f.staff.concerns==='yes')els.push(h('div',{className:'field'},h('label',null,'Details'),h('textarea',{placeholder:'Describe...',value:f.staff.details,onInput:e=>{f.staff.details=e.target.value}})));
+      els.push(h('div',{className:'field'},h('label',null,'Staff appeared engaged?'),bt(f.staff.engaged,v=>{f.staff.engaged=v})));
+    }
+    return h('div',{className:'card'},...els);
+  });
+  // S5: Actions
+  steps.push(()=>{
+    const els=[h('div',{className:'section-header'},'Follow-Up Actions'),h('div',{className:'section-desc'},'Room '+f.room+': Any action items?'),
+      h('div',{className:'field'},h('label',null,'Action items needed?'),bt(f.needsAction,v=>{f.needsAction=v}))];
+    if(f.needsAction==='yes'){
+      f.actions.forEach((a,i)=>{
+        els.push(h('div',{className:'action-card'},h('div',{className:'bed-label'},'Action Item #'+(i+1)),
+          h('div',{className:'field'},h('label',null,'Description'),h('textarea',{placeholder:'What needs to be done...',value:a.description,rows:'2',onInput:e=>{a.description=e.target.value}})),
+          h('div',{className:'field'},h('label',null,'Priority'),h('div',{className:'pri-row'},...[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph']].map(([l,v,c])=>h('button',{className:'pri-btn'+(a.priority===v?' '+c:''),onClick:()=>{a.priority=v;render()}},l)))),
+          h('div',{className:'field'},h('label',null,'Assign to Department'),h('select',{value:a.department,onChange:e=>{a.department=e.target.value;render()}},h('option',{value:''},'Select...'),...DEPTS.map(d=>h('option',{value:d},d))))
+        ));
+      });
+      if(f.actions.length<3)els.push(h('button',{className:'btn btn-o',style:{marginBottom:'12px',fontSize:'14px'},onClick:()=>{f.actions.push({description:'',priority:'',department:''});render()}},'+ Add Action Item'));
+    }
+    els.push(h('div',{className:'field'},h('label',null,'Additional Notes'),h('textarea',{placeholder:'Anything else...',value:f.notes,rows:'2',onInput:e=>{f.notes=e.target.value}})));
+    return h('div',{className:'card'},...els);
+  });
+
+  const canNext=f.step===0?(f.name&&tRoundingStats(today());
+  return h('div',{className:'page'},
+    h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¾'),'Rounds Data Management'),
+      h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
+        ' | Today: ',h('strong',null,String(rs.dr.length)),
+        ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(r=>r.roundDate)).size))
+      ),
+      h('div',{className:'data-actions'},
+        h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
+        h('button',{className:'data-btn',onClick:()=>fileInput.click()},'Import Data (JSON)'),
+        fileInput
+      ),
+      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
+    ),
+    store.rounds.length?h('div',{className:'card'},
+      h('div',{className:'card-hdr'},'Recent Submissions'),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
+        h('tbody',null,...store.rounds.slice(-20).reverse().map(r=>{
+          const envCount=['roomClean','odorFree','bathroomStocked','tempOk','whiteboardCurrent'].filter(f=>r.environment?.[f]==='no').length;
+          return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
+            h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
+            h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
+        }))
+      )
+    ):null
+  );
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââ
+// MAIN RENDER
+// ââââââââââââââââââââââââââââââââââââââââââ
+function render(){
+  const app=document.getElementById('app');app.innerHTML='';
+  const rs=getRountRoundingStats(today());
+  return h('div',{className:'page'},
+    h('div',{className:'card'},
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¾'),'Rounds Data Management'),
+      h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
+        ' | Today: ',h('strong',null,String(rs.dr.length)),
+        ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(r=>r.roundDate)).size))
+      ),
+      h('div',{className:'data-actions'},
+        h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
+        h('button',{className:'data-btn',onClick:()=>fileInput.click()},'Import Data (JSON)'),
+        fileInput
+      ),
+      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
+    ),
+    store.rounds.length?h('div',{className:'card'},
+      h('div',{className:'card-hdr'},'Recent Submissions'),
+      h('table',null,
+        h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
+        h('tbody',null,...store.rounds.slice(-20).reverse().map(r=>{
+          const envCount=['roomClean','odorFree','bathroomStocked','tempOk','whiteboardCurrent'].filter(f=>r.environment?.[f]==='no').length;
+          return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
+            h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
+            h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
+        }))
+      )
+    ):null
+  );
+}
+
+// ââââââââââââââââââââââââââââââââââââââââââ
+// MAIN RENDER
+// ââââââââââââââââââââââââââââââââââââââââââ
+function render(){
+  const app=document.getElementById('app');app.innerHTML='';
+  const rs=getRoundingStats(today());
+  const roundBadge=rs.missing.length?h('span',{className:'tab-badge'},String(rs.missing.length)):null;
+
+  app.appendChild(h('div',{className:'header'},
+    h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board â '+fmtDate(today()))),
+    h('div',{className:'tabs'},
+      h('button',{className:'tab'+(currentTab==='board'?' active':''),onClick:()=>{currentTab='board';render()}},'Board'),
+      h('button',{className:'tab'+(currentTab==='rounds'?' active':''),onClick:()=>{currentTab='rounds';render()}},'Room Rounds',roundBadge),
+      h('button',{className:'tab'+(currentTab==='data'?' active':''),onClick:()=>{currentTab='data';render()}},'Data')
+    )
+  ));
+
+  if(currentTab==='board')app.appendChild(renderBoard());
+  else if(currentTab==='rounds')app.appendChild(renderRoundsForm());
+  else if(currentTab==='data')app.appendChild(renderDataTab());
+
+  if(toastMsg)app.appendChild(h('div',{className:'toast'},toastMsg));
+}
+
+resetForm();render();
+</script>
+</body>
+</html>
