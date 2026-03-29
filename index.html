@@ -5,14 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Morning Star Post Acute â Daily Management Board</title>
+<title>Morning Star Post Acute ‚Äî Daily Management Board</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:10px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 
-/* ââ HEADER ââ */
+/* ‚îÄ‚îÄ HEADER ‚îÄ‚îÄ */
 .header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
 .hdr-left h1{font-size:16px;font-weight:800;letter-spacing:.5px}
 .hdr-left .sub{font-size:11px;opacity:.7;margin-top:1px}
@@ -22,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .tab:hover:not(.active){color:#fff;background:rgba(255,255,255,.12)}
 .tab .tab-badge{background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
 
-/* ââ LAYOUT ââ */
+/* ‚îÄ‚îÄ LAYOUT ‚îÄ‚îÄ */
 .page{max-width:1200px;margin:0 auto;padding:16px}
 .card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
 .card-hdr{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
@@ -30,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 
-/* ââ KPI STRIP ââ */
+/* ‚îÄ‚îÄ KPI STRIP ‚îÄ‚îÄ */
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
 .kpi{background:var(--card);border-radius:var(--radius);padding:14px 10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
@@ -40,20 +41,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .kpi-label{font-size:10px;color:var(--text-light);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .kpi-sub{font-size:11px;color:var(--text-light);margin-top:2px}
 
-/* ââ ALERTS ââ */
+/* ‚îÄ‚îÄ ALERTS ‚îÄ‚îÄ */
 .alert{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .alert-red{background:#fdedec;color:var(--danger);border-left:4px solid var(--danger)}
 .alert-amber{background:#fef9e7;color:#856404;border-left:4px solid var(--warn)}
 .alert-green{background:#eafaf1;color:var(--success);border-left:4px solid var(--success)}
 
-/* ââ TABLES ââ */
+/* ‚îÄ‚îÄ TABLES ‚îÄ‚îÄ */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
 th{font-weight:700;color:var(--text-light);text-transform:uppercase;font-size:10px;letter-spacing:.5px;background:#fafbfc}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
 .b-green{background:#eafaf1;color:var(--success)}.b-red{background:#fdedec;color:var(--danger)}.b-amber{background:#fef9e7;color:var(--warn)}.b-gray{background:#f0f0f0;color:var(--text-light)}.b-blue{background:#eaf2f8;color:var(--primary-light)}
 
-/* ââ AGENDA ââ */
+/* ‚îÄ‚îÄ AGENDA ‚îÄ‚îÄ */
 .agenda-item{padding:10px 0;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:flex-start}
 .agenda-item:last-child{border-bottom:none}
 .agenda-num{background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
@@ -61,19 +62,19 @@ th{font-weight:700;color:var(--text-light);text-transform:uppercase;font-size:10
 .agenda-time{font-size:11px;color:var(--text-light);background:#f0f2f5;padding:1px 6px;border-radius:4px;margin-left:6px}
 .agenda-data{font-size:12px;color:var(--text);margin-top:3px;line-height:1.5}
 
-/* ââ SURVEY TAGS ââ */
+/* ‚îÄ‚îÄ SURVEY TAGS ‚îÄ‚îÄ */
 .tag-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
 .tag-row:last-child{border-bottom:none}
 .tag-code{font-weight:700;min-width:70px}
 .tag-bar{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden}
 .tag-fill{height:100%;border-radius:4px}
 
-/* ââ FILTER TABS ââ */
+/* ‚îÄ‚îÄ FILTER TABS ‚îÄ‚îÄ */
 .filter-tabs{display:flex;gap:4px;margin-bottom:12px}
 .ftab{padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-weight:600;cursor:pointer}
 .ftab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
 
-/* ââ ROOM ROUNDS FORM ââ */
+/* ‚îÄ‚îÄ ROOM ROUNDS FORM ‚îÄ‚îÄ */
 .form-wrap{max-width:600px;margin:0 auto}
 .section-header{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px}
 .section-desc{font-size:13px;color:var(--text-light);margin-bottom:16px}
@@ -83,7 +84,8 @@ th{font-weight:700;color:var(--text-light);text-transform:uppercase;font-size:10
 .field{margin-bottom:14px}
 .field>label{font-size:14px;font-weight:600;margin-bottom:6px;display:block}
 .req{color:var(--danger)}
-select,input[type=text],input[type=date],textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;background:#fff;color:var(--text);-webkit-appearance:none}
+select,input[type=text],input[type=date],textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;background:#fff;color:var(--text)}
+input[type=text],input[type=date],textarea{-webkit-appearance:none}
 select:focus,input:focus,textarea:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(41,128,185,.1)}
 textarea{resize:vertical;min-height:70px}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
@@ -157,14 +159,14 @@ textarea{resize:vertical;min-height:70px}
 <body>
 <div id="app"></div>
 <script>
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// MORNING STAR POST ACUTE â DAILY MANAGEMENT BOARD
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// MORNING STAR POST ACUTE ‚Äî DAILY MANAGEMENT BOARD
 // Includes: Census, OT, Rounding, Showers, Asana Actions,
 //           Survey Compliance, Revenue Rates, Standup Agenda,
 //           + NEW: Room Rounds Form
-// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 
-// ââ CONFIG: Populated by the daily-management-board skill each morning ââ
+// ‚îÄ‚îÄ CONFIG: Populated by the daily-management-board skill each morning ‚îÄ‚îÄ
 // These values are placeholders. The skill replaces them with live data.
 const BOARD_DATA = {
   generatedAt: new Date().toLocaleString(),
@@ -189,7 +191,7 @@ const BOARD_DATA = {
   staffing: { callOffs: '--', agencyUse: '--' }
 };
 
-// ââ ROSTER ââ
+// ‚îÄ‚îÄ ROSTER ‚îÄ‚îÄ
 const ROSTER=[
 {name:"Regine Davenport",dept:"Admissions",rooms:["1","2","3","4"],assigned:true},
 {name:"Valerie Estrada",dept:"Activities",rooms:["5"],assigned:true},
@@ -210,37 +212,109 @@ const ALL_ROOMS=["1","2","3","4","5","6","7","8","9","10","11","12","14","15","1
 const DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
 const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
 
+// ‚îÄ‚îÄ SUPABASE CLIENT ‚îÄ‚îÄ
+const SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbnVkc2h1dHh3aWR4ZHRvdXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjQwMjEsImV4cCI6MjA5MDA0MDAyMX0.NGy8o0y5CKh_QGGLeGs34cIWbbpHZ59mTgCk2kVeikw';
+const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
 const today=()=>new Date().toISOString().split('T')[0];
 const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 const dayOfWeek=()=>new Date().toLocaleDateString('en-US',{weekday:'long'});
 
-// ââ DATA STORE ââ
+// ‚îÄ‚îÄ DATA STORE ‚îÄ‚îÄ
 let store={rounds:[]};
+let supabaseLoaded=false;
 function exportJSON(){const b=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rounds-'+today()+'.json';a.click()}
 function importJSON(file,cb){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.rounds){store=d;cb(d.rounds.length)}else cb(-1)}catch(x){cb(-1)}};r.readAsText(file)}
 
-// ââ APP STATE ââ
+// ‚îÄ‚îÄ LOAD ROUNDS FROM SUPABASE ‚îÄ‚îÄ
+async function loadRounds(){
+  if(!sb)return;
+  try{
+    // Get Monday of current week
+    const wd=getWeekDates();
+    const weekStart=wd[0]+'T00:00:00';
+    const weekEnd=wd[4]+'T23:59:59';
+
+    const{data,error}=await sb.from('rounding_observations')
+      .select('id,timestamp,observer_name,observer_role,location,category,observation,severity,action_needed,action_description,source')
+      .gte('timestamp',weekStart)
+      .lte('timestamp',weekEnd)
+      .order('timestamp',{ascending:true});
+
+    if(error){console.error('Supabase load error:',error);return}
+    if(!data||!data.length)return;
+
+    // Group by observer+date+room to reconstruct round entries
+    const roundMap={};
+    data.forEach(obs=>{
+      const date=obs.timestamp.split('T')[0];
+      const room=(obs.location||'').replace('Room ','');
+      const key=obs.observer_name+'|'+date+'|'+room;
+      if(!roundMap[key]){
+        roundMap[key]={
+          id:'sb-'+obs.id,
+          timestamp:obs.timestamp,
+          rounderName:obs.observer_name,
+          roomNumber:room,
+          roundDate:date,
+          environment:{},
+          beds:[],
+          resident:{},
+          staff:{},
+          actions:[],
+          _observations:[obs]
+        };
+      }else{
+        roundMap[key]._observations.push(obs);
+      }
+      // If observation has action items, add them
+      if(obs.action_needed&&obs.action_description){
+        roundMap[key].actions.push({description:obs.action_description,priority:obs.severity==='urgent'?'high':'medium',department:obs.observer_role||''});
+      }
+    });
+
+    // Merge Supabase rounds into store without duplicating
+    const existingKeys=new Set(store.rounds.map(r=>r.rounderName+'|'+r.roundDate+'|'+r.roomNumber));
+    Object.values(roundMap).forEach(r=>{
+      const key=r.rounderName+'|'+r.roundDate+'|'+r.roomNumber;
+      if(!existingKeys.has(key)){
+        store.rounds.push(r);
+        existingKeys.add(key);
+      }
+    });
+
+    supabaseLoaded=true;
+    render();
+  }catch(e){console.error('loadRounds error:',e)}
+}
+
+// ‚îÄ‚îÄ APP STATE ‚îÄ‚îÄ
 let currentTab='board';
 let formState=null;
 let toastMsg='';let toastTimer=null;
 let actionFilter='all';
 function showToast(m){toastMsg=m;render();clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastMsg='';render()},2500)}
 
-// ââ DOM HELPER ââ
+// ‚îÄ‚îÄ DOM HELPER ‚îÄ‚îÄ
 function h(tag,a,...ch){
   const el=document.createElement(tag);
+  let deferValue;
   if(a)Object.entries(a).forEach(([k,v])=>{
     if(k==='className')el.className=v;
     else if(k==='style'&&typeof v==='object')Object.assign(el.style,v);
     else if(k.startsWith('on'))el.addEventListener(k.slice(2).toLowerCase(),v);
     else if(k==='innerHTML')el.innerHTML=v;
+    else if(k==='value'){deferValue=v}
+    else if(k==='checked'){el.checked=v}
     else el.setAttribute(k,v);
   });
   ch.flat(Infinity).forEach(c=>{if(c!=null&&c!==false)el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c)});
+  if(deferValue!==undefined)el.value=deferValue;
   return el;
 }
 
-// ââ ROUNDING ANALYTICS (computed from store) ââ
+// ‚îÄ‚îÄ ROUNDING ANALYTICS (computed from store) ‚îÄ‚îÄ
 function getRoundingStats(date){
   const dr=store.rounds.filter(r=>r.roundDate===date);
   const names=new Set(dr.map(r=>r.rounderName));
@@ -273,9 +347,9 @@ function getWeekDates(refDate){
   return dates;
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 // TAB 1: MAIN BOARD (all metrics)
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 function renderBoard(){
   const D=BOARD_DATA;
   const rs=getRoundingStats(today());
@@ -294,7 +368,7 @@ function renderBoard(){
   if(rs.missing.length>0)alerts.push({type:rs.missing.length>2?'alert-red':'alert-amber',msg:'\u26A0 Missing rounders ('+rs.missing.length+'): '+rs.missing.map(m=>m.name).join(', ')});
   if(highActions>0)alerts.push({type:'alert-red',msg:'\uD83D\uDEA8 '+highActions+' HIGH priority action item'+(highActions>1?'s':'')+' from today\'s rounds'});
   if(D.asanaActions.criticalOverdue>0)alerts.push({type:'alert-red',msg:'\u{23F0} '+D.asanaActions.criticalOverdue+' Asana task'+(D.asanaActions.criticalOverdue>1?'s':'')+' overdue > 7 days'});
-  if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'\uD83D\uDCE2 Monday â Weekly 2 PM huddle announcement goes out today'});
+  if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'\uD83D\uDCE2 Monday ‚Äî Weekly 2 PM huddle announcement goes out today'});
 
   return h('div',{className:'page'},
     // KPI Strip
@@ -315,13 +389,13 @@ function renderBoard(){
       h('div',null,
         // Standup Agenda (compact)
         h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð'),'Standup Agenda â SWI v2.0'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üìã'),'Standup Agenda ‚Äî SWI v2.0'),
           ...[
-            {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment â quote, value, shout-out'},
-            {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only â report if any'},
+            {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment ‚Äî quote, value, shout-out'},
+            {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only ‚Äî report if any'},
             {n:3,t:'Census & Flow',tm:'2 min',d:'Census: '+D.census.current+'/'+D.census.beds+' | Admits: '+D.census.admitsToday+' | DC: '+D.census.dischargesToday+' | Pending: '+D.census.pending},
             {n:4,t:'Staffing & Labor',tm:'1 min',d:'Call-offs: '+D.staffing.callOffs+' | OT flags: '+D.ot.mtdHrs+' MTD'},
-            {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds â '+rs.actions.filter(a=>a.priority==='high').map(a=>'Rm '+a.room).join(', '):'No escalations from rounds'},
+            {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds ‚Äî '+rs.actions.filter(a=>a.priority==='high').map(a=>'Rm '+a.room).join(', '):'No escalations from rounds'},
             {n:6,t:'Commitments & Close',tm:'1 min',d:'Each DH states one commitment'}
           ].map(s=>h('div',{className:'agenda-item'},
             h('div',{className:'agenda-num'},String(s.n)),
@@ -333,7 +407,7 @@ function renderBoard(){
         ),
         // Census Detail
         h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¥'),'Census & Flow'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üè•'),'Census & Flow'),
           h('table',null,
             h('tbody',null,
               ...([['Current Census',D.census.current+' / '+D.census.beds],['Occupancy',D.census.occupancyPct],['Budget ADC',D.census.budgetADC],['Admits Today',D.census.admitsToday],['Discharges Today',D.census.dischargesToday],['Pending Admits',D.census.pending]].map(([k,v])=>
@@ -347,7 +421,7 @@ function renderBoard(){
       h('div',null,
         // Revenue Rates
         h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð°'),'Revenue Rate Reference'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üí∞'),'Revenue Rate Reference'),
           h('table',null,
             h('thead',null,h('tr',null,h('th',null,'Payer'),h('th',null,'PPD Rate'))),
             h('tbody',null,
@@ -360,7 +434,7 @@ function renderBoard(){
         ),
         // OT Breakdown
         h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'â±ï¸'),'Overtime Breakdown'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'‚è±Ô∏è'),'Overtime Breakdown'),
           h('table',null,
             h('tbody',null,
               h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday'),h('td',null,String(D.ot.yesterdayHrs)+' hrs')),
@@ -376,7 +450,7 @@ function renderBoard(){
         ),
         // Shower Snapshot
         h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¿'),'Shower Compliance'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üöø'),'Shower Compliance'),
           h('table',null,h('tbody',null,
             h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday Rate'),h('td',null,String(D.showers.yesterdayRate))),
             h('tr',null,h('td',{style:{fontWeight:'600'}},'Refusals'),h('td',null,String(D.showers.refusals))),
@@ -391,7 +465,7 @@ function renderBoard(){
 
     // Rounding Compliance Grid
     h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð£'),'Rounding Compliance â This Week'),
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üë£'),'Rounding Compliance ‚Äî This Week'),
       (()=>{
         const wd=getWeekDates();const dls=['Mon','Tue','Wed','Thu','Fri'];
         return h('div',{style:{overflowX:'auto'}},h('table',null,
@@ -402,7 +476,7 @@ function renderBoard(){
               ...wd.map(date=>{
                 const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
                 const fut=date>today();const isT=date===today();
-                return h('td',{style:{textAlign:'center'}},fut?'â':did?h('span',{className:'badge b-green'},'Done'):isT?h('span',{className:'badge b-amber'},'Pending'):h('span',{className:'badge b-red'},'Missed'));
+                return h('td',{style:{textAlign:'center'}},fut?'‚Äî':did?h('span',{className:'badge b-green'},'Done'):isT?h('span',{className:'badge b-amber'},'Pending'):h('span',{className:'badge b-red'},'Missed'));
               })
             )),
             ...ROSTER.filter(r=>!r.assigned).map(p=>{
@@ -412,7 +486,7 @@ function renderBoard(){
                 h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept+' (Floater)'),
                 ...wd.map(date=>{
                   const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
-                  return h('td',{style:{textAlign:'center'}},did?h('span',{className:'badge b-green'},'Done'):h('span',{className:'badge b-gray'},'â'));
+                  return h('td',{style:{textAlign:'center'}},did?h('span',{className:'badge b-green'},'Done'):h('span',{className:'badge b-gray'},'‚Äî'));
                 })
               );
             }).filter(Boolean)
@@ -424,16 +498,16 @@ function renderBoard(){
     // Rounding Issues (from today)
     (rs.envIssues.length||rs.resConcerns.length||rs.staffConcerns.length)?h('div',{className:'two-col'},
       rs.envIssues.length?h('div',{className:'card'},
-        h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð§'),'Environment Issues ('+rs.envIssues.length+')'),
+        h('div',{className:'card-hdr'},h('span',{className:'icon'},'üîß'),'Environment Issues ('+rs.envIssues.length+')'),
         h('ul',{className:'issue-list'},...rs.envIssues.map(i=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+i.room),h('span',{className:'issue-text'},i.issue))))
       ):h('div'),
       (rs.resConcerns.length||rs.staffConcerns.length)?h('div',null,
         rs.resConcerns.length?h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¬'),'Resident Concerns ('+rs.resConcerns.length+')'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üí¨'),'Resident Concerns ('+rs.resConcerns.length+')'),
           h('ul',{className:'issue-list'},...rs.resConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
         ):null,
         rs.staffConcerns.length?h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¥'),'Staff Concerns ('+rs.staffConcerns.length+')'),
+          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üë•'),'Staff Concerns ('+rs.staffConcerns.length+')'),
           h('ul',{className:'issue-list'},...rs.staffConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
         ):null
       ):h('div')
@@ -441,7 +515,7 @@ function renderBoard(){
 
     // Survey Compliance
     D.surveyTags.length?h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð'),'Survey Monitoring Status'),
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üìã'),'Survey Monitoring Status'),
       h('table',null,
         h('thead',null,h('tr',null,h('th',null,'Tag'),h('th',null,'Description'),h('th',null,'Through'),h('th',null,'Days Left'),h('th',null,'Status'))),
         h('tbody',null,...D.surveyTags.map(t=>{
@@ -453,7 +527,7 @@ function renderBoard(){
 
     // Action Items (Rounding + Asana combined)
     (rs.actions.length||D.asanaActions.open.length)?h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'â'),'Action Items'),
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'‚úÖ'),'Action Items'),
       h('div',{className:'filter-tabs'},
         ...['all','high','rounding','asana'].map(f=>h('button',{className:'ftab'+(actionFilter===f?' active':''),onClick:()=>{actionFilter=f;render()}},f==='all'?'All':f==='high'?'High Priority':f==='rounding'?'From Rounds':'From Asana'))
       ),
@@ -461,23 +535,23 @@ function renderBoard(){
         h('thead',null,h('tr',null,h('th',null,'Item'),h('th',null,'Source'),h('th',null,'Priority'),h('th',null,'Dept/Assignee'))),
         h('tbody',null,
           ...rs.actions.filter(a=>actionFilter==='all'||actionFilter==='rounding'||(actionFilter==='high'&&a.priority==='high')).map(a=>
-            h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'â'))
+            h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'‚Äî'))
           ),
           ...D.asanaActions.open.filter(a=>actionFilter==='all'||actionFilter==='asana'||(actionFilter==='high'&&a.overdueDays>7)).map(a=>
-            h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h('td',null,h('span',{className:'badge b-gray'},'Asana')),h('td',null,a.overdueDays>0?h('span',{className:'badge b-red'},a.overdueDays+'d overdue'):h('span',{className:'badge b-green'},'On track')),h('td',null,a.assignee||'â'))
+            h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h('td',null,h('span',{className:'badge b-gray'},'Asana')),h('td',null,a.overdueDays>0?h('span',{className:'badge b-red'},a.overdueDays+'d overdue'):h('span',{className:'badge b-green'},'On track')),h('td',null,a.assignee||'‚Äî'))
           )
         )
       )
     ):null,
 
     // Footer
-    h('div',{className:'footer'},'Generated by Claude for Morning Star Post Acute â '+BOARD_DATA.generatedAt)
+    h('div',{className:'footer'},'Generated by Claude for Morning Star Post Acute ‚Äî '+BOARD_DATA.generatedAt)
   );
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 // TAB 2: ROOM ROUNDS FORM
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 function resetForm(keepName){
   formState={step:0,submitted:false,name:keepName||'',room:'',date:today(),
     env:{roomClean:'',odorFree:'',bathroomStocked:'',tempOk:'',nameOnDoorCorrect:'',notes:''},
@@ -510,7 +584,7 @@ function renderRoundsForm(){
   steps.push(()=>h('div',{className:'card'},
     h('div',{className:'section-header'},'Who & Where'),h('div',{className:'section-desc'},'Identify yourself and the room.'),
     h('div',{className:'field'},h('label',null,'Your Name ',h('span',{className:'req'},'*')),
-      h('select',{value:f.name,onChange:e=>{f.name=e.target.value;render()}},h('option',{value:''},'Select your name...'),...ROSTER.map(r=>h('option',{value:r.name},r.name+' â '+r.dept)))),
+      h('select',{value:f.name,onChange:e=>{f.name=e.target.value;render()}},h('option',{value:''},'Select your name...'),...ROSTER.map(r=>h('option',{value:r.name},r.name+' ‚Äî '+r.dept)))),
     h('div',{className:'field'},h('label',null,'Room Number ',h('span',{className:'req'},'*')),
       h('select',{value:f.room,onChange:e=>{f.room=e.target.value;render()}},h('option',{value:''},'Select room...'),...ALL_ROOMS.map(r=>{
         const p=ROSTER.find(x=>x.name===f.name);return h('option',{value:r},'Room '+r+(p&&p.rooms.includes(r)?' \u2605':''))}))),
@@ -518,14 +592,14 @@ function renderRoundsForm(){
   ));
   // S1: Env Room
   steps.push(()=>h('div',{className:'card'},
-    h('div',{className:'section-header'},'Environment â Room Level'),h('div',{className:'section-desc'},'Room '+f.room+': Overall conditions.'),
+    h('div',{className:'section-header'},'Environment ‚Äî Room Level'),h('div',{className:'section-desc'},'Room '+f.room+': Overall conditions.'),
     ...[['Room clean & tidy?','roomClean'],['Odor-free?','odorFree'],['Bathroom stocked?','bathroomStocked'],['Temperature comfortable?','tempOk'],['Name on door correct?','nameOnDoorCorrect']].map(([l,k])=>
       h('div',{className:'toggle-row'},h('span',null,l),mt(f.env[k],v=>{f.env[k]=v}))),
     h('div',{className:'field',style:{marginTop:'12px'}},h('label',null,'Notes'),h('textarea',{placeholder:'Environment notes...',value:f.env.notes,rows:'2',onInput:e=>{f.env.notes=e.target.value}}))
   ));
   // S2: Env Beds
   steps.push(()=>h('div',{className:'card'},
-    h('div',{className:'section-header'},'Environment â Per Bed'),h('div',{className:'section-desc'},'Room '+f.room+': Check each bed.'),
+    h('div',{className:'section-header'},'Environment ‚Äî Per Bed'),h('div',{className:'section-desc'},'Room '+f.room+': Check each bed.'),
     ...f.beds.map((bed,i)=>h('div',{className:'bed-card'},h('div',{className:'bed-label'},'Bed '+(i===0?'A (Window)':'B (Door)')),
       ...[['Call light within reach?','callLight'],['Personal items accessible?','personalItems'],['Name on door?','nameOnDoor'],['O2 tubing clear?','o2Tubing']].map(([l,k])=>
         h('div',{className:'toggle-row'},h('span',null,l),mt(bed[k],v=>{bed[k]=v},[{l:'Yes',v:'yes',c:'sy'},{l:'No',v:'no',c:'sn'},{l:'N/A',v:'na',c:'sna'}]))),
@@ -587,7 +661,7 @@ function renderRoundsForm(){
   ));
 }
 
-function submitRound(){
+async function submitRound(){
   const f=formState;
   const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),timestamp:new Date().toISOString(),
     rounderName:f.name,roomNumber:f.room,roundDate:f.date,
@@ -597,13 +671,110 @@ function submitRound(){
     actions:f.needsAction==='yes'?f.actions.filter(a=>a.description):[],additionalNotes:f.notes};
   store.rounds.push(entry);f.submitted=true;
   showToast('Room '+f.room+' logged!');
-  if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(()=>{});}
   render();
+
+  // ‚îÄ‚îÄ Write to Supabase ‚îÄ‚îÄ
+  if(sb){
+    try{
+      // Derive observer role from roster
+      const rosterEntry=ROSTER.find(r=>r.name===entry.rounderName);
+      const role=rosterEntry?rosterEntry.dept:'';
+
+      // Build observation summaries from the round data
+      const observations=[];
+      const env=entry.environment||{};
+      const envIssues=[];
+      if(env.roomClean==='no')envIssues.push('Room not clean');
+      if(env.odorFree==='no')envIssues.push('Odor present');
+      if(env.bathroomStocked==='no')envIssues.push('Bathroom not stocked');
+      if(env.tempOk==='no')envIssues.push('Temperature issue');
+      if(env.nameOnDoorCorrect==='no')envIssues.push('Name on door incorrect');
+      (entry.beds||[]).forEach((b,i)=>{
+        const lbl='Bed '+(i===0?'A':'B')+': ';
+        if(b.callLight==='no')envIssues.push(lbl+'call light not in reach');
+        if(b.personalItems==='no')envIssues.push(lbl+'personal items not accessible');
+        if(b.nameOnDoor==='no')envIssues.push(lbl+'name on door issue');
+        if(b.o2Tubing==='no')envIssues.push(lbl+'O2 tubing issue');
+      });
+
+      // Environment observation (always log one per round)
+      const envNotes=[...envIssues];
+      if(env.notes)envNotes.push(env.notes);
+      (entry.beds||[]).forEach((b,i)=>{if(b.notes)envNotes.push('Bed '+(i===0?'A':'B')+': '+b.notes)});
+
+      observations.push({
+        timestamp:entry.timestamp,
+        observer_name:entry.rounderName,
+        observer_role:role,
+        department:role,
+        location:'Room '+entry.roomNumber,
+        category:envIssues.length?'safety':'quality',
+        observation:envNotes.length?envNotes.join('; '):'Room '+entry.roomNumber+' ‚Äî all clear',
+        severity:envIssues.length>2?'concern':envIssues.length?'info':'info',
+        action_needed:false,
+        source:'web_app'
+      });
+
+      // Resident concern observation
+      const res=entry.resident||{};
+      if(res.concerns==='yes'||res.discomfort==='yes'){
+        const details=[];
+        if(res.concerns==='yes'&&res.concernDetails)details.push('Concern: '+res.concernDetails);
+        if(res.discomfort==='yes'&&res.discomfortDetails)details.push('Discomfort: '+res.discomfortDetails);
+        observations.push({
+          timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+          location:'Room '+entry.roomNumber,category:'quality',
+          observation:details.join('; ')||'Resident concern noted',
+          severity:res.discomfort==='yes'?'concern':'info',
+          action_needed:true,action_description:details.join('; '),source:'web_app'
+        });
+      }
+
+      // Staff concern observation
+      const stf=entry.staff||{};
+      if(stf.concerns==='yes'||stf.engaged==='no'){
+        const details=[];
+        if(stf.concerns==='yes'&&stf.concernDetails)details.push(stf.concernDetails);
+        if(stf.engaged==='no')details.push('Staff not engaged');
+        observations.push({
+          timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+          location:'Room '+entry.roomNumber,category:'people',
+          observation:details.join('; ')||'Staff concern noted',
+          severity:'concern',action_needed:true,action_description:details.join('; '),source:'web_app'
+        });
+      }
+
+      // Insert all observations
+      const{data:obsData,error:obsErr}=await sb.from('rounding_observations').insert(observations).select('id');
+      if(obsErr)console.error('Supabase obs error:',obsErr);
+
+      // Insert action items
+      const actionItems=(entry.actions||[]).filter(a=>a.description);
+      if(actionItems.length>0&&obsData&&obsData.length>0){
+        const aiRows=actionItems.map(a=>({
+          title:a.description,
+          description:'Room '+entry.roomNumber+': '+a.description,
+          category:a.department==='Nursing'?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
+          source_type:'rounding',
+          source_id:obsData[0].id,
+          assigned_to:a.department||entry.rounderName,
+          due_date:new Date(Date.now()+3*86400000).toISOString().split('T')[0],
+          status:'open',
+          priority:a.priority==='high'?'high':a.priority==='low'?'low':'normal'
+        }));
+        const{error:aiErr}=await sb.from('action_items').insert(aiRows);
+        if(aiErr)console.error('Supabase action_items error:',aiErr);
+      }
+    }catch(e){console.error('Supabase submit error:',e)}
+  }
+
+  // ‚îÄ‚îÄ Fallback: Apps Script (fire-and-forget during transition) ‚îÄ‚îÄ
+  if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(()=>{});}
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 // TAB 3: DATA MANAGEMENT
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 function renderDataTab(){
   const fileInput=h('input',{type:'file',accept:'.json',className:'hidden'});
   fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;importJSON(f,n=>{if(n>0)showToast('Imported '+n+' rounds');else showToast('Import failed')});e.target.value='';});
@@ -611,7 +782,7 @@ function renderDataTab(){
   const rs=getRoundingStats(today());
   return h('div',{className:'page'},
     h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'ð¾'),'Rounds Data Management'),
+      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üíæ'),'Rounds Data Management'),
       h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
         ' | Today: ',h('strong',null,String(rs.dr.length)),
         ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(r=>r.roundDate)).size))
@@ -638,16 +809,16 @@ function renderDataTab(){
   );
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 // MAIN RENDER
-// ââââââââââââââââââââââââââââââââââââââââââ
+// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
 function render(){
   const app=document.getElementById('app');app.innerHTML='';
   const rs=getRoundingStats(today());
   const roundBadge=rs.missing.length?h('span',{className:'tab-badge'},String(rs.missing.length)):null;
 
   app.appendChild(h('div',{className:'header'},
-    h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board â '+fmtDate(today()))),
+    h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board ‚Äî '+fmtDate(today()))),
     h('div',{className:'tabs'},
       h('button',{className:'tab'+(currentTab==='board'?' active':''),onClick:()=>{currentTab='board';render()}},'Board'),
       h('button',{className:'tab'+(currentTab==='rounds'?' active':''),onClick:()=>{currentTab='rounds';render()}},'Room Rounds',roundBadge),
@@ -662,7 +833,7 @@ function render(){
   if(toastMsg)app.appendChild(h('div',{className:'toast'},toastMsg));
 }
 
-resetForm();render();
+resetForm();render();loadRounds();
 </script>
 </body>
 </html>
