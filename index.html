@@ -1,18 +1,18 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Morning Star Post Acute ‚Äî Daily Management Board</title>
+<title>Morning Star Post Acute - Daily Management Board</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:10px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
-/* ‚îÄ‚îÄ HEADER ‚îÄ‚îÄ */
+/* HEADER */
 .header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
 .hdr-left h1{font-size:16px;font-weight:800;letter-spacing:.5px}
 .hdr-left .sub{font-size:11px;opacity:.7;margin-top:1px}
@@ -21,14 +21,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .tab.active{background:#fff;color:var(--primary)}
 .tab:hover:not(.active){color:#fff;background:rgba(255,255,255,.12)}
 .tab .tab-badge{background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
-/* ‚îÄ‚îÄ LAYOUT ‚îÄ‚îÄ */
+/* LAYOUT */
 .page{max-width:1200px;margin:0 auto;padding:16px}
 .card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
 .card-hdr{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .card-hdr .icon{font-size:16px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-/* ‚îÄ‚îÄ KPI STRIP ‚îÄ‚îÄ */
+/* KPI STRIP */
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
 .kpi{background:var(--card);border-radius:var(--radius);padding:14px 10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
@@ -37,35 +37,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .kpi.green .kpi-val{color:var(--success)}.kpi.amber .kpi-val{color:var(--warn)}.kpi.red .kpi-val{color:var(--danger)}.kpi.blue .kpi-val{color:var(--primary-light)}
 .kpi-label{font-size:10px;color:var(--text-light);margin-top:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .kpi-sub{font-size:11px;color:var(--text-light);margin-top:2px}
-/* ‚îÄ‚îÄ ALERTS ‚îÄ‚îÄ */
+/* ALERTS */
 .alert{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .alert-red{background:#fdedec;color:var(--danger);border-left:4px solid var(--danger)}
 .alert-amber{background:#fef9e7;color:#856404;border-left:4px solid var(--warn)}
 .alert-green{background:#eafaf1;color:var(--success);border-left:4px solid var(--success)}
-/* ‚îÄ‚îÄ TABLES ‚îÄ‚îÄ */
+/* TABLES */
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
 th{font-weight:700;color:var(--text-light);text-transform:uppercase;font-size:10px;letter-spacing:.5px;background:#fafbfc}
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
 .b-green{background:#eafaf1;color:var(--success)}.b-red{background:#fdedec;color:var(--danger)}.b-amber{background:#fef9e7;color:var(--warn)}.b-gray{background:#f0f0f0;color:var(--text-light)}.b-blue{background:#eaf2f8;color:var(--primary-light)}
-/* ‚îÄ‚îÄ AGENDA ‚îÄ‚îÄ */
+/* AGENDA */
 .agenda-item{padding:10px 0;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:flex-start}
 .agenda-item:last-child{border-bottom:none}
 .agenda-num{background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
 .agenda-title{font-weight:700;font-size:13px}
 .agenda-time{font-size:11px;color:var(--text-light);background:#f0f2f5;padding:1px 6px;border-radius:4px;margin-left:6px}
 .agenda-data{font-size:12px;color:var(--text);margin-top:3px;line-height:1.5}
-/* ‚îÄ‚îÄ SURVEY TAGS ‚îÄ‚îÄ */
+/* SURVEY TAGS */
 .tag-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
 .tag-row:last-child{border-bottom:none}
 .tag-code{font-weight:700;min-width:70px}
 .tag-bar{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden}
 .tag-fill{height:100%;border-radius:4px}
-/* ‚îÄ‚îÄ FILTER TABS ‚îÄ‚îÄ */
+/* FILTER TABS */
 .filter-tabs{display:flex;gap:4px;margin-bottom:12px}
 .ftab{padding:6px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:12px;font-weight:600;cursor:pointer}
 .ftab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
-/* ‚îÄ‚îÄ ROOM ROUNDS FORM ‚îÄ‚îÄ */
+/* ROOM ROUNDS FORM */
 .form-wrap{max-width:600px;margin:0 auto}
 .section-header{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px}
 .section-desc{font-size:13px;color:var(--text-light);margin-bottom:16px}
@@ -92,6 +92,7 @@ textarea{resize:vertical;min-height:70px}
 .big-btn:active{transform:scale(.97)}
 .big-btn.by{border-color:var(--success);background:#eafaf1;color:var(--success)}
 .big-btn.bn{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.big-btn.sna{border-color:var(--text-light);background:#f0f0f0;color:var(--text-light)}
 .sat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sat-btn{padding:12px 8px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
 .sat-btn.sel{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
@@ -100,42 +101,41 @@ textarea{resize:vertical;min-height:70px}
 .pri-btn.pl{border-color:var(--success);background:#eafaf1;color:var(--success)}
 .pri-btn.pm{border-color:var(--warn);background:#fef9e7;color:var(--warn)}
 .pri-btn.ph{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.pri-btn.pu{border-color:#8e44ad;background:#f4ecf7;color:#8e44ad}
 .bed-card{background:#f8f9fa;border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
 .bed-label{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:10px}
 .action-card{background:#f8f9fa;border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
-/* ‚îÄ‚îÄ CHECKLIST ITEMS ‚îÄ‚îÄ */
+/* CHECKLIST ITEMS */
 .checklist-item{display:flex;align-items:center;padding:12px;border:2px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:.2s;background:#fff}
 .checklist-item:hover{border-color:var(--primary-light)}
 .checklist-item.checked{border-color:var(--success);background:#f0faf5}
 .check-icon{width:24px;height:24px;border-radius:50%;border:2px solid #bdc3c7;margin-right:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s;font-size:12px;color:transparent}
 .checklist-item.checked .check-icon{background:var(--success);border-color:var(--success);color:#fff}
 .checklist-item .item-text{font-size:14px;font-weight:500}
-/* ‚îÄ‚îÄ BED TABS (environment + resident) ‚îÄ‚îÄ */
+/* BED TABS */
 .bed-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--border)}
 .bed-tab{padding:8px 14px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;position:relative}
 .bed-tab:hover{border-color:var(--primary-light)}
 .bed-tab.active{border-color:var(--primary);background:var(--primary);color:#fff}
 .bed-tab.done::after{content:"\2713";position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--success);color:#fff;border-radius:50%;font-size:11px;line-height:18px;text-align:center}
 .bed-tab-gold.active{border-color:var(--accent);background:var(--accent);color:#fff}
-/* ‚îÄ‚îÄ RESIDENT CARD ‚îÄ‚îÄ */
+/* RESIDENT CARD */
 .resident-card{display:none;animation:fadeUp .3s}
 .resident-card.active-card{display:block}
 .resident-card-header{background:linear-gradient(135deg,#f0f7fc,#e8f0fe);padding:10px 14px;border-radius:8px;margin-bottom:14px;font-weight:700;color:var(--primary);font-size:15px}
-/* ‚îÄ‚îÄ CONCERN CHECKLIST ‚îÄ‚îÄ */
+/* CONCERN CHECKLIST */
 .concern-item{display:flex;align-items:center;padding:10px 12px;border:2px solid #f8d7da;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:.2s;background:#fff}
 .concern-item:hover{border-color:var(--danger)}
 .concern-item.checked{border-color:var(--danger);background:#fdedec}
 .concern-item .check-icon{border-color:#e0b4b4}
 .concern-item.checked .check-icon{background:var(--danger);border-color:var(--danger);color:#fff}
-/* ‚îÄ‚îÄ HEART BADGE ‚îÄ‚îÄ */
+/* HEART BADGE */
 .heart-badge{display:inline-block;background:rgba(230,126,34,.12);color:var(--accent);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;margin-top:8px;letter-spacing:.5px}
-/* ‚îÄ‚îÄ PRIORITY URGENT ‚îÄ‚îÄ */
-.pri-btn.pu{border-color:#8e44ad;background:#f4ecf7;color:#8e44ad}
-/* ‚îÄ‚îÄ ROOM FEEL RATING ‚îÄ‚îÄ */
+/* ROOM FEEL RATING */
 .feel-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .feel-btn{padding:12px 8px;border:2px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:.2s}
 .feel-btn.sel{border-color:var(--success);background:#eafaf1;color:var(--success)}
-/* ‚îÄ‚îÄ ENV SECTION BLOCKS ‚îÄ‚îÄ */
+/* ENV SECTION BLOCKS */
 .env-block{border-radius:8px;padding:14px;margin-bottom:14px}
 .env-block-room{background:#f8fbfe;border-left:3px solid var(--primary-light)}
 .env-block-bed{background:#fdf8f0;border-left:3px solid var(--accent)}
@@ -174,50 +174,49 @@ textarea{resize:vertical;min-height:70px}
 /* Chart container */
 .chart-wrap{position:relative;height:180px;margin-top:8px}
 @media(max-width:768px){
-  .two-col,.three-col{grid-template-columns:1fr}
-  .kpi-strip{grid-template-columns:repeat(2,1fr)}
-  .kpi-strip .kpi:last-child{grid-column:span 2}
-  .header{flex-direction:column;gap:8px;align-items:stretch;padding:10px 14px}
-  .tabs{justify-content:center;flex-wrap:wrap}
-  .tab{padding:6px 10px;font-size:11px}
+ .two-col,.three-col{grid-template-columns:1fr}
+ .kpi-strip{grid-template-columns:repeat(2,1fr)}
+ .kpi-strip .kpi:last-child{grid-column:span 2}
+ .header{flex-direction:column;gap:8px;align-items:stretch;padding:10px 14px}
+ .tabs{justify-content:center;flex-wrap:wrap}
+ .tab{padding:6px 10px;font-size:11px}
 }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
-// MORNING STAR POST ACUTE ‚Äî DAILY MANAGEMENT BOARD
+// ====================================================================
+// MORNING STAR POST ACUTE - DAILY MANAGEMENT BOARD
 // Includes: Census, OT, Rounding, Showers, Asana Actions,
-//           Survey Compliance, Revenue Rates, Standup Agenda,
-//           + NEW: Room Rounds Form
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
-// ‚îÄ‚îÄ CONFIG: Populated by the daily-management-board skill each morning ‚îÄ‚îÄ
+// Survey Compliance, Revenue Rates, Standup Agenda,
+// + Room Rounds Form
+// ====================================================================
+// -- CONFIG: Populated by the daily-management-board skill each morning --
 // These values are placeholders. The skill replaces them with live data.
-const BOARD_DATA = {
-  generatedAt: new Date().toLocaleString(),
-  // Census
-  census: { current: '--', beds: 57, budgetADC: '--', admitsToday: '--', dischargesToday: '--', pending: '--', occupancyPct: '--' },
-  // OT
-  ot: { yesterdayHrs: '--', wtdHrs: '--', mtdHrs: '--', budgetMtd: '--', topEmployees: [] },
-  // Rounding (auto-calculated from rounds data below)
-  // Showers
-  showers: { yesterdayRate: '--', refusals: '--', mtdRefusalRate: '--', flaggedResidents: [] },
-  // Action Items (Asana)
-  asanaActions: { open: [], overdue: 0, dueToday: 0, dueThisWeek: 0, criticalOverdue: 0 },
-  // Survey Compliance
-  surveyTags: [],
-  // Revenue Rates
-  rates: { mcrPPD: '$823.17', hmoPPD: '$704.48', mcalPPD: '$258.54', mgmtFee: '5.5%', badDebt: '3%' },
-  // Payer Mix
-  payerMix: [],
-  // Safety (for standup)
-  safety: { falls24h: '--', incidents: '--', infections: '--' },
-  // Staffing
-  staffing: { callOffs: '--', agencyUse: '--' }
+var BOARD_DATA = {
+ generatedAt: new Date().toLocaleString(),
+ // Census
+ census: { current: '--', beds: 57, budgetADC: '--', admitsToday: '--', dischargesToday: '--', pending: '--', occupancyPct: '--' },
+ // OT
+ ot: { yesterdayHrs: '--', wtdHrs: '--', mtdHrs: '--', budgetMtd: '--', topEmployees: [] },
+ // Showers
+ showers: { yesterdayRate: '--', refusals: '--', mtdRefusalRate: '--', flaggedResidents: [] },
+ // Action Items (Asana)
+ asanaActions: { open: [], overdue: 0, dueToday: 0, dueThisWeek: 0, criticalOverdue: 0 },
+ // Survey Compliance
+ surveyTags: [],
+ // Revenue Rates
+ rates: { mcrPPD: '$823.17', hmoPPD: '$704.48', mcalPPD: '$258.54', mgmtFee: '5.5%', badDebt: '3%' },
+ // Payer Mix
+ payerMix: [],
+ // Safety (for standup)
+ safety: { falls24h: '--', incidents: '--', infections: '--' },
+ // Staffing
+ staffing: { callOffs: '--', agencyUse: '--' }
 };
-// ‚îÄ‚îÄ ROSTER ‚îÄ‚îÄ
-const ROSTER=[
+// -- ROSTER --
+var ROSTER=[
 {name:"Regine Davenport",dept:"Admissions",rooms:["1","2","3","4"],assigned:true},
 {name:"Valerie Estrada",dept:"Activities",rooms:["5"],assigned:true},
 {name:"Kim Beatrez",dept:"Dietary",rooms:["6","7"],assigned:true},
@@ -233,931 +232,911 @@ const ROSTER=[
 {name:"Joe Fronteras",dept:"Rehab",rooms:[],assigned:false},
 {name:"Sebastian Lopez",dept:"Maintenance/EVS",rooms:[],assigned:false}
 ];
-const ALL_ROOMS=["1","2","3","4","5","6","7","8","9","10","11","12","14","15","16","18"];
-const DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
-// ‚îÄ‚îÄ SUPABASE CLIENT ‚îÄ‚îÄ
-const SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbnVkc2h1dHh3aWR4ZHRvdXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjQwMjEsImV4cCI6MjA5MDA0MDAyMX0.NGy8o0y5CKh_QGGLeGs34cIWbbpHZ59mTgCk2kVeikw';
-const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-const today=()=>new Date().toISOString().split('T')[0];
-const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-const dayOfWeek=()=>new Date().toLocaleDateString('en-US',{weekday:'long'});
-// ‚îÄ‚îÄ DATA STORE ‚îÄ‚îÄ
-let store={rounds:[]};
-let supabaseLoaded=false;
-function exportJSON(){const b=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rounds-'+today()+'.json';a.click()}
-function importJSON(file,cb){const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.rounds){store=d;cb(d.rounds.length)}else cb(-1)}catch(x){cb(-1)}};r.readAsText(file)}
-// ‚îÄ‚îÄ LOAD ROUNDS FROM SUPABASE ‚îÄ‚îÄ
+var ALL_ROOMS=["1","2","3","4","5","6","7","8","9","10","11","12","14","15","16","18"];
+var DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
+var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
+// -- SUPABASE CLIENT --
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbnVkc2h1dHh3aWR4ZHRvdXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NjQwMjEsImV4cCI6MjA5MDA0MDAyMX0.NGy8o0y5CKh_QGGLeGs34cIWbbpHZ59mTgCk2kVeikw';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+var today=function(){return new Date().toISOString().split('T')[0]};
+var fmtDate=function(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})};
+var dayOfWeek=function(){return new Date().toLocaleDateString('en-US',{weekday:'long'})};
+// -- DATA STORE --
+var store={rounds:[]};
+var supabaseLoaded=false;
+function exportJSON(){var b=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rounds-'+today()+'.json';a.click()}
+function importJSON(file,cb){var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(d.rounds){store=d;cb(d.rounds.length)}else cb(-1)}catch(x){cb(-1)}};r.readAsText(file)}
+// -- LOAD ROUNDS FROM SUPABASE --
 async function loadRounds(){
-  if(!sb)return;
-  try{
-    // Get Monday of current week
-    const wd=getWeekDates();
-    const weekStart=wd[0]+'T00:00:00';
-    const weekEnd=wd[4]+'T23:59:59';
-    const{data,error}=await sb.from('rounding_observations')
-      .select('id,timestamp,observer_name,observer_role,location,category,observation,severity,action_needed,action_description,source')
-      .gte('timestamp',weekStart)
-      .lte('timestamp',weekEnd)
-      .order('timestamp',{ascending:true});
-    if(error){console.error('Supabase load error:',error);return}
-    if(!data||!data.length)return;
-    // Group by observer+date+room to reconstruct round entries
-    const roundMap={};
-    data.forEach(obs=>{
-      const date=obs.timestamp.split('T')[0];
-      const room=(obs.location||'').replace('Room ','');
-      const key=obs.observer_name+'|'+date+'|'+room;
-      if(!roundMap[key]){
-        roundMap[key]={
-          id:'sb-'+obs.id,
-          timestamp:obs.timestamp,
-          rounderName:obs.observer_name,
-          roomNumber:room,
-          roundDate:date,
-          environment:{},
-          beds:[],
-          resident:{},
-          staff:{},
-          actions:[],
-          _observations:[obs]
-        };
-      }else{
-        roundMap[key]._observations.push(obs);
-      }
-      // If observation has action items, add them
-      if(obs.action_needed&&obs.action_description){
-        roundMap[key].actions.push({description:obs.action_description,priority:obs.severity==='urgent'?'high':'medium',department:obs.observer_role||''});
-      }
-    });
-    // Merge Supabase rounds into store without duplicating
-    const existingKeys=new Set(store.rounds.map(r=>r.rounderName+'|'+r.roundDate+'|'+r.roomNumber));
-    Object.values(roundMap).forEach(r=>{
-      const key=r.rounderName+'|'+r.roundDate+'|'+r.roomNumber;
-      if(!existingKeys.has(key)){
-        store.rounds.push(r);
-        existingKeys.add(key);
-      }
-    });
-    supabaseLoaded=true;
-    render();
-  }catch(e){console.error('loadRounds error:',e)}
+ if(!sb)return;
+ try{
+ var wd=getWeekDates();
+ var weekStart=wd[0]+'T00:00:00';
+ var weekEnd=wd[4]+'T23:59:59';
+ var res=await sb.from('rounding_observations')
+ .select('id,timestamp,observer_name,observer_role,location,category,observation,severity,action_needed,action_description,source')
+ .gte('timestamp',weekStart)
+ .lte('timestamp',weekEnd)
+ .order('timestamp',{ascending:true});
+ var data=res.data;var error=res.error;
+ if(error){console.error('Supabase load error:',error);return}
+ if(!data||!data.length)return;
+ var roundMap={};
+ data.forEach(function(obs){
+ var date=obs.timestamp.split('T')[0];
+ var room=(obs.location||'').replace('Room ','');
+ var key=obs.observer_name+'|'+date+'|'+room;
+ if(!roundMap[key]){
+ roundMap[key]={
+ id:'sb-'+obs.id,
+ timestamp:obs.timestamp,
+ rounderName:obs.observer_name,
+ roomNumber:room,
+ roundDate:date,
+ environment:{},
+ beds:[],
+ resident:{},
+ staff:{},
+ actions:[],
+ _observations:[obs]
+ };
+ }else{
+ roundMap[key]._observations.push(obs);
+ }
+ if(obs.action_needed&&obs.action_description){
+ roundMap[key].actions.push({description:obs.action_description,priority:obs.severity==='urgent'?'high':'medium',department:obs.observer_role||''});
+ }
+ });
+ var existingKeys=new Set(store.rounds.map(function(r){return r.rounderName+'|'+r.roundDate+'|'+r.roomNumber}));
+ Object.values(roundMap).forEach(function(r){
+ var key=r.rounderName+'|'+r.roundDate+'|'+r.roomNumber;
+ if(!existingKeys.has(key)){
+ store.rounds.push(r);
+ existingKeys.add(key);
+ }
+ });
+ supabaseLoaded=true;
+ render();
+ }catch(e){console.error('loadRounds error:',e)}
 }
-// ‚îÄ‚îÄ APP STATE ‚îÄ‚îÄ
-let currentTab='board';
-let formState=null;
-let toastMsg='';let toastTimer=null;
-let actionFilter='all';
-function showToast(m){toastMsg=m;render();clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toastMsg='';render()},2500)}
-// ‚îÄ‚îÄ DOM HELPER ‚îÄ‚îÄ
-function h(tag,a,...ch){
-  const el=document.createElement(tag);
-  let deferValue;
-  if(a)Object.entries(a).forEach(([k,v])=>{
-    if(k==='className')el.className=v;
-    else if(k==='style'&&typeof v==='object')Object.assign(el.style,v);
-    else if(k.startsWith('on'))el.addEventListener(k.slice(2).toLowerCase(),v);
-    else if(k==='innerHTML')el.innerHTML=v;
-    else if(k==='value'){deferValue=v}
-    else if(k==='checked'){el.checked=v}
-    else el.setAttribute(k,v);
-  });
-  ch.flat(Infinity).forEach(c=>{if(c!=null&&c!==false)el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c)});
-  if(deferValue!==undefined)el.value=deferValue;
-  return el;
+// -- APP STATE --
+var currentTab='board';
+var formState=null;
+var toastMsg='';var toastTimer=null;
+var actionFilter='all';
+function showToast(m){toastMsg=m;render();clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastMsg='';render()},2500)}
+// -- DOM HELPER --
+function h(tag,a){
+ var ch=Array.prototype.slice.call(arguments,2);
+ var el=document.createElement(tag);
+ var deferValue;
+ if(a)Object.entries(a).forEach(function(pair){
+ var k=pair[0],v=pair[1];
+ if(k==='className')el.className=v;
+ else if(k==='style'&&typeof v==='object')Object.assign(el.style,v);
+ else if(k.startsWith('on'))el.addEventListener(k.slice(2).toLowerCase(),v);
+ else if(k==='innerHTML')el.innerHTML=v;
+ else if(k==='value'){deferValue=v}
+ else if(k==='checked'){el.checked=v}
+ else el.setAttribute(k,v);
+ });
+ ch.flat(Infinity).forEach(function(c){if(c!=null&&c!==false)el.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(String(c)):c)});
+ if(deferValue!==undefined)el.value=deferValue;
+ return el;
 }
-// ‚îÄ‚îÄ ROUNDING ANALYTICS (computed from store) ‚îÄ‚îÄ
+// -- ROUNDING ANALYTICS (computed from store) --
 function getRoundingStats(date){
-  const dr=store.rounds.filter(r=>r.roundDate===date);
-  const names=new Set(dr.map(r=>r.rounderName));
-  const assigned=ROSTER.filter(r=>r.assigned);
-  const missing=assigned.filter(r=>!names.has(r.name));
-  const comp=assigned.length?Math.round(((assigned.length-missing.length)/assigned.length)*100):0;
-  let envIssues=[],resConcerns=[],staffConcerns=[],actions=[];
-  dr.forEach(r=>{
-    // Support both old format (env keys like roomClean) and new format (environment_compat or environment.roomChecks)
-    const e=r.environment_compat||r.environment||{};
-    // Old-style keys
-    const lbls={roomClean:'Not clean',odorFree:'Odor present',bathroomStocked:'Bathroom not stocked',tempOk:'Temp issue',nameOnDoorCorrect:'Name on door incorrect'};
-    Object.keys(lbls).forEach(f=>{if(e[f]==='no')envIssues.push({room:r.roomNumber,issue:lbls[f],notes:e.notes})});
-    // New-style roomChecks (from new form)
-    if(e.roomChecks){
-      Object.entries(e.roomChecks).forEach(([item,ok])=>{if(!ok)envIssues.push({room:r.roomNumber,issue:item})});
-    }
-    // Old-style beds array
-    (r.beds||[]).forEach((b,i)=>{
-      const bl={callLight:'Call light',personalItems:'Personal items',nameOnDoor:'Name on door',o2Tubing:'O2 tubing'};
-      Object.keys(bl).forEach(f=>{if(b[f]==='no')envIssues.push({room:r.roomNumber,issue:'Bed '+(i?'B':'A')+': '+bl[f]})});
-    });
-    // New-style perBed env data
-    if(e.perBed){
-      Object.entries(e.perBed).forEach(([bed,checks])=>{
-        Object.entries(checks).forEach(([item,ok])=>{if(!ok)envIssues.push({room:r.roomNumber,issue:(bed!=='Private'?'Bed '+bed+': ':'')+item})});
-      });
-    }
-    // Resident concerns (both old and new)
-    if(r.resident?.concerns==='yes')resConcerns.push({room:r.roomNumber,detail:r.resident.concernDetails});
-    if(r.resident?.discomfort==='yes')resConcerns.push({room:r.roomNumber,detail:'Discomfort: '+(r.resident.discomfortDetails||'observed')});
-    // New-style per-bed residents
-    if(r.residents){
-      Object.entries(r.residents).forEach(([bed,rd])=>{
-        if(rd.spoke==='yes'){
-          const cc=(rd.concerns||[]);
-          const ccNames=typeof cc[0]==='string'?cc:[];
-          if(ccNames.length)resConcerns.push({room:r.roomNumber,detail:(bed!=='Private'?'Bed '+bed+': ':'')+ccNames.join(', ')});
-          if(rd.mood==='Poor')resConcerns.push({room:r.roomNumber,detail:(bed!=='Private'?'Bed '+bed+': ':'')+'Mood: Poor'});
-        }
-      });
-    }
-    // Staff concerns (both old and new)
-    if(r.staff?.concerns==='yes')staffConcerns.push({room:r.roomNumber,detail:r.staff.concernDetails});
-    if(r.staff?.engaged==='no')staffConcerns.push({room:r.roomNumber,detail:'Staff not engaged'});
-    if(r.staff?.haveNeeds==='no')staffConcerns.push({room:r.roomNumber,detail:'Staff needs not met'+(r.staff.barriers?' ‚Äî '+r.staff.barriers:'')});
-    if(r.staff?.barriers&&r.staff.haveNeeds!=='no')staffConcerns.push({room:r.roomNumber,detail:'Barriers: '+r.staff.barriers});
-    // Actions
-    (r.actions||[]).forEach(a=>{if(a.description)actions.push({room:r.roomNumber,...a})});
-  });
-  return{dr,names,assigned,missing,comp,envIssues,resConcerns,staffConcerns,actions,rounded:assigned.length-missing.length};
+ var dr=store.rounds.filter(function(r){return r.roundDate===date});
+ var names=new Set(dr.map(function(r){return r.rounderName}));
+ var assigned=ROSTER.filter(function(r){return r.assigned});
+ var missing=assigned.filter(function(r){return !names.has(r.name)});
+ var comp=assigned.length?Math.round(((assigned.length-missing.length)/assigned.length)*100):0;
+ var envIssues=[],resConcerns=[],staffConcerns=[],actions=[];
+ dr.forEach(function(r){
+ var e=r.environment_compat||r.environment||{};
+ var lbls={roomClean:'Not clean',odorFree:'Odor present',bathroomStocked:'Bathroom not stocked',tempOk:'Temp issue',nameOnDoorCorrect:'Name on door incorrect'};
+ Object.keys(lbls).forEach(function(f){if(e[f]==='no')envIssues.push({room:r.roomNumber,issue:lbls[f],notes:e.notes})});
+ if(e.roomChecks){
+ Object.entries(e.roomChecks).forEach(function(pair){if(!pair[1])envIssues.push({room:r.roomNumber,issue:pair[0]})});
+ }
+ (r.beds||[]).forEach(function(b,i){
+ var bl={callLight:'Call light',personalItems:'Personal items',nameOnDoor:'Name on door',o2Tubing:'O2 tubing'};
+ Object.keys(bl).forEach(function(f){if(b[f]==='no')envIssues.push({room:r.roomNumber,issue:'Bed '+(i?'B':'A')+': '+bl[f]})});
+ });
+ if(e.perBed){
+ Object.entries(e.perBed).forEach(function(pair){
+ var bed=pair[0],checks=pair[1];
+ Object.entries(checks).forEach(function(cp){if(!cp[1])envIssues.push({room:r.roomNumber,issue:(bed!=='Private'?'Bed '+bed+': ':'')+cp[0]})});
+ });
+ }
+ if(r.resident&&r.resident.concerns==='yes')resConcerns.push({room:r.roomNumber,detail:r.resident.concernDetails});
+ if(r.resident&&r.resident.discomfort==='yes')resConcerns.push({room:r.roomNumber,detail:'Discomfort: '+(r.resident.discomfortDetails||'observed')});
+ if(r.residents){
+ Object.entries(r.residents).forEach(function(pair){
+ var bed=pair[0],rd=pair[1];
+ if(rd.spoke==='yes'){
+ var cc=(rd.concerns||[]);
+ var ccNames=typeof cc[0]==='string'?cc:[];
+ if(ccNames.length)resConcerns.push({room:r.roomNumber,detail:(bed!=='Private'?'Bed '+bed+': ':'')+ccNames.join(', ')});
+ if(rd.mood==='Poor')resConcerns.push({room:r.roomNumber,detail:(bed!=='Private'?'Bed '+bed+': ':'')+'Mood: Poor'});
+ }
+ });
+ }
+ if(r.staff&&r.staff.concerns==='yes')staffConcerns.push({room:r.roomNumber,detail:r.staff.concernDetails});
+ if(r.staff&&r.staff.engaged==='no')staffConcerns.push({room:r.roomNumber,detail:'Staff not engaged'});
+ if(r.staff&&r.staff.haveNeeds==='no')staffConcerns.push({room:r.roomNumber,detail:'Staff needs not met'+(r.staff.barriers?' - '+r.staff.barriers:'')});
+ if(r.staff&&r.staff.barriers&&(!r.staff||r.staff.haveNeeds!=='no'))staffConcerns.push({room:r.roomNumber,detail:'Barriers: '+r.staff.barriers});
+ (r.actions||[]).forEach(function(a){if(a.description)actions.push(Object.assign({room:r.roomNumber},a))});
+ });
+ return{dr:dr,names:names,assigned:assigned,missing:missing,comp:comp,envIssues:envIssues,resConcerns:resConcerns,staffConcerns:staffConcerns,actions:actions,rounded:assigned.length-missing.length};
 }
 // Week dates helper
 function getWeekDates(refDate){
-  const d=new Date((refDate||today())+'T12:00:00');const day=d.getDay();
-  const mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
-  const dates=[];for(let i=0;i<5;i++){const dd=new Date(mon);dd.setDate(mon.getDate()+i);dates.push(dd.toISOString().split('T')[0])}
-  return dates;
+ var d=new Date((refDate||today())+'T12:00:00');var day=d.getDay();
+ var mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+ var dates=[];for(var i=0;i<5;i++){var dd=new Date(mon);dd.setDate(mon.getDate()+i);dates.push(dd.toISOString().split('T')[0])}
+ return dates;
 }
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 // TAB 1: MAIN BOARD (all metrics)
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 function renderBoard(){
-  const D=BOARD_DATA;
-  const rs=getRoundingStats(today());
-  const roundComp=rs.assigned.length?rs.rounded+'/'+rs.assigned.length:'--';
-  const roundPct=rs.comp;
-  const highActions=rs.actions.filter(a=>a.priority==='high').length;
-  // KPI color logic
-  const censusClass=D.census.current==='--'?'blue':D.census.current>=D.census.budgetADC?'green':D.census.current>=D.census.budgetADC-2?'amber':'red';
-  const otClass=D.ot.mtdHrs==='--'?'blue':'blue';
-  const roundClass=roundPct===100?'green':roundPct>=80?'amber':roundPct>0?'red':'blue';
-  const showerClass=D.showers.yesterdayRate==='--'?'blue':parseFloat(D.showers.yesterdayRate)>=90?'green':parseFloat(D.showers.yesterdayRate)>=80?'amber':'red';
-  const actionClass=(D.asanaActions.overdue>3||D.asanaActions.criticalOverdue>0)?'red':D.asanaActions.overdue>0?'amber':'green';
-  const alerts=[];
-  if(rs.missing.length>0)alerts.push({type:rs.missing.length>2?'alert-red':'alert-amber',msg:'\u26A0 Missing rounders ('+rs.missing.length+'): '+rs.missing.map(m=>m.name).join(', ')});
-  if(highActions>0)alerts.push({type:'alert-red',msg:'\uD83D\uDEA8 '+highActions+' HIGH priority action item'+(highActions>1?'s':'')+' from today\'s rounds'});
-  if(D.asanaActions.criticalOverdue>0)alerts.push({type:'alert-red',msg:'\u{23F0} '+D.asanaActions.criticalOverdue+' Asana task'+(D.asanaActions.criticalOverdue>1?'s':'')+' overdue > 7 days'});
-  if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'\uD83D\uDCE2 Monday ‚Äî Weekly 2 PM huddle announcement goes out today'});
-  return h('div',{className:'page'},
-    // KPI Strip
-    h('div',{className:'kpi-strip'},
-      h('div',{className:'kpi '+censusClass},h('div',{className:'kpi-val'},String(D.census.current)),h('div',{className:'kpi-label'},'Census / '+D.census.beds),h('div',{className:'kpi-sub'},'Budget ADC: '+D.census.budgetADC)),
-      h('div',{className:'kpi '+otClass},h('div',{className:'kpi-val'},String(D.ot.mtdHrs)),h('div',{className:'kpi-label'},'OT Hrs (MTD)'),h('div',{className:'kpi-sub'},'Budget: '+D.ot.budgetMtd)),
-      h('div',{className:'kpi '+roundClass},h('div',{className:'kpi-val'},roundComp),h('div',{className:'kpi-label'},'Rounding'),h('div',{className:'kpi-sub'},roundPct+'% compliance')),
-      h('div',{className:'kpi '+showerClass},h('div',{className:'kpi-val'},String(D.showers.yesterdayRate)),h('div',{className:'kpi-label'},'Showers (Yest)'),h('div',{className:'kpi-sub'},'Refusals: '+D.showers.refusals)),
-      h('div',{className:'kpi '+(D.asanaActions.open.length?actionClass:'green')},h('div',{className:'kpi-val'},String(D.asanaActions.open.length||'0')),h('div',{className:'kpi-label'},'Open Actions'),h('div',{className:'kpi-sub'},'Overdue: '+D.asanaActions.overdue))
-    ),
-    // Alerts
-    ...alerts.map(a=>h('div',{className:'alert '+a.type},a.msg)),
-    // Row 2: Two columns
-    h('div',{className:'two-col'},
-      // LEFT: Standup Agenda + Census
-      h('div',null,
-        // Standup Agenda (compact)
-        h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üìã'),'Standup Agenda ‚Äî SWI v2.0'),
-          ...[
-            {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment ‚Äî quote, value, shout-out'},
-            {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only ‚Äî report if any'},
-            {n:3,t:'Census & Flow',tm:'2 min',d:'Census: '+D.census.current+'/'+D.census.beds+' | Admits: '+D.census.admitsToday+' | DC: '+D.census.dischargesToday+' | Pending: '+D.census.pending},
-            {n:4,t:'Staffing & Labor',tm:'1 min',d:'Call-offs: '+D.staffing.callOffs+' | OT flags: '+D.ot.mtdHrs+' MTD'},
-            {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds ‚Äî '+rs.actions.filter(a=>a.priority==='high').map(a=>'Rm '+a.room).join(', '):'No escalations from rounds'},
-            {n:6,t:'Commitments & Close',tm:'1 min',d:'Each DH states one commitment'}
-          ].map(s=>h('div',{className:'agenda-item'},
-            h('div',{className:'agenda-num'},String(s.n)),
-            h('div',null,
-              h('div',{style:{display:'flex',alignItems:'center'}},h('span',{className:'agenda-title'},s.t),h('span',{className:'agenda-time'},s.tm)),
-              h('div',{className:'agenda-data'},s.d)
-            )
-          ))
-        ),
-        // Census Detail
-        h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üè•'),'Census & Flow'),
-          h('table',null,
-            h('tbody',null,
-              ...([['Current Census',D.census.current+' / '+D.census.beds],['Occupancy',D.census.occupancyPct],['Budget ADC',D.census.budgetADC],['Admits Today',D.census.admitsToday],['Discharges Today',D.census.dischargesToday],['Pending Admits',D.census.pending]].map(([k,v])=>
-                h('tr',null,h('td',{style:{fontWeight:'600',width:'50%'}},k),h('td',null,String(v)))
-              ))
-            )
-          )
-        )
-      ),
-      // RIGHT: Revenue, OT, Rounding, Showers
-      h('div',null,
-        // Revenue Rates
-        h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üí∞'),'Revenue Rate Reference'),
-          h('table',null,
-            h('thead',null,h('tr',null,h('th',null,'Payer'),h('th',null,'PPD Rate'))),
-            h('tbody',null,
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'Medicare A (MCR)'),h('td',null,D.rates.mcrPPD)),
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'HMO'),h('td',null,D.rates.hmoPPD)),
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'Medi-Cal'),h('td',null,D.rates.mcalPPD))
-            )
-          ),
-          h('div',{style:{fontSize:'11px',color:'var(--text-light)',marginTop:'8px'}},'Mgmt Fee: '+D.rates.mgmtFee+' | Bad Debt: '+D.rates.badDebt)
-        ),
-        // OT Breakdown
-        h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'‚è±Ô∏è'),'Overtime Breakdown'),
-          h('table',null,
-            h('tbody',null,
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday'),h('td',null,String(D.ot.yesterdayHrs)+' hrs')),
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'Week-to-Date'),h('td',null,String(D.ot.wtdHrs)+' hrs')),
-              h('tr',null,h('td',{style:{fontWeight:'600'}},'Month-to-Date'),h('td',null,String(D.ot.mtdHrs)+' hrs'))
-            )
-          ),
-          D.ot.topEmployees.length?h('div',{style:{marginTop:'10px'}},
-            h('div',{style:{fontSize:'12px',fontWeight:'700',color:'var(--text-light)',marginBottom:'6px'}},'TOP OT EMPLOYEES'),
-            h('table',null,h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Dept'),h('th',null,'Hours'))),
-              h('tbody',null,...D.ot.topEmployees.map(e=>h('tr',null,h('td',null,e.name),h('td',null,e.dept),h('td',null,String(e.hours))))))
-          ):null
-        ),
-        // Shower Snapshot
-        h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üöø'),'Shower Compliance'),
-          h('table',null,h('tbody',null,
-            h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday Rate'),h('td',null,String(D.showers.yesterdayRate))),
-            h('tr',null,h('td',{style:{fontWeight:'600'}},'Refusals'),h('td',null,String(D.showers.refusals))),
-            h('tr',null,h('td',{style:{fontWeight:'600'}},'MTD Refusal Rate'),h('td',null,String(D.showers.mtdRefusalRate)))
-          )),
-          D.showers.flaggedResidents.length?h('div',{style:{marginTop:'8px',fontSize:'13px'}},
-            h('strong',null,'Flagged: '),D.showers.flaggedResidents.join(', ')
-          ):null
-        )
-      )
-    ),
-    // Rounding Compliance Grid
-    h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üë£'),'Rounding Compliance ‚Äî This Week'),
-      (()=>{
-        const wd=getWeekDates();const dls=['Mon','Tue','Wed','Thu','Fri'];
-        return h('div',{style:{overflowX:'auto'}},h('table',null,
-          h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Department'),...dls.map(d=>h('th',{style:{textAlign:'center'}},d)))),
-          h('tbody',null,
-            ...ROSTER.filter(r=>r.assigned).map(p=>h('tr',null,
-              h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept),
-              ...wd.map(date=>{
-                const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
-                const fut=date>today();const isT=date===today();
-                return h('td',{style:{textAlign:'center'}},fut?'‚Äî':did?h('span',{className:'badge b-green'},'Done'):isT?h('span',{className:'badge b-amber'},'Pending'):h('span',{className:'badge b-red'},'Missed'));
-              })
-            )),
-            ...ROSTER.filter(r=>!r.assigned).map(p=>{
-              const anyData=store.rounds.some(r=>getWeekDates().includes(r.roundDate)&&r.rounderName===p.name);
-              if(!anyData)return null;
-              return h('tr',{style:{opacity:'.65'}},
-                h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept+' (Floater)'),
-                ...wd.map(date=>{
-                  const did=store.rounds.some(r=>r.roundDate===date&&r.rounderName===p.name);
-                  return h('td',{style:{textAlign:'center'}},did?h('span',{className:'badge b-green'},'Done'):h('span',{className:'badge b-gray'},'‚Äî'));
-                })
-              );
-            }).filter(Boolean)
-          )
-        ));
-      })()
-    ),
-    // Rounding Issues (from today)
-    (rs.envIssues.length||rs.resConcerns.length||rs.staffConcerns.length)?h('div',{className:'two-col'},
-      rs.envIssues.length?h('div',{className:'card'},
-        h('div',{className:'card-hdr'},h('span',{className:'icon'},'üîß'),'Environment Issues ('+rs.envIssues.length+')'),
-        h('ul',{className:'issue-list'},...rs.envIssues.map(i=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+i.room),h('span',{className:'issue-text'},i.issue))))
-      ):h('div'),
-      (rs.resConcerns.length||rs.staffConcerns.length)?h('div',null,
-        rs.resConcerns.length?h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üí¨'),'Resident Concerns ('+rs.resConcerns.length+')'),
-          h('ul',{className:'issue-list'},...rs.resConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
-        ):null,
-        rs.staffConcerns.length?h('div',{className:'card'},
-          h('div',{className:'card-hdr'},h('span',{className:'icon'},'üë•'),'Staff Concerns ('+rs.staffConcerns.length+')'),
-          h('ul',{className:'issue-list'},...rs.staffConcerns.map(c=>h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))))
-        ):null
-      ):h('div')
-    ):null,
-    // Survey Compliance
-    D.surveyTags.length?h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üìã'),'Survey Monitoring Status'),
-      h('table',null,
-        h('thead',null,h('tr',null,h('th',null,'Tag'),h('th',null,'Description'),h('th',null,'Through'),h('th',null,'Days Left'),h('th',null,'Status'))),
-        h('tbody',null,...D.surveyTags.map(t=>{
-          const cls=t.daysLeft>30?'b-green':t.daysLeft>14?'b-amber':'b-red';
-          return h('tr',null,h('td',{style:{fontWeight:'700'}},t.code),h('td',null,t.description),h('td',null,t.through),h('td',null,String(t.daysLeft)),h('td',null,h('span',{className:'badge '+cls},t.daysLeft>30?'On Track':t.daysLeft>14?'Approaching':'Urgent')));
-        }))
-      )
-    ):null,
-    // Action Items (Rounding + Asana combined)
-    (rs.actions.length||D.asanaActions.open.length)?h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'‚úÖ'),'Action Items'),
-      h('div',{className:'filter-tabs'},
-        ...['all','high','rounding','asana'].map(f=>h('button',{className:'ftab'+(actionFilter===f?' active':''),onClick:()=>{actionFilter=f;render()}},f==='all'?'All':f==='high'?'High Priority':f==='rounding'?'From Rounds':'From Asana'))
-      ),
-      h('table',null,
-        h('thead',null,h('tr',null,h('th',null,'Item'),h('th',null,'Source'),h('th',null,'Priority'),h('th',null,'Dept/Assignee'))),
-        h('tbody',null,
-          ...rs.actions.filter(a=>actionFilter==='all'||actionFilter==='rounding'||(actionFilter==='high'&&a.priority==='high')).map(a=>
-            h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'‚Äî'))
-          ),
-          ...D.asanaActions.open.filter(a=>actionFilter==='all'||actionFilter==='asana'||(actionFilter==='high'&&a.overdueDays>7)).map(a=>
-            h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h('td',null,h('span',{className:'badge b-gray'},'Asana')),h('td',null,a.overdueDays>0?h('span',{className:'badge b-red'},a.overdueDays+'d overdue'):h('span',{className:'badge b-green'},'On track')),h('td',null,a.assignee||'‚Äî'))
-          )
-        )
-      )
-    ):null,
-    // Footer
-    h('div',{className:'footer'},'Generated by Claude for Morning Star Post Acute ‚Äî '+BOARD_DATA.generatedAt)
-  );
+ var D=BOARD_DATA;
+ var rs=getRoundingStats(today());
+ var roundComp=rs.assigned.length?rs.rounded+'/'+rs.assigned.length:'--';
+ var roundPct=rs.comp;
+ var highActions=rs.actions.filter(function(a){return a.priority==='high'}).length;
+ // KPI color logic
+ var censusClass=D.census.current==='--'?'blue':D.census.current>=D.census.budgetADC?'green':D.census.current>=D.census.budgetADC-2?'amber':'red';
+ var otClass=D.ot.mtdHrs==='--'?'blue':'blue';
+ var roundClass=roundPct===100?'green':roundPct>=80?'amber':roundPct>0?'red':'blue';
+ var showerClass=D.showers.yesterdayRate==='--'?'blue':parseFloat(D.showers.yesterdayRate)>=90?'green':parseFloat(D.showers.yesterdayRate)>=80?'amber':'red';
+ var actionClass=(D.asanaActions.overdue>3||D.asanaActions.criticalOverdue>0)?'red':D.asanaActions.overdue>0?'amber':'green';
+ var alerts=[];
+ if(rs.missing.length>0)alerts.push({type:rs.missing.length>2?'alert-red':'alert-amber',msg:'[!] Missing rounders ('+rs.missing.length+'): '+rs.missing.map(function(m){return m.name}).join(', ')});
+ if(highActions>0)alerts.push({type:'alert-red',msg:'[!!] '+highActions+' HIGH priority action item'+(highActions>1?'s':'')+' from today\'s rounds'});
+ if(D.asanaActions.criticalOverdue>0)alerts.push({type:'alert-red',msg:'[OVERDUE] '+D.asanaActions.criticalOverdue+' Asana task'+(D.asanaActions.criticalOverdue>1?'s':'')+' overdue > 7 days'});
+ if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'[NOTE] Monday - Weekly 2 PM huddle announcement goes out today'});
+ return h('div',{className:'page'},
+ // KPI Strip
+ h('div',{className:'kpi-strip'},
+ h('div',{className:'kpi '+censusClass},h('div',{className:'kpi-val'},String(D.census.current)),h('div',{className:'kpi-label'},'Census / '+D.census.beds),h('div',{className:'kpi-sub'},'Budget ADC: '+D.census.budgetADC)),
+ h('div',{className:'kpi '+otClass},h('div',{className:'kpi-val'},String(D.ot.mtdHrs)),h('div',{className:'kpi-label'},'OT Hrs (MTD)'),h('div',{className:'kpi-sub'},'Budget: '+D.ot.budgetMtd)),
+ h('div',{className:'kpi '+roundClass},h('div',{className:'kpi-val'},roundComp),h('div',{className:'kpi-label'},'Rounding'),h('div',{className:'kpi-sub'},roundPct+'% compliance')),
+ h('div',{className:'kpi '+showerClass},h('div',{className:'kpi-val'},String(D.showers.yesterdayRate)),h('div',{className:'kpi-label'},'Showers (Yest)'),h('div',{className:'kpi-sub'},'Refusals: '+D.showers.refusals)),
+ h('div',{className:'kpi '+(D.asanaActions.open.length?actionClass:'green')},h('div',{className:'kpi-val'},String(D.asanaActions.open.length||'0')),h('div',{className:'kpi-label'},'Open Actions'),h('div',{className:'kpi-sub'},'Overdue: '+D.asanaActions.overdue))
+ ),
+ // Alerts
+ alerts.map(function(a){return h('div',{className:'alert '+a.type},a.msg)}),
+ // Row 2: Two columns
+ h('div',{className:'two-col'},
+ // LEFT: Standup Agenda + Census
+ h('div',null,
+ // Standup Agenda (compact)
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[AGENDA]'),' Standup Agenda - SWI v2.0'),
+ [
+ {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment - quote, value, shout-out'},
+ {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only - report if any'},
+ {n:3,t:'Census & Flow',tm:'2 min',d:'Census: '+D.census.current+'/'+D.census.beds+' | Admits: '+D.census.admitsToday+' | DC: '+D.census.dischargesToday+' | Pending: '+D.census.pending},
+ {n:4,t:'Staffing & Labor',tm:'1 min',d:'Call-offs: '+D.staffing.callOffs+' | OT flags: '+D.ot.mtdHrs+' MTD'},
+ {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds - '+rs.actions.filter(function(a){return a.priority==='high'}).map(function(a){return 'Rm '+a.room}).join(', '):'No escalations from rounds'},
+ {n:6,t:'Commitments & Close',tm:'1 min',d:'Each DH states one commitment'}
+ ].map(function(s){return h('div',{className:'agenda-item'},
+ h('div',{className:'agenda-num'},String(s.n)),
+ h('div',null,
+ h('div',{style:{display:'flex',alignItems:'center'}},h('span',{className:'agenda-title'},s.t),h('span',{className:'agenda-time'},s.tm)),
+ h('div',{className:'agenda-data'},s.d)
+ )
+ )})
+ ),
+ // Census Detail
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[CENSUS]'),' Census & Flow'),
+ h('table',null,
+ h('tbody',null,
+ [['Current Census',D.census.current+' / '+D.census.beds],['Occupancy',D.census.occupancyPct],['Budget ADC',D.census.budgetADC],['Admits Today',D.census.admitsToday],['Discharges Today',D.census.dischargesToday],['Pending Admits',D.census.pending]].map(function(pair){
+ return h('tr',null,h('td',{style:{fontWeight:'600',width:'50%'}},pair[0]),h('td',null,String(pair[1])))
+ })
+ )
+ )
+ )
+ ),
+ // RIGHT: Revenue, OT, Rounding, Showers
+ h('div',null,
+ // Revenue Rates
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[$]'),' Revenue Rate Reference'),
+ h('table',null,
+ h('thead',null,h('tr',null,h('th',null,'Payer'),h('th',null,'PPD Rate'))),
+ h('tbody',null,
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Medicare A (MCR)'),h('td',null,D.rates.mcrPPD)),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'HMO'),h('td',null,D.rates.hmoPPD)),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Medi-Cal'),h('td',null,D.rates.mcalPPD))
+ )
+ ),
+ h('div',{style:{fontSize:'11px',color:'var(--text-light)',marginTop:'8px'}},'Mgmt Fee: '+D.rates.mgmtFee+' | Bad Debt: '+D.rates.badDebt)
+ ),
+ // OT Breakdown
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[OT]'),' Overtime Breakdown'),
+ h('table',null,
+ h('tbody',null,
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday'),h('td',null,String(D.ot.yesterdayHrs)+' hrs')),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Week-to-Date'),h('td',null,String(D.ot.wtdHrs)+' hrs')),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Month-to-Date'),h('td',null,String(D.ot.mtdHrs)+' hrs'))
+ )
+ ),
+ D.ot.topEmployees.length?h('div',{style:{marginTop:'10px'}},
+ h('div',{style:{fontSize:'12px',fontWeight:'700',color:'var(--text-light)',marginBottom:'6px'}},'TOP OT EMPLOYEES'),
+ h('table',null,h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Dept'),h('th',null,'Hours'))),
+ h('tbody',null,D.ot.topEmployees.map(function(e){return h('tr',null,h('td',null,e.name),h('td',null,e.dept),h('td',null,String(e.hours)))})))
+ ):null
+ ),
+ // Shower Snapshot
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[SHOWER]'),' Shower Compliance'),
+ h('table',null,h('tbody',null,
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday Rate'),h('td',null,String(D.showers.yesterdayRate))),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'Refusals'),h('td',null,String(D.showers.refusals))),
+ h('tr',null,h('td',{style:{fontWeight:'600'}},'MTD Refusal Rate'),h('td',null,String(D.showers.mtdRefusalRate)))
+ )),
+ D.showers.flaggedResidents.length?h('div',{style:{marginTop:'8px',fontSize:'13px'}},
+ h('strong',null,'Flagged: '),D.showers.flaggedResidents.join(', ')
+ ):null
+ )
+ )
+ ),
+ // Rounding Compliance Grid
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[ROUNDS]'),' Rounding Compliance - This Week'),
+ (function(){
+ var wd=getWeekDates();var dls=['Mon','Tue','Wed','Thu','Fri'];
+ return h('div',{style:{overflowX:'auto'}},h('table',null,
+ h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Department'),dls.map(function(d){return h('th',{style:{textAlign:'center'}},d)}))),
+ h('tbody',null,
+ ROSTER.filter(function(r){return r.assigned}).map(function(p){return h('tr',null,
+ h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept),
+ wd.map(function(date){
+ var did=store.rounds.some(function(r){return r.roundDate===date&&r.rounderName===p.name});
+ var fut=date>today();var isT=date===today();
+ return h('td',{style:{textAlign:'center'}},fut?'-':did?h('span',{className:'badge b-green'},'Done'):isT?h('span',{className:'badge b-amber'},'Pending'):h('span',{className:'badge b-red'},'Missed'));
+ })
+ )}),
+ ROSTER.filter(function(r){return !r.assigned}).map(function(p){
+ var anyData=store.rounds.some(function(r){return getWeekDates().indexOf(r.roundDate)>=0&&r.rounderName===p.name});
+ if(!anyData)return null;
+ return h('tr',{style:{opacity:'.65'}},
+ h('td',{style:{fontWeight:'600'}},p.name),h('td',null,p.dept+' (Floater)'),
+ wd.map(function(date){
+ var did=store.rounds.some(function(r){return r.roundDate===date&&r.rounderName===p.name});
+ return h('td',{style:{textAlign:'center'}},did?h('span',{className:'badge b-green'},'Done'):h('span',{className:'badge b-gray'},'-'));
+ })
+ );
+ }).filter(Boolean)
+ )
+ ));
+ })()
+ ),
+ // Rounding Issues (from today)
+ (rs.envIssues.length||rs.resConcerns.length||rs.staffConcerns.length)?h('div',{className:'two-col'},
+ rs.envIssues.length?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[ENV]'),' Environment Issues ('+rs.envIssues.length+')'),
+ h('ul',{className:'issue-list'},rs.envIssues.map(function(i){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+i.room),h('span',{className:'issue-text'},i.issue))}))
+ ):h('div'),
+ (rs.resConcerns.length||rs.staffConcerns.length)?h('div',null,
+ rs.resConcerns.length?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[RES]'),' Resident Concerns ('+rs.resConcerns.length+')'),
+ h('ul',{className:'issue-list'},rs.resConcerns.map(function(c){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))}))
+ ):null,
+ rs.staffConcerns.length?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[STAFF]'),' Staff Concerns ('+rs.staffConcerns.length+')'),
+ h('ul',{className:'issue-list'},rs.staffConcerns.map(function(c){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))}))
+ ):null
+ ):h('div')
+ ):null,
+ // Survey Compliance
+ D.surveyTags.length?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[SURVEY]'),' Survey Monitoring Status'),
+ h('table',null,
+ h('thead',null,h('tr',null,h('th',null,'Tag'),h('th',null,'Description'),h('th',null,'Through'),h('th',null,'Days Left'),h('th',null,'Status'))),
+ h('tbody',null,D.surveyTags.map(function(t){
+ var cls=t.daysLeft>30?'b-green':t.daysLeft>14?'b-amber':'b-red';
+ return h('tr',null,h('td',{style:{fontWeight:'700'}},t.code),h('td',null,t.description),h('td',null,t.through),h('td',null,String(t.daysLeft)),h('td',null,h('span',{className:'badge '+cls},t.daysLeft>30?'On Track':t.daysLeft>14?'Approaching':'Urgent')));
+ }))
+ )
+ ):null,
+ // Action Items (Rounding + Asana combined)
+ (rs.actions.length||D.asanaActions.open.length)?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[ACTION]'),' Action Items'),
+ h('div',{className:'filter-tabs'},
+ ['all','high','rounding','asana'].map(function(f){return h('button',{className:'ftab'+(actionFilter===f?' active':''),onClick:function(){actionFilter=f;render()}},f==='all'?'All':f==='high'?'High Priority':f==='rounding'?'From Rounds':'From Asana')})
+ ),
+ h('table',null,
+ h('thead',null,h('tr',null,h('th',null,'Item'),h('th',null,'Source'),h('th',null,'Priority'),h('th',null,'Dept/Assignee'))),
+ h('tbody',null,
+ rs.actions.filter(function(a){return actionFilter==='all'||actionFilter==='rounding'||(actionFilter==='high'&&a.priority==='high')}).map(function(a){
+ return h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'-'))
+ }),
+ D.asanaActions.open.filter(function(a){return actionFilter==='all'||actionFilter==='asana'||(actionFilter==='high'&&a.overdueDays>7)}).map(function(a){
+ return h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h('td',null,h('span',{className:'badge b-gray'},'Asana')),h('td',null,a.overdueDays>0?h('span',{className:'badge b-red'},a.overdueDays+'d overdue'):h('span',{className:'badge b-green'},'On track')),h('td',null,a.assignee||'-'))
+ })
+ )
+ )
+ ):null,
+ // Footer
+ h('div',{className:'footer'},'Generated by Claude for Morning Star Post Acute - '+BOARD_DATA.generatedAt)
+ );
 }
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 // TAB 2: ROOM ROUNDS FORM
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 // Room bed configuration
-const ROOM_BEDS={
-  '1':['Private'],'2':['Private'],'3':['Private'],'4':['Private'],
-  '5':['A','B','C','D'],'6':['A','B','C'],'7':['A','B','C'],
-  '8':['A','B','C'],'9':['A','B','C'],'10':['A','B','C'],'18':['A','B'],
-  '11':['A','B','C','D','E','F','G','H'],'12':['A','B','C','D','E','F','G','H'],
-  '14':['A','B','C','D','E','F','G','H'],'15':['A','B','C','D'],'16':['A','B','C','D']
+var ROOM_BEDS={
+ '1':['Private'],'2':['Private'],'3':['Private'],'4':['Private'],
+ '5':['A','B','C','D'],'6':['A','B','C'],'7':['A','B','C'],
+ '8':['A','B','C'],'9':['A','B','C'],'10':['A','B','C'],'18':['A','B'],
+ '11':['A','B','C','D','E','F','G','H'],'12':['A','B','C','D','E','F','G','H'],
+ '14':['A','B','C','D','E','F','G','H'],'15':['A','B','C','D'],'16':['A','B','C','D']
 };
-const ROOM_GROUPS=[
-  {label:'East Wing (Private)',rooms:['1','2','3','4']},
-  {label:'East Wing (Semi-Private)',rooms:['5','6','7']},
-  {label:'North Wing',rooms:['8','9','10','18']},
-  {label:'West Wing',rooms:['11','12','14','15','16']}
+var ROOM_GROUPS=[
+ {label:'East Wing (Private)',rooms:['1','2','3','4']},
+ {label:'East Wing (Semi-Private)',rooms:['5','6','7']},
+ {label:'North Wing',rooms:['8','9','10','18']},
+ {label:'West Wing',rooms:['11','12','14','15','16']}
 ];
-const ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
-const BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked','O2 tubing dated within 7 days'];
-const CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
+var ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
+var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked','O2 tubing dated within 7 days'];
+var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
 function resetForm(keepName){
-  formState={step:0,submitted:false,name:keepName||'',room:'',date:today(),
-    selectedBeds:[],
-    // Room-level environment checklist (array of booleans matching ROOM_ENV_ITEMS)
-    envRoom:ROOM_ENV_ITEMS.map(()=>false),
-    // Per-bed environment: keyed by bed label, each is array of booleans matching BED_ENV_ITEMS + allOk flag
-    envBeds:{},
-    envNotes:'',
-    envActiveBedTab:0,
-    // Per-bed resident data keyed by bed label
-    residents:{},
-    resActiveBedTab:0,
-    // Staff check-in
-    staff:{spoke:'',name:'',haveNeeds:'',barriers:'',recognition:''},
-    // Follow-up
-    needsAction:'',actions:[{description:'',priority:'',department:''}],
-    showSecondAction:false,
-    overallFeel:'',
-    notes:''
-  };
+ formState={step:0,submitted:false,name:keepName||'',room:'',date:today(),
+ selectedBeds:[],
+ envRoom:ROOM_ENV_ITEMS.map(function(){return false}),
+ envBeds:{},
+ envNotes:'',
+ envActiveBedTab:0,
+ residents:{},
+ resActiveBedTab:0,
+ staff:{spoke:'',name:'',haveNeeds:'',barriers:'',recognition:''},
+ needsAction:'',actions:[{description:'',priority:'',department:''}],
+ showSecondAction:false,
+ overallFeel:'',
+ notes:''
+ };
 }
-// Get selected beds, with fallback
 function getSelectedBeds(f){
-  if(f.selectedBeds.length>0)return f.selectedBeds;
-  if(f.room&&ROOM_BEDS[f.room]){
-    const beds=ROOM_BEDS[f.room];
-    return beds[0]==='Private'?['Private']:beds;
-  }
-  return[];
+ if(f.selectedBeds.length>0)return f.selectedBeds;
+ if(f.room&&ROOM_BEDS[f.room]){
+ var beds=ROOM_BEDS[f.room];
+ return beds[0]==='Private'?['Private']:beds;
+ }
+ return[];
 }
-// Initialize per-bed data structures when beds change
 function initBedData(f){
-  const beds=getSelectedBeds(f);
-  beds.forEach(b=>{
-    if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(()=>false),allOk:false};
-    if(!f.residents[b])f.residents[b]={spoke:'',mood:'',concerns:CONCERN_ITEMS.map(()=>false),quote:'',asked:'',done:false};
-  });
+ var beds=getSelectedBeds(f);
+ beds.forEach(function(b){
+ if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ if(!f.residents[b])f.residents[b]={spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
+ });
 }
 // Mini toggle helper
 function mt(val,setter,opts){
-  opts=opts||[{l:'Yes',v:'yes',c:'sy'},{l:'No',v:'no',c:'sn'}];
-  return h('div',{className:'mini-toggle'},...opts.map(o=>h('button',{className:'mbtn'+(val===o.v?' '+o.c:''),onClick:()=>{setter(o.v);render()}},o.l)));
+ opts=opts||[{l:'Yes',v:'yes',c:'sy'},{l:'No',v:'no',c:'sn'}];
+ return h('div',{className:'mini-toggle'},opts.map(function(o){return h('button',{className:'mbtn'+(val===o.v?' '+o.c:''),onClick:function(){setter(o.v);render()}},o.l)}));
 }
 // Big toggle helper
 function bt(val,setter,opts){
-  opts=opts||[{l:'Yes',v:'yes',c:'by'},{l:'No',v:'no',c:'bn'}];
-  return h('div',{className:'big-toggle'},...opts.map(o=>h('button',{className:'big-btn'+(val===o.v?' '+o.c:''),onClick:()=>{setter(o.v);render()}},o.l)));
+ opts=opts||[{l:'Yes',v:'yes',c:'by'},{l:'No',v:'no',c:'bn'}];
+ return h('div',{className:'big-toggle'},opts.map(function(o){return h('button',{className:'big-btn'+(val===o.v?' '+o.c:''),onClick:function(){setter(o.v);render()}},o.l)}));
 }
 // Checklist item helper
 function chk(checked,label,onClick,extraClass){
-  return h('div',{className:'checklist-item'+(extraClass?' '+extraClass:'')+(checked?' checked':''),onClick:()=>{onClick();render()}},
-    h('div',{className:'check-icon'},'\u2713'),
-    h('div',{className:'item-text'},label)
-  );
+ return h('div',{className:'checklist-item'+(extraClass?' '+extraClass:'')+(checked?' checked':''),onClick:function(){onClick();render()}},
+ h('div',{className:'check-icon'},'&#10003;'),
+ h('div',{className:'item-text'},label)
+ );
 }
 function renderRoundsForm(){
-  if(!formState)resetForm();
-  const f=formState;
-  if(f.submitted){
-    return h('div',{className:'page'},h('div',{className:'form-wrap'},h('div',{className:'card success-screen'},
-      h('div',{className:'success-icon'},'\u2713'),h('div',{className:'success-title'},'Room '+f.room+' Submitted'),
-      h('div',{className:'success-sub'},'Logged at '+new Date().toLocaleTimeString()),
-      h('button',{className:'btn btn-p',onClick:()=>{resetForm(f.name);render()}},'Round Another Room')
-    )));
-  }
-  const steps=[];
-  // ‚îÄ‚îÄ STEP 1: Who & Where ‚îÄ‚îÄ
-  steps.push(()=>{
-    const isPrivate=f.room&&ROOM_BEDS[f.room]&&ROOM_BEDS[f.room][0]==='Private';
-    const availBeds=f.room?ROOM_BEDS[f.room]||[]:[];
-    // Room dropdown with optgroups
-    const roomOptions=[h('option',{value:''},'Select room...')];
-    ROOM_GROUPS.forEach(g=>{
-      const opts=g.rooms.map(r=>{
-        const beds=ROOM_BEDS[r];
-        const bedDesc=beds[0]==='Private'?'Private':beds.length+' beds: '+beds[0]+'\u2013'+beds[beds.length-1];
-        const p=ROSTER.find(x=>x.name===f.name);
-        return h('option',{value:r},'Room '+r+' ('+bedDesc+')'+(p&&p.rooms.includes(r)?' \u2605':''));
-      });
-      roomOptions.push(h('optgroup',{label:g.label},...opts));
-    });
-    // Bed selector
-    let bedSelector=null;
-    if(f.room){
-      if(isPrivate){
-        // Auto-select private
-        if(!f.selectedBeds.length)f.selectedBeds=['Private'];
-        bedSelector=h('div',{className:'field'},h('label',null,'Bed'),
-          h('div',{style:{display:'flex',gap:'8px'}},
-            h('button',{className:'sat-btn sel',style:{flex:'1',cursor:'default'}},'Private Room')
-          ));
-      }else{
-        bedSelector=h('div',{className:'field'},h('label',null,'Bed(s) ',h('span',{className:'req'},'*')),
-          h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Tap to select which beds you are rounding on'),
-          h('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},
-            ...availBeds.map(b=>{
-              const sel=f.selectedBeds.includes(b);
-              return h('button',{className:'sat-btn'+(sel?' sel':''),onClick:()=>{
-                if(sel)f.selectedBeds=f.selectedBeds.filter(x=>x!==b);
-                else f.selectedBeds.push(b);
-                initBedData(f);render();
-              }},b);
-            }),
-            h('button',{className:'sat-btn'+(f.selectedBeds.length===availBeds.length&&availBeds.length>0?' sel':''),
-              style:{background:'#f0f7fc'},
-              onClick:()=>{
-                if(f.selectedBeds.length===availBeds.length)f.selectedBeds=[];
-                else f.selectedBeds=[...availBeds];
-                initBedData(f);render();
-              }},'All')
-          ));
-      }
-    }
-    return h('div',{className:'card'},
-      h('div',{className:'section-header'},'Who & Where'),h('div',{className:'section-desc'},'Identify yourself and the room.'),
-      h('div',{className:'field'},h('label',null,'Your Name ',h('span',{className:'req'},'*')),
-        h('select',{value:f.name,onChange:e=>{f.name=e.target.value;render()}},h('option',{value:''},'Select your name...'),...ROSTER.map(r=>h('option',{value:r.name},r.name+' \u2014 '+r.dept)))),
-      h('div',{className:'field'},h('label',null,'Date ',h('span',{className:'req'},'*')),h('input',{type:'date',value:f.date,onChange:e=>{f.date=e.target.value;render()}})),
-      h('div',{className:'field'},h('label',null,'Room Number ',h('span',{className:'req'},'*')),
-        h('select',{value:f.room,onChange:e=>{f.room=e.target.value;f.selectedBeds=[];f.envBeds={};f.residents={};
-          if(f.room&&ROOM_BEDS[f.room]&&ROOM_BEDS[f.room][0]==='Private')f.selectedBeds=['Private'];
-          initBedData(f);render();}},
-          ...roomOptions)),
-      bedSelector
-    );
-  });
-  // ‚îÄ‚îÄ STEP 2: Environment Check (combined room + per-bed) ‚îÄ‚îÄ
-  steps.push(()=>{
-    const beds=getSelectedBeds(f);
-    initBedData(f);
-    const activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
-    // Room-level checklist
-    const roomBlock=h('div',{className:'env-block env-block-room'},
-      h('div',{className:'env-block-label'},'Room-Level'),
-      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'These apply to the room as a whole. Tap to confirm satisfactory.'),
-      ...ROOM_ENV_ITEMS.map((item,i)=>chk(f.envRoom[i],item,()=>{f.envRoom[i]=!f.envRoom[i]}))
-    );
-    // Per-bed section
-    const bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(()=>false),allOk:false};
-    const singleBed=beds.length<=1;
-    // Build bed tabs (skip if single bed)
-    let bedTabs=null;
-    if(!singleBed){
-      bedTabs=h('div',{className:'bed-tabs',style:{borderBottomColor:'#f0e6d0'}},
-        ...beds.map((b,i)=>{
-          const bd=f.envBeds[b]||{items:[],allOk:false};
-          const isDone=bd.allOk||bd.items.some(x=>x);
-          return h('button',{
-            className:'bed-tab bed-tab-gold'+(i===f.envActiveBedTab?' active':'')+(isDone?' done':''),
-            onClick:()=>{f.envActiveBedTab=i;render()}
-          },'Bed '+b);
-        })
-      );
-    }
-    // All OK toggle for active bed
-    const allOkHandler=()=>{
-      const bd=f.envBeds[activeBed];
-      const newVal=!bd.allOk;
-      bd.allOk=newVal;
-      bd.items=bd.items.map(()=>newVal);
-    };
-    // Individual item toggle
-    const itemHandler=(idx)=>{
-      const bd=f.envBeds[activeBed];
-      bd.items[idx]=!bd.items[idx];
-      bd.allOk=bd.items.every(x=>x);
-    };
-    const bedBlock=h('div',{className:'env-block env-block-bed'},
-      h('div',{className:'env-block-label'},'Per Bed'),
-      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'Check each occupied bed individually.'),
-      bedTabs,
-      !singleBed?null:beds[0]==='Private'?null:h('div',{style:{fontSize:'13px',fontWeight:'700',color:'var(--accent)',marginBottom:'10px'}},'Bed '+activeBed),
-      chk(bedData.allOk,'All items OK for this bed',allOkHandler,'all-good-btn'),
-      ...BED_ENV_ITEMS.map((item,i)=>chk(bedData.items[i],item,()=>itemHandler(i)))
-    );
-    return h('div',{className:'card'},
-      h('div',{className:'section-header'},'Environment Check'),
-      h('div',{className:'section-desc'},'Room '+f.room+': Room conditions and per-bed checks.'),
-      roomBlock,
-      bedBlock,
-      h('div',{className:'field',style:{marginTop:'12px'}},h('label',null,'Environment Notes'),
-        h('textarea',{placeholder:'Describe any issues found \u2014 note which bed if bed-specific...',value:f.envNotes,rows:'2',onInput:e=>{f.envNotes=e.target.value}}))
-    );
-  });
-  // ‚îÄ‚îÄ STEP 3: Resident Check-In (per-bed with tabs) ‚îÄ‚îÄ
-  steps.push(()=>{
-    const beds=getSelectedBeds(f);
-    initBedData(f);
-    const activeBed=beds[f.resActiveBedTab]||beds[0]||'A';
-    const rd=f.residents[activeBed]||{spoke:'',mood:'',concerns:CONCERN_ITEMS.map(()=>false),quote:'',asked:''};
-    const singleBed=beds.length<=1;
-    // Build bed tabs
-    let bedTabs=null;
-    if(!singleBed){
-      bedTabs=h('div',{className:'bed-tabs'},
-        ...beds.map((b,i)=>{
-          const r=f.residents[b]||{};
-          return h('button',{
-            className:'bed-tab'+(i===f.resActiveBedTab?' active':'')+(r.done?' done':''),
-            onClick:()=>{f.resActiveBedTab=i;render()}
-          },'Bed '+b);
-        })
-      );
-    }
-    const cardLabel=activeBed==='Private'?'Resident':'Bed '+activeBed+' Resident';
-    // Build resident card content
-    const els=[];
-    els.push(h('div',{className:'resident-card-header'},cardLabel));
-    // "Were you able to speak?"
-    els.push(h('div',{className:'field'},h('label',null,'Were you able to speak with this resident?'),
-      h('div',{className:'big-toggle',style:{flexWrap:'wrap'}},
-        ...[{l:'Yes',v:'yes',c:'by'},{l:'No \u2014 Sleeping',v:'sleeping',c:'bn'},{l:'No \u2014 Away',v:'away',c:'bn'},{l:'Bed Empty',v:'empty',c:'sna'}].map(o=>
-          h('button',{className:'big-btn'+(rd.spoke===o.v?' '+(o.c==='sna'?'sna':o.c):''),style:{flex:'1',minWidth:'120px'},
-            onClick:()=>{rd.spoke=o.v;rd.done=true;render()}},o.l)
-        )
-      )
-    ));
-    // If spoke = yes, show follow-up questions
-    if(rd.spoke==='yes'){
-      // Mood rating
-      els.push(h('div',{className:'field'},h('label',null,'Resident\'s mood today'),
-        h('div',{className:'sat-grid'},...['Great','Good','Fair','Poor'].map(m=>
-          h('button',{className:'sat-btn'+(rd.mood===m?' sel':''),onClick:()=>{rd.mood=m;render()}},m)
-        ))
-      ));
-      // Concern checklist
-      els.push(h('div',{className:'field'},h('label',null,'Any concerns expressed about...'),
-        h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Tap all that apply'),
-        ...CONCERN_ITEMS.map((item,i)=>
-          h('div',{className:'concern-item'+(rd.concerns[i]?' checked':''),onClick:()=>{rd.concerns[i]=!rd.concerns[i];render()}},
-            h('div',{className:'check-icon'},'\u2713'),
-            h('div',{className:'item-text'},item)
-          )
-        )
-      ));
-      // Direct quote
-      els.push(h('div',{className:'field'},h('label',null,'In the resident\'s own words, what\'s on their mind?'),
-        h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Direct quote \u2014 capture the voice of the customer'),
-        h('textarea',{placeholder:'e.g., "I wish someone would walk me outside more often"',value:rd.quote,rows:'2',onInput:e=>{rd.quote=e.target.value}})
-      ));
-      // "Anything I can do?"
-      els.push(h('div',{className:'field'},h('label',null,'Did you ask: "Is there anything I can do for you right now?"'),
-        bt(rd.asked,v=>{rd.asked=v})
-      ));
-    }
-    return h('div',{className:'card'},
-      h('div',{className:'section-header'},'Resident Check-In'),
-      h('div',{className:'section-desc'},'Room '+f.room+': Check in with each resident.'),
-      bedTabs,
-      h('div',null,...els),
-      !singleBed?h('div',{style:{textAlign:'center',marginTop:'12px',fontSize:'12px',color:'var(--text-light)'}},'Tap each bed tab above to record that resident\'s check-in.'):null
-    );
-  });
-  // ‚îÄ‚îÄ STEP 4: Staff Check-In ‚îÄ‚îÄ
-  steps.push(()=>{
-    const s=f.staff;
-    const els=[
-      h('div',{className:'section-header'},'Staff Check-In'),
-      h('div',{className:'section-desc'},'Check in with any CNA, LVN, or other staff you encounter in or near the room.'),
-      h('div',{className:'field'},h('label',null,'Did you speak with a staff member?'),
-        bt(s.spoke,v=>{s.spoke=v},[{l:'Yes',v:'yes',c:'by'},{l:'No \u2014 Nobody nearby',v:'no',c:'bn'}]))
-    ];
-    if(s.spoke==='yes'){
-      els.push(h('div',{className:'field'},h('label',null,'Staff member\'s first name'),
-        h('input',{type:'text',placeholder:'First name...',value:s.name,onInput:e=>{s.name=e.target.value}})));
-      els.push(h('div',{className:'field'},h('label',null,'Do they have what they need to do their job today?'),
-        bt(s.haveNeeds,v=>{s.haveNeeds=v})));
-      els.push(h('div',{className:'field'},h('label',null,'Any barriers or frustrations?'),
-        h('textarea',{placeholder:'Equipment issues, supply shortages, scheduling concerns...',value:s.barriers,rows:'2',onInput:e=>{s.barriers=e.target.value}})));
-      els.push(h('div',{className:'field'},h('label',null,'Anyone deserve recognition today?'),
-        h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Catch people doing things right \u2014 fuel the HEART values'),
-        h('textarea',{placeholder:'e.g., "Maria went above and beyond helping a resident FaceTime their family"',value:s.recognition,rows:'2',onInput:e=>{s.recognition=e.target.value}})));
-    }
-    els.push(h('div',{className:'heart-badge'},'HEART: Appreciation \u2014 catch someone doing it right'));
-    return h('div',{className:'card'},...els);
-  });
-  // ‚îÄ‚îÄ STEP 5: Follow-Up Actions ‚îÄ‚îÄ
-  steps.push(()=>{
-    const els=[
-      h('div',{className:'section-header'},'Follow-Up Actions'),
-      h('div',{className:'section-desc'},'Room '+f.room+': Any action items from this round?'),
-      h('div',{className:'field'},h('label',null,'Does anything from this round need follow-up?'),
-        bt(f.needsAction,v=>{f.needsAction=v},[{l:'Yes',v:'yes',c:'by'},{l:'No \u2014 All clear',v:'no',c:'bn'}]))
-    ];
-    if(f.needsAction==='yes'){
-      // First action
-      const a1=f.actions[0]||(f.actions[0]={description:'',priority:'',department:''});
-      els.push(h('div',{className:'action-card'},
-        h('div',{className:'bed-label'},'Action Item #1'),
-        h('div',{className:'field'},h('label',null,'What needs to happen?'),
-          h('textarea',{placeholder:'Describe the action item clearly \u2014 who, what, by when...',value:a1.description,rows:'2',onInput:e=>{a1.description=e.target.value}})),
-        h('div',{className:'field'},h('label',null,'Which department owns this?'),
-          h('select',{value:a1.department,onChange:e=>{a1.department=e.target.value;render()}},h('option',{value:''},'Select department...'),...DEPTS.map(d=>h('option',{value:d},d)))),
-        h('div',{className:'field'},h('label',null,'Priority'),
-          h('div',{className:'pri-row'},...[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(([l,v,c])=>
-            h('button',{className:'pri-btn'+(a1.priority===v?' '+c:''),onClick:()=>{a1.priority=v;render()}},l))))
-      ));
-      // Second action toggle
-      els.push(h('div',{className:'field'},h('label',null,'Add a second follow-up item?'),
-        bt(f.showSecondAction?'yes':'no',v=>{f.showSecondAction=v==='yes';if(f.showSecondAction&&f.actions.length<2)f.actions.push({description:'',priority:'',department:''});})));
-      if(f.showSecondAction){
-        const a2=f.actions[1]||(f.actions[1]={description:'',priority:'',department:''});
-        els.push(h('div',{className:'action-card'},
-          h('div',{className:'bed-label'},'Action Item #2'),
-          h('div',{className:'field'},h('label',null,'What needs to happen?'),
-            h('textarea',{placeholder:'Describe the second action item...',value:a2.description,rows:'2',onInput:e=>{a2.description=e.target.value}})),
-          h('div',{className:'field'},h('label',null,'Which department owns this?'),
-            h('select',{value:a2.department,onChange:e=>{a2.department=e.target.value;render()}},h('option',{value:''},'Select department...'),...DEPTS.map(d=>h('option',{value:d},d)))),
-          h('div',{className:'field'},h('label',null,'Priority'),
-            h('div',{className:'pri-row'},...[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(([l,v,c])=>
-              h('button',{className:'pri-btn'+(a2.priority===v?' '+c:''),onClick:()=>{a2.priority=v;render()}},l))))
-        ));
-      }
-    }
-    // Overall room feel
-    els.push(h('div',{style:{marginTop:'16px',padding:'16px',background:'#eafaf1',borderRadius:'8px'}},
-      h('label',{style:{fontSize:'14px',fontWeight:'600',color:'var(--success)',display:'block',marginBottom:'8px'}},'Overall, how did this room feel today?'),
-      h('div',{className:'feel-grid'},
-        ...['Excellent','Good','Needs Work','Concern'].map(r=>
-          h('button',{className:'feel-btn'+(f.overallFeel===r?' sel':''),onClick:()=>{f.overallFeel=r;render()}},r)
-        ))
-    ));
-    // Additional notes
-    els.push(h('div',{className:'field',style:{marginTop:'14px'}},h('label',null,'Additional Notes'),
-      h('textarea',{placeholder:'Anything else to note about this round...',value:f.notes,rows:'2',onInput:e=>{f.notes=e.target.value}})));
-    return h('div',{className:'card'},...els);
-  });
-  const canNext=f.step===0?(f.name&&f.room&&f.date&&getSelectedBeds(f).length>0):true;
-  return h('div',{className:'page'},h('div',{className:'form-wrap'},
-    h('div',{className:'step-dots'},...steps.map((_,i)=>h('div',{className:'dot'+(i===f.step?' active':i<f.step?' done':'')}))),
-    typeof steps[f.step]==='function'?steps[f.step]():steps[f.step],
-    h('div',{className:'btn-row'},
-      f.step>0?h('button',{className:'btn btn-o',onClick:()=>{f.step--;render()}},'Back'):null,
-      f.step<steps.length-1
-        ?h('button',{className:'btn btn-p',style:{opacity:canNext?1:.5},onClick:()=>{if(canNext){f.step++;render();window.scrollTo({top:0,behavior:'smooth'})}}},'Next')
-        :h('button',{className:'btn btn-s',onClick:submitRound},'Submit Round')
-    )
-  ));
+ if(!formState)resetForm();
+ var f=formState;
+ if(f.submitted){
+ return h('div',{className:'page'},h('div',{className:'form-wrap'},h('div',{className:'card success-screen'},
+ h('div',{className:'success-icon'},'&#10003;'),h('div',{className:'success-title'},'Room '+f.room+' Submitted'),
+ h('div',{className:'success-sub'},'Logged at '+new Date().toLocaleTimeString()),
+ h('button',{className:'btn btn-p',onClick:function(){resetForm(f.name);render()}},'Round Another Room')
+ )));
+ }
+ var steps=[];
+ // -- STEP 1: Who & Where --
+ steps.push(function(){
+ var isPrivate=f.room&&ROOM_BEDS[f.room]&&ROOM_BEDS[f.room][0]==='Private';
+ var availBeds=f.room?ROOM_BEDS[f.room]||[]:[];
+ // Room dropdown with optgroups
+ var roomOptions=[h('option',{value:''},'Select room...')];
+ ROOM_GROUPS.forEach(function(g){
+ var opts=g.rooms.map(function(r){
+ var beds=ROOM_BEDS[r];
+ var bedDesc=beds[0]==='Private'?'Private':beds.length+' beds: '+beds[0]+'-'+beds[beds.length-1];
+ var p=ROSTER.find(function(x){return x.name===f.name});
+ return h('option',{value:r},'Room '+r+' ('+bedDesc+')'+(p&&p.rooms.indexOf(r)>=0?' *':''));
+ });
+ roomOptions.push(h('optgroup',{label:g.label},opts));
+ });
+ // Bed selector
+ var bedSelector=null;
+ if(f.room){
+ if(isPrivate){
+ if(!f.selectedBeds.length)f.selectedBeds=['Private'];
+ bedSelector=h('div',{className:'field'},h('label',null,'Bed'),
+ h('div',{style:{display:'flex',gap:'8px'}},
+ h('button',{className:'sat-btn sel',style:{flex:'1',cursor:'default'}},'Private Room')
+ ));
+ }else{
+ bedSelector=h('div',{className:'field'},h('label',null,'Bed(s) ',h('span',{className:'req'},'*')),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Tap to select which beds you are rounding on'),
+ h('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},
+ availBeds.map(function(b){
+ var sel=f.selectedBeds.indexOf(b)>=0;
+ return h('button',{className:'sat-btn'+(sel?' sel':''),onClick:function(){
+ if(sel)f.selectedBeds=f.selectedBeds.filter(function(x){return x!==b});
+ else f.selectedBeds.push(b);
+ initBedData(f);render();
+ }},b);
+ }),
+ h('button',{className:'sat-btn'+(f.selectedBeds.length===availBeds.length&&availBeds.length>0?' sel':''),
+ style:{background:'#f0f7fc'},
+ onClick:function(){
+ if(f.selectedBeds.length===availBeds.length)f.selectedBeds=[];
+ else f.selectedBeds=availBeds.slice();
+ initBedData(f);render();
+ }},'All')
+ ));
+ }
+ }
+ return h('div',{className:'card'},
+ h('div',{className:'section-header'},'Who & Where'),h('div',{className:'section-desc'},'Identify yourself and the room.'),
+ h('div',{className:'field'},h('label',null,'Your Name ',h('span',{className:'req'},'*')),
+ h('select',{value:f.name,onChange:function(e){f.name=e.target.value;render()}},h('option',{value:''},'Select your name...'),ROSTER.map(function(r){return h('option',{value:r.name},r.name+' - '+r.dept)}))),
+ h('div',{className:'field'},h('label',null,'Date ',h('span',{className:'req'},'*')),h('input',{type:'date',value:f.date,onChange:function(e){f.date=e.target.value;render()}})),
+ h('div',{className:'field'},h('label',null,'Room Number ',h('span',{className:'req'},'*')),
+ h('select',{value:f.room,onChange:function(e){f.room=e.target.value;f.selectedBeds=[];f.envBeds={};f.residents={};
+ if(f.room&&ROOM_BEDS[f.room]&&ROOM_BEDS[f.room][0]==='Private')f.selectedBeds=['Private'];
+ initBedData(f);render();}},
+ roomOptions)),
+ bedSelector
+ );
+ });
+ // -- STEP 2: Environment Check (combined room + per-bed) --
+ steps.push(function(){
+ var beds=getSelectedBeds(f);
+ initBedData(f);
+ var activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
+ // Room-level checklist
+ var roomBlock=h('div',{className:'env-block env-block-room'},
+ h('div',{className:'env-block-label'},'Room-Level'),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'These apply to the room as a whole. Tap to confirm satisfactory.'),
+ ROOM_ENV_ITEMS.map(function(item,i){return chk(f.envRoom[i],item,function(){f.envRoom[i]=!f.envRoom[i]})})
+ );
+ // Per-bed section
+ var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ var singleBed=beds.length<=1;
+ var bedTabs=null;
+ if(!singleBed){
+ bedTabs=h('div',{className:'bed-tabs',style:{borderBottomColor:'#f0e6d0'}},
+ beds.map(function(b,i){
+ var bd=f.envBeds[b]||{items:[],allOk:false};
+ var isDone=bd.allOk||bd.items.some(function(x){return x});
+ return h('button',{
+ className:'bed-tab bed-tab-gold'+(i===f.envActiveBedTab?' active':'')+(isDone?' done':''),
+ onClick:function(){f.envActiveBedTab=i;render()}
+ },'Bed '+b);
+ })
+ );
+ }
+ var allOkHandler=function(){
+ var bd=f.envBeds[activeBed];
+ var newVal=!bd.allOk;
+ bd.allOk=newVal;
+ bd.items=bd.items.map(function(){return newVal});
+ };
+ var itemHandler=function(idx){
+ var bd=f.envBeds[activeBed];
+ bd.items[idx]=!bd.items[idx];
+ bd.allOk=bd.items.every(function(x){return x});
+ };
+ var bedBlock=h('div',{className:'env-block env-block-bed'},
+ h('div',{className:'env-block-label'},'Per Bed'),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'Check each occupied bed individually.'),
+ bedTabs,
+ !singleBed?null:beds[0]==='Private'?null:h('div',{style:{fontSize:'13px',fontWeight:'700',color:'var(--accent)',marginBottom:'10px'}},'Bed '+activeBed),
+ chk(bedData.allOk,'All items OK for this bed',allOkHandler,'all-good-btn'),
+ BED_ENV_ITEMS.map(function(item,i){return chk(bedData.items[i],item,function(){itemHandler(i)})})
+ );
+ return h('div',{className:'card'},
+ h('div',{className:'section-header'},'Environment Check'),
+ h('div',{className:'section-desc'},'Room '+f.room+': Room conditions and per-bed checks.'),
+ roomBlock,
+ bedBlock,
+ h('div',{className:'field',style:{marginTop:'12px'}},h('label',null,'Environment Notes'),
+ h('textarea',{placeholder:'Describe any issues found - note which bed if bed-specific...',value:f.envNotes,rows:'2',onInput:function(e){f.envNotes=e.target.value}}))
+ );
+ });
+ // -- STEP 3: Resident Check-In (per-bed with tabs) --
+ steps.push(function(){
+ var beds=getSelectedBeds(f);
+ initBedData(f);
+ var activeBed=beds[f.resActiveBedTab]||beds[0]||'A';
+ var rd=f.residents[activeBed]||{spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:''};
+ var singleBed=beds.length<=1;
+ var bedTabs=null;
+ if(!singleBed){
+ bedTabs=h('div',{className:'bed-tabs'},
+ beds.map(function(b,i){
+ var r=f.residents[b]||{};
+ return h('button',{
+ className:'bed-tab'+(i===f.resActiveBedTab?' active':'')+(r.done?' done':''),
+ onClick:function(){f.resActiveBedTab=i;render()}
+ },'Bed '+b);
+ })
+ );
+ }
+ var cardLabel=activeBed==='Private'?'Resident':'Bed '+activeBed+' Resident';
+ var els=[];
+ els.push(h('div',{className:'resident-card-header'},cardLabel));
+ // "Were you able to speak?"
+ els.push(h('div',{className:'field'},h('label',null,'Were you able to speak with this resident?'),
+ h('div',{className:'big-toggle',style:{flexWrap:'wrap'}},
+ [{l:'Yes',v:'yes',c:'by'},{l:'No - Sleeping',v:'sleeping',c:'bn'},{l:'No - Away',v:'away',c:'bn'},{l:'Bed Empty',v:'empty',c:'sna'}].map(function(o){
+ return h('button',{className:'big-btn'+(rd.spoke===o.v?' '+(o.c==='sna'?'sna':o.c):''),style:{flex:'1',minWidth:'120px'},
+ onClick:function(){rd.spoke=o.v;rd.done=true;render()}},o.l)
+ })
+ )
+ ));
+ // If spoke = yes, show follow-up questions
+ if(rd.spoke==='yes'){
+ // Mood rating
+ els.push(h('div',{className:'field'},h('label',null,'Resident\'s mood today'),
+ h('div',{className:'sat-grid'},['Great','Good','Fair','Poor'].map(function(m){
+ return h('button',{className:'sat-btn'+(rd.mood===m?' sel':''),onClick:function(){rd.mood=m;render()}},m)
+ }))
+ ));
+ // Concern checklist
+ els.push(h('div',{className:'field'},h('label',null,'Any concerns expressed about...'),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Tap all that apply'),
+ CONCERN_ITEMS.map(function(item,i){
+ return h('div',{className:'concern-item'+(rd.concerns[i]?' checked':''),onClick:function(){rd.concerns[i]=!rd.concerns[i];render()}},
+ h('div',{className:'check-icon'},'&#10003;'),
+ h('div',{className:'item-text'},item)
+ )
+ })
+ ));
+ // Direct quote
+ els.push(h('div',{className:'field'},h('label',null,'In the resident\'s own words, what\'s on their mind?'),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Direct quote - capture the voice of the customer'),
+ h('textarea',{placeholder:'e.g., "I wish someone would walk me outside more often"',value:rd.quote,rows:'2',onInput:function(e){rd.quote=e.target.value}})
+ ));
+ // "Anything I can do?"
+ els.push(h('div',{className:'field'},h('label',null,'Did you ask: "Is there anything I can do for you right now?"'),
+ bt(rd.asked,function(v){rd.asked=v})
+ ));
+ }
+ return h('div',{className:'card'},
+ h('div',{className:'section-header'},'Resident Check-In'),
+ h('div',{className:'section-desc'},'Room '+f.room+': Check in with each resident.'),
+ bedTabs,
+ h('div',null,els),
+ !singleBed?h('div',{style:{textAlign:'center',marginTop:'12px',fontSize:'12px',color:'var(--text-light)'}},'Tap each bed tab above to record that resident\'s check-in.'):null
+ );
+ });
+ // -- STEP 4: Staff Check-In --
+ steps.push(function(){
+ var s=f.staff;
+ var els=[
+ h('div',{className:'section-header'},'Staff Check-In'),
+ h('div',{className:'section-desc'},'Check in with any CNA, LVN, or other staff you encounter in or near the room.'),
+ h('div',{className:'field'},h('label',null,'Did you speak with a staff member?'),
+ bt(s.spoke,function(v){s.spoke=v},[{l:'Yes',v:'yes',c:'by'},{l:'No - Nobody nearby',v:'no',c:'bn'}]))
+ ];
+ if(s.spoke==='yes'){
+ els.push(h('div',{className:'field'},h('label',null,'Staff member\'s first name'),
+ h('input',{type:'text',placeholder:'First name...',value:s.name,onInput:function(e){s.name=e.target.value}})));
+ els.push(h('div',{className:'field'},h('label',null,'Do they have what they need to do their job today?'),
+ bt(s.haveNeeds,function(v){s.haveNeeds=v})));
+ els.push(h('div',{className:'field'},h('label',null,'Any barriers or frustrations?'),
+ h('textarea',{placeholder:'Equipment issues, supply shortages, scheduling concerns...',value:s.barriers,rows:'2',onInput:function(e){s.barriers=e.target.value}})));
+ els.push(h('div',{className:'field'},h('label',null,'Anyone deserve recognition today?'),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Catch people doing things right - fuel the HEART values'),
+ h('textarea',{placeholder:'e.g., "Maria went above and beyond helping a resident FaceTime their family"',value:s.recognition,rows:'2',onInput:function(e){s.recognition=e.target.value}})));
+ }
+ els.push(h('div',{className:'heart-badge'},'HEART: Appreciation - catch someone doing it right'));
+ return h('div',{className:'card'},els);
+ });
+ // -- STEP 5: Follow-Up Actions --
+ steps.push(function(){
+ var els=[
+ h('div',{className:'section-header'},'Follow-Up Actions'),
+ h('div',{className:'section-desc'},'Room '+f.room+': Any action items from this round?'),
+ h('div',{className:'field'},h('label',null,'Does anything from this round need follow-up?'),
+ bt(f.needsAction,function(v){f.needsAction=v},[{l:'Yes',v:'yes',c:'by'},{l:'No - All clear',v:'no',c:'bn'}]))
+ ];
+ if(f.needsAction==='yes'){
+ // First action
+ var a1=f.actions[0]||(f.actions[0]={description:'',priority:'',department:''});
+ els.push(h('div',{className:'action-card'},
+ h('div',{className:'bed-label'},'Action Item #1'),
+ h('div',{className:'field'},h('label',null,'What needs to happen?'),
+ h('textarea',{placeholder:'Describe the action item clearly - who, what, by when...',value:a1.description,rows:'2',onInput:function(e){a1.description=e.target.value}})),
+ h('div',{className:'field'},h('label',null,'Which department owns this?'),
+ h('select',{value:a1.department,onChange:function(e){a1.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},d)}))),
+ h('div',{className:'field'},h('label',null,'Priority'),
+ h('div',{className:'pri-row'},[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(function(arr){
+ return h('button',{className:'pri-btn'+(a1.priority===arr[1]?' '+arr[2]:''),onClick:function(){a1.priority=arr[1];render()}},arr[0])})))
+ ));
+ // Second action toggle
+ els.push(h('div',{className:'field'},h('label',null,'Add a second follow-up item?'),
+ bt(f.showSecondAction?'yes':'no',function(v){f.showSecondAction=v==='yes';if(f.showSecondAction&&f.actions.length<2)f.actions.push({description:'',priority:'',department:''});})));
+ if(f.showSecondAction){
+ var a2=f.actions[1]||(f.actions[1]={description:'',priority:'',department:''});
+ els.push(h('div',{className:'action-card'},
+ h('div',{className:'bed-label'},'Action Item #2'),
+ h('div',{className:'field'},h('label',null,'What needs to happen?'),
+ h('textarea',{placeholder:'Describe the second action item...',value:a2.description,rows:'2',onInput:function(e){a2.description=e.target.value}})),
+ h('div',{className:'field'},h('label',null,'Which department owns this?'),
+ h('select',{value:a2.department,onChange:function(e){a2.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},d)}))),
+ h('div',{className:'field'},h('label',null,'Priority'),
+ h('div',{className:'pri-row'},[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(function(arr){
+ return h('button',{className:'pri-btn'+(a2.priority===arr[1]?' '+arr[2]:''),onClick:function(){a2.priority=arr[1];render()}},arr[0])})))
+ ));
+ }
+ }
+ // Overall room feel
+ els.push(h('div',{style:{marginTop:'16px',padding:'16px',background:'#eafaf1',borderRadius:'8px'}},
+ h('label',{style:{fontSize:'14px',fontWeight:'600',color:'var(--success)',display:'block',marginBottom:'8px'}},'Overall, how did this room feel today?'),
+ h('div',{className:'feel-grid'},
+ ['Excellent','Good','Needs Work','Concern'].map(function(r){
+ return h('button',{className:'feel-btn'+(f.overallFeel===r?' sel':''),onClick:function(){f.overallFeel=r;render()}},r)
+ }))
+ ));
+ // Additional notes
+ els.push(h('div',{className:'field',style:{marginTop:'14px'}},h('label',null,'Additional Notes'),
+ h('textarea',{placeholder:'Anything else to note about this round...',value:f.notes,rows:'2',onInput:function(e){f.notes=e.target.value}})));
+ return h('div',{className:'card'},els);
+ });
+ var canNext=f.step===0?(f.name&&f.room&&f.date&&getSelectedBeds(f).length>0):true;
+ return h('div',{className:'page'},h('div',{className:'form-wrap'},
+ h('div',{className:'step-dots'},steps.map(function(_,i){return h('div',{className:'dot'+(i===f.step?' active':i<f.step?' done':'')})})),
+ typeof steps[f.step]==='function'?steps[f.step]():steps[f.step],
+ h('div',{className:'btn-row'},
+ f.step>0?h('button',{className:'btn btn-o',onClick:function(){f.step--;render()}},'Back'):null,
+ f.step<steps.length-1
+ ?h('button',{className:'btn btn-p',style:{opacity:canNext?1:.5},onClick:function(){if(canNext){f.step++;render();window.scrollTo({top:0,behavior:'smooth'})}}},'Next')
+ :h('button',{className:'btn btn-s',onClick:submitRound},'Submit Round')
+ )
+ ));
 }
 async function submitRound(){
-  const f=formState;
-  const beds=getSelectedBeds(f);
-  // Build structured entry for local store
-  const entry={
-    id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    timestamp:new Date().toISOString(),
-    rounderName:f.name,roomNumber:f.room,roundDate:f.date,
-    selectedBeds:beds,
-    environment:{
-      roomChecks:ROOM_ENV_ITEMS.reduce((o,item,i)=>{o[item]=f.envRoom[i];return o},{}),
-      perBed:Object.fromEntries(beds.map(b=>{
-        const bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(()=>false),allOk:false};
-        return[b,BED_ENV_ITEMS.reduce((o,item,i)=>{o[item]=bd.items[i];return o},{})];
-      })),
-      notes:f.envNotes
-    },
-    residents:Object.fromEntries(beds.map(b=>{
-      const rd=f.residents[b]||{};
-      return[b,{spoke:rd.spoke||'',mood:rd.mood||'',concerns:CONCERN_ITEMS.filter((_,i)=>(rd.concerns||[])[i]),quote:rd.quote||'',asked:rd.asked||''}];
-    })),
-    staff:{spoke:f.staff.spoke,name:f.staff.name||'',haveNeeds:f.staff.haveNeeds||'',barriers:f.staff.barriers||'',recognition:f.staff.recognition||''},
-    actions:f.needsAction==='yes'?f.actions.filter(a=>a.description):[],
-    overallFeel:f.overallFeel||'',
-    additionalNotes:f.notes
-  };
-  // Backwards-compatible fields for getRoundingStats
-  const envCompat={};
-  if(!f.envRoom[0])envCompat.roomClean='no';
-  if(!f.envRoom[1])envCompat.bathroomStocked='no';
-  if(!f.envRoom[3])envCompat.tempOk='no';
-  if(!f.envRoom[4])envCompat.nameOnDoorCorrect='no';
-  envCompat.notes=f.envNotes;
-  entry.environment_compat=envCompat;
-  // Check if any resident had concerns
-  const anyConcerns=beds.some(b=>{
-    const rd=f.residents[b]||{};
-    return rd.spoke==='yes'&&(rd.concerns||[]).some(x=>x);
-  });
-  const anyQuotes=beds.map(b=>(f.residents[b]||{}).quote).filter(q=>q).join('; ');
-  entry.resident={
-    ableToCheckIn:beds.some(b=>(f.residents[b]||{}).spoke==='yes')?'yes':'no',
-    concerns:anyConcerns?'yes':'no',
-    concernDetails:beds.map(b=>{
-      const rd=f.residents[b]||{};
-      if(rd.spoke!=='yes')return null;
-      const cc=CONCERN_ITEMS.filter((_,i)=>(rd.concerns||[])[i]);
-      return cc.length?(b!=='Private'?'Bed '+b+': ':'')+cc.join(', '):null;
-    }).filter(Boolean).join('; '),
-    discomfort:beds.some(b=>(f.residents[b]||{}).mood==='Poor')?'yes':'no',
-    discomfortDetails:anyQuotes,
-    satisfaction:f.overallFeel||''
-  };
-  store.rounds.push(entry);f.submitted=true;
-  showToast('Room '+f.room+' logged!');
-  render();
-  // ‚îÄ‚îÄ Write to Supabase ‚îÄ‚îÄ
-  if(sb){
-    try{
-      const rosterEntry=ROSTER.find(r=>r.name===entry.rounderName);
-      const role=rosterEntry?rosterEntry.dept:'';
-      const observations=[];
-      // === Environment observation ===
-      const envIssues=[];
-      ROOM_ENV_ITEMS.forEach((item,i)=>{if(!f.envRoom[i])envIssues.push(item+' ‚Äî NO')});
-      beds.forEach(b=>{
-        const bd=f.envBeds[b]||{items:[]};
-        BED_ENV_ITEMS.forEach((item,i)=>{if(!bd.items[i])envIssues.push((b!=='Private'?'Bed '+b+': ':'')+item+' ‚Äî NO')});
-      });
-      const envNotesParts=[...envIssues];
-      if(f.envNotes)envNotesParts.push(f.envNotes);
-      observations.push({
-        timestamp:entry.timestamp,
-        observer_name:entry.rounderName,
-        observer_role:role,
-        department:role,
-        location:'Room '+entry.roomNumber,
-        category:envIssues.length?'safety':'quality',
-        observation:envNotesParts.length?envNotesParts.join('; '):'Room '+entry.roomNumber+' \u2014 environment all clear',
-        severity:envIssues.length>2?'concern':envIssues.length?'info':'info',
-        action_needed:false,
-        source:'web_app'
-      });
-      // === Per-bed resident observations ===
-      beds.forEach(b=>{
-        const rd=f.residents[b]||{};
-        if(rd.spoke==='yes'){
-          const bedLabel=b!=='Private'?'Bed '+b+': ':'';
-          const parts=[];
-          if(rd.mood)parts.push('Mood: '+rd.mood);
-          const cc=CONCERN_ITEMS.filter((_,i)=>(rd.concerns||[])[i]);
-          if(cc.length)parts.push('Concerns: '+cc.join(', '));
-          if(rd.quote)parts.push('Quote: "'+rd.quote+'"');
-          if(rd.asked)parts.push('Asked if anything needed: '+rd.asked);
-          const hasConcerns=cc.length>0||rd.mood==='Poor';
-          observations.push({
-            timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
-            location:'Room '+entry.roomNumber,category:'quality',
-            observation:bedLabel+(parts.length?parts.join('; '):'Resident check-in OK'),
-            severity:rd.mood==='Poor'?'concern':cc.length?'info':'info',
-            action_needed:hasConcerns,
-            action_description:hasConcerns?(bedLabel+cc.join(', ')+(rd.mood==='Poor'?' (mood: Poor)':'')):null,
-            source:'web_app'
-          });
-        }else if(rd.spoke){
-          observations.push({
-            timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
-            location:'Room '+entry.roomNumber,category:'quality',
-            observation:(b!=='Private'?'Bed '+b+': ':'')+'Not able to speak \u2014 '+rd.spoke,
-            severity:'info',action_needed:false,source:'web_app'
-          });
-        }
-      });
-      // === Staff observation ===
-      if(f.staff.spoke==='yes'){
-        const sParts=[];
-        if(f.staff.name)sParts.push('Staff: '+f.staff.name);
-        if(f.staff.haveNeeds)sParts.push('Have what they need: '+f.staff.haveNeeds);
-        if(f.staff.barriers)sParts.push('Barriers: '+f.staff.barriers);
-        if(f.staff.recognition)sParts.push('Recognition: '+f.staff.recognition);
-        const staffHasIssues=f.staff.haveNeeds==='no'||f.staff.barriers;
-        observations.push({
-          timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
-          location:'Room '+entry.roomNumber,category:'people',
-          observation:sParts.join('; '),
-          severity:staffHasIssues?'concern':'info',
-          action_needed:!!staffHasIssues,
-          action_description:staffHasIssues?('Staff needs: '+(f.staff.barriers||'needs not met')):null,
-          source:'web_app'
-        });
-      }
-      // === Overall feel observation ===
-      if(entry.overallFeel){
-        observations.push({
-          timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
-          location:'Room '+entry.roomNumber,category:'quality',
-          observation:'Overall room feel: '+entry.overallFeel+(entry.additionalNotes?' \u2014 '+entry.additionalNotes:''),
-          severity:entry.overallFeel==='Concern'?'concern':entry.overallFeel==='Needs Work'?'info':'info',
-          action_needed:entry.overallFeel==='Concern'||entry.overallFeel==='Needs Work',
-          source:'web_app'
-        });
-      }
-      // Insert all observations
-      const{data:obsData,error:obsErr}=await sb.from('rounding_observations').insert(observations).select('id');
-      if(obsErr)console.error('Supabase obs error:',obsErr);
-      // Insert action items
-      const actionItems=(entry.actions||[]).filter(a=>a.description);
-      if(actionItems.length>0&&obsData&&obsData.length>0){
-        const aiRows=actionItems.map(a=>({
-          title:a.description,
-          description:'Room '+entry.roomNumber+': '+a.description,
-          category:a.department==='Nursing'?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
-          source_type:'rounding',
-          source_id:obsData[0].id,
-          assigned_to:a.department||entry.rounderName,
-          due_date:new Date(Date.now()+3*86400000).toISOString().split('T')[0],
-          status:'open',
-          priority:a.priority==='urgent'?'high':a.priority==='high'?'high':a.priority==='low'?'low':'normal'
-        }));
-        const{error:aiErr}=await sb.from('action_items').insert(aiRows);
-        if(aiErr)console.error('Supabase action_items error:',aiErr);
-      }
-    }catch(e){console.error('Supabase submit error:',e)}
-  }
-  // ‚îÄ‚îÄ Fallback: Apps Script (fire-and-forget during transition) ‚îÄ‚îÄ
-  if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(()=>{});}
+ var f=formState;
+ var beds=getSelectedBeds(f);
+ // Build structured entry for local store
+ var entry={
+ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+ timestamp:new Date().toISOString(),
+ rounderName:f.name,roomNumber:f.room,roundDate:f.date,
+ selectedBeds:beds,
+ environment:{
+ roomChecks:ROOM_ENV_ITEMS.reduce(function(o,item,i){o[item]=f.envRoom[i];return o},{}),
+ perBed:Object.fromEntries(beds.map(function(b){
+ var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ return[b,BED_ENV_ITEMS.reduce(function(o,item,i){o[item]=bd.items[i];return o},{})];
+ })),
+ notes:f.envNotes
+ },
+ residents:Object.fromEntries(beds.map(function(b){
+ var rd=f.residents[b]||{};
+ return[b,{spoke:rd.spoke||'',mood:rd.mood||'',concerns:CONCERN_ITEMS.filter(function(_,i){return(rd.concerns||[])[i]}),quote:rd.quote||'',asked:rd.asked||''}];
+ })),
+ staff:{spoke:f.staff.spoke,name:f.staff.name||'',haveNeeds:f.staff.haveNeeds||'',barriers:f.staff.barriers||'',recognition:f.staff.recognition||''},
+ actions:f.needsAction==='yes'?f.actions.filter(function(a){return a.description}):[],
+ overallFeel:f.overallFeel||'',
+ additionalNotes:f.notes
+ };
+ // Backwards-compatible fields for getRoundingStats
+ var envCompat={};
+ if(!f.envRoom[0])envCompat.roomClean='no';
+ if(!f.envRoom[1])envCompat.bathroomStocked='no';
+ if(!f.envRoom[3])envCompat.tempOk='no';
+ if(!f.envRoom[4])envCompat.nameOnDoorCorrect='no';
+ envCompat.notes=f.envNotes;
+ entry.environment_compat=envCompat;
+ var anyConcerns=beds.some(function(b){
+ var rd=f.residents[b]||{};
+ return rd.spoke==='yes'&&(rd.concerns||[]).some(function(x){return x});
+ });
+ var anyQuotes=beds.map(function(b){return(f.residents[b]||{}).quote}).filter(function(q){return q}).join('; ');
+ entry.resident={
+ ableToCheckIn:beds.some(function(b){return(f.residents[b]||{}).spoke==='yes'})?'yes':'no',
+ concerns:anyConcerns?'yes':'no',
+ concernDetails:beds.map(function(b){
+ var rd=f.residents[b]||{};
+ if(rd.spoke!=='yes')return null;
+ var cc=CONCERN_ITEMS.filter(function(_,i){return(rd.concerns||[])[i]});
+ return cc.length?(b!=='Private'?'Bed '+b+': ':'')+cc.join(', '):null;
+ }).filter(Boolean).join('; '),
+ discomfort:beds.some(function(b){return(f.residents[b]||{}).mood==='Poor'})?'yes':'no',
+ discomfortDetails:anyQuotes,
+ satisfaction:f.overallFeel||''
+ };
+ store.rounds.push(entry);f.submitted=true;
+ showToast('Room '+f.room+' logged!');
+ render();
+ // -- Write to Supabase --
+ if(sb){
+ try{
+ var rosterEntry=ROSTER.find(function(r){return r.name===entry.rounderName});
+ var role=rosterEntry?rosterEntry.dept:'';
+ var observations=[];
+ // === Environment observation ===
+ var envIssues=[];
+ ROOM_ENV_ITEMS.forEach(function(item,i){if(!f.envRoom[i])envIssues.push(item+' - NO')});
+ beds.forEach(function(b){
+ var bd=f.envBeds[b]||{items:[]};
+ BED_ENV_ITEMS.forEach(function(item,i){if(!bd.items[i])envIssues.push((b!=='Private'?'Bed '+b+': ':'')+item+' - NO')});
+ });
+ var envNotesParts=envIssues.slice();
+ if(f.envNotes)envNotesParts.push(f.envNotes);
+ observations.push({
+ timestamp:entry.timestamp,
+ observer_name:entry.rounderName,
+ observer_role:role,
+ department:role,
+ location:'Room '+entry.roomNumber,
+ category:envIssues.length?'safety':'quality',
+ observation:envNotesParts.length?envNotesParts.join('; '):'Room '+entry.roomNumber+' - environment all clear',
+ severity:envIssues.length>2?'concern':envIssues.length?'info':'info',
+ action_needed:false,
+ source:'web_app'
+ });
+ // === Per-bed resident observations ===
+ beds.forEach(function(b){
+ var rd=f.residents[b]||{};
+ if(rd.spoke==='yes'){
+ var bedLabel=b!=='Private'?'Bed '+b+': ':'';
+ var parts=[];
+ if(rd.mood)parts.push('Mood: '+rd.mood);
+ var cc=CONCERN_ITEMS.filter(function(_,i){return(rd.concerns||[])[i]});
+ if(cc.length)parts.push('Concerns: '+cc.join(', '));
+ if(rd.quote)parts.push('Quote: "'+rd.quote+'"');
+ if(rd.asked)parts.push('Asked if anything needed: '+rd.asked);
+ var hasConcerns=cc.length>0||rd.mood==='Poor';
+ observations.push({
+ timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+ location:'Room '+entry.roomNumber,category:'quality',
+ observation:bedLabel+(parts.length?parts.join('; '):'Resident check-in OK'),
+ severity:rd.mood==='Poor'?'concern':cc.length?'info':'info',
+ action_needed:hasConcerns,
+ action_description:hasConcerns?(bedLabel+cc.join(', ')+(rd.mood==='Poor'?' (mood: Poor)':'')):null,
+ source:'web_app'
+ });
+ }else if(rd.spoke){
+ observations.push({
+ timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+ location:'Room '+entry.roomNumber,category:'quality',
+ observation:(b!=='Private'?'Bed '+b+': ':'')+'Not able to speak - '+rd.spoke,
+ severity:'info',action_needed:false,source:'web_app'
+ });
+ }
+ });
+ // === Staff observation ===
+ if(f.staff.spoke==='yes'){
+ var sParts=[];
+ if(f.staff.name)sParts.push('Staff: '+f.staff.name);
+ if(f.staff.haveNeeds)sParts.push('Have what they need: '+f.staff.haveNeeds);
+ if(f.staff.barriers)sParts.push('Barriers: '+f.staff.barriers);
+ if(f.staff.recognition)sParts.push('Recognition: '+f.staff.recognition);
+ var staffHasIssues=f.staff.haveNeeds==='no'||f.staff.barriers;
+ observations.push({
+ timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+ location:'Room '+entry.roomNumber,category:'people',
+ observation:sParts.join('; '),
+ severity:staffHasIssues?'concern':'info',
+ action_needed:!!staffHasIssues,
+ action_description:staffHasIssues?('Staff needs: '+(f.staff.barriers||'needs not met')):null,
+ source:'web_app'
+ });
+ }
+ // === Overall feel observation ===
+ if(entry.overallFeel){
+ observations.push({
+ timestamp:entry.timestamp,observer_name:entry.rounderName,observer_role:role,department:role,
+ location:'Room '+entry.roomNumber,category:'quality',
+ observation:'Overall room feel: '+entry.overallFeel+(entry.additionalNotes?' - '+entry.additionalNotes:''),
+ severity:entry.overallFeel==='Concern'?'concern':entry.overallFeel==='Needs Work'?'info':'info',
+ action_needed:entry.overallFeel==='Concern'||entry.overallFeel==='Needs Work',
+ source:'web_app'
+ });
+ }
+ // Insert all observations
+ var obsResult=await sb.from('rounding_observations').insert(observations).select('id');
+ var obsData=obsResult.data;var obsErr=obsResult.error;
+ if(obsErr)console.error('Supabase obs error:',obsErr);
+ // Insert action items
+ var actionItems=(entry.actions||[]).filter(function(a){return a.description});
+ if(actionItems.length>0&&obsData&&obsData.length>0){
+ var aiRows=actionItems.map(function(a){return{
+ title:a.description,
+ description:'Room '+entry.roomNumber+': '+a.description,
+ category:a.department==='Nursing'?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
+ source_type:'rounding',
+ source_id:obsData[0].id,
+ assigned_to:a.department||entry.rounderName,
+ due_date:new Date(Date.now()+3*86400000).toISOString().split('T')[0],
+ status:'open',
+ priority:a.priority==='urgent'?'high':a.priority==='high'?'high':a.priority==='low'?'low':'normal'
+ }});
+ var aiResult=await sb.from('action_items').insert(aiRows);
+ if(aiResult.error)console.error('Supabase action_items error:',aiResult.error);
+ }
+ }catch(e){console.error('Supabase submit error:',e)}
+ }
+ // -- Fallback: Apps Script (fire-and-forget during transition) --
+ if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(function(){});}
 }
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 // TAB 3: DATA MANAGEMENT
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 function renderDataTab(){
-  const fileInput=h('input',{type:'file',accept:'.json',className:'hidden'});
-  fileInput.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;importJSON(f,n=>{if(n>0)showToast('Imported '+n+' rounds');else showToast('Import failed')});e.target.value='';});
-  const rs=getRoundingStats(today());
-  return h('div',{className:'page'},
-    h('div',{className:'card'},
-      h('div',{className:'card-hdr'},h('span',{className:'icon'},'üíæ'),'Rounds Data Management'),
-      h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
-        ' | Today: ',h('strong',null,String(rs.dr.length)),
-        ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(r=>r.roundDate)).size))
-      ),
-      h('div',{className:'data-actions'},
-        h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
-        h('button',{className:'data-btn',onClick:()=>fileInput.click()},'Import Data (JSON)'),
-        fileInput
-      ),
-      h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
-    ),
-    store.rounds.length?h('div',{className:'card'},
-      h('div',{className:'card-hdr'},'Recent Submissions'),
-      h('table',null,
-        h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
-        h('tbody',null,...store.rounds.slice(-20).reverse().map(r=>{
-          const envCount=['roomClean','odorFree','bathroomStocked','tempOk','nameOnDoorCorrect'].filter(f=>r.environment?.[f]==='no').length;
-          return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
-            h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
-            h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
-        }))
-      )
-    ):null
-  );
+ var fileInput=h('input',{type:'file',accept:'.json',className:'hidden'});
+ fileInput.addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;importJSON(f,function(n){if(n>0)showToast('Imported '+n+' rounds');else showToast('Import failed')});e.target.value='';});
+ var rs=getRoundingStats(today());
+ return h('div',{className:'page'},
+ h('div',{className:'card'},
+ h('div',{className:'card-hdr'},h('span',{className:'icon'},'[DATA]'),' Rounds Data Management'),
+ h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
+ ' | Today: ',h('strong',null,String(rs.dr.length)),
+ ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(function(r){return r.roundDate})).size))
+ ),
+ h('div',{className:'data-actions'},
+ h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
+ h('button',{className:'data-btn',onClick:function(){fileInput.click()}},'Import Data (JSON)'),
+ fileInput
+ ),
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
+ ),
+ store.rounds.length?h('div',{className:'card'},
+ h('div',{className:'card-hdr'},'Recent Submissions'),
+ h('table',null,
+ h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
+ h('tbody',null,store.rounds.slice(-20).reverse().map(function(r){
+ var env=r.environment||{};
+ var envCount=['roomClean','odorFree','bathroomStocked','tempOk','nameOnDoorCorrect'].filter(function(f){return env[f]==='no'}).length;
+ return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
+ h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
+ h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
+ }))
+ )
+ ):null
+ );
 }
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 // MAIN RENDER
-// ‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê‚ïê
+// ====================================================================
 function render(){
-  const app=document.getElementById('app');app.innerHTML='';
-  const rs=getRoundingStats(today());
-  const roundBadge=rs.missing.length?h('span',{className:'tab-badge'},String(rs.missing.length)):null;
-  app.appendChild(h('div',{className:'header'},
-    h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board ‚Äî '+fmtDate(today()))),
-    h('div',{className:'tabs'},
-      h('button',{className:'tab'+(currentTab==='board'?' active':''),onClick:()=>{currentTab='board';render()}},'Board'),
-      h('button',{className:'tab'+(currentTab==='rounds'?' active':''),onClick:()=>{currentTab='rounds';render()}},'Room Rounds',roundBadge),
-      h('button',{className:'tab'+(currentTab==='data'?' active':''),onClick:()=>{currentTab='data';render()}},'Data')
-    )
-  ));
-  if(currentTab==='board')app.appendChild(renderBoard());
-  else if(currentTab==='rounds')app.appendChild(renderRoundsForm());
-  else if(currentTab==='data')app.appendChild(renderDataTab());
-  if(toastMsg)app.appendChild(h('div',{className:'toast'},toastMsg));
+ var app=document.getElementById('app');app.innerHTML='';
+ var rs=getRoundingStats(today());
+ var roundBadge=rs.missing.length?h('span',{className:'tab-badge'},String(rs.missing.length)):null;
+ app.appendChild(h('div',{className:'header'},
+ h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board - '+fmtDate(today()))),
+ h('div',{className:'tabs'},
+ h('button',{className:'tab'+(currentTab==='board'?' active':''),onClick:function(){currentTab='board';render()}},'Board'),
+ h('button',{className:'tab'+(currentTab==='rounds'?' active':''),onClick:function(){currentTab='rounds';render()}},'Room Rounds',roundBadge),
+ h('button',{className:'tab'+(currentTab==='data'?' active':''),onClick:function(){currentTab='data';render()}},'Data')
+ )
+ ));
+ if(currentTab==='board')app.appendChild(renderBoard());
+ else if(currentTab==='rounds')app.appendChild(renderRoundsForm());
+ else if(currentTab==='data')app.appendChild(renderDataTab());
+ if(toastMsg)app.appendChild(h('div',{className:'toast'},toastMsg));
 }
 resetForm();render();loadRounds();
 </script>
