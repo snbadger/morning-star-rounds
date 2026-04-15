@@ -252,7 +252,8 @@ async function loadRounds(){
  if(!sb)return;
  try{
  var wd=getWeekDates();
- var weekStart=wd[0]+'T00:00:00';
+ var prevMon=new Date(wd[0]+'T12:00:00');prevMon.setDate(prevMon.getDate()-7);
+ var weekStart=prevMon.toISOString().split('T')[0]+'T00:00:00';
  var weekEnd=wd[4]+'T23:59:59';
  var res=await sb.from('rounding_observations')
  .select('id,timestamp,observer_name,observer_role,location,category,observation,severity,action_needed,action_description,source')
@@ -589,6 +590,7 @@ var ROOM_GROUPS=[
 var ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
 var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked','O2 tubing dated within 7 days'];
 var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
+var CHK_MARK='\u2713';
 function resetForm(keepName){
  formState={step:0,submitted:false,name:keepName||'',room:'',date:today(),
  selectedBeds:[],
@@ -633,7 +635,7 @@ function bt(val,setter,opts){
 // Checklist item helper
 function chk(checked,label,onClick,extraClass){
  return h('div',{className:'checklist-item'+(extraClass?' '+extraClass:'')+(checked?' checked':''),onClick:function(){onClick();render()}},
- h('div',{className:'check-icon'},'&#10003;'),
+ h('div',{className:'check-icon'},CHK_MARK),
  h('div',{className:'item-text'},label)
  );
 }
@@ -642,7 +644,7 @@ function renderRoundsForm(){
  var f=formState;
  if(f.submitted){
  return h('div',{className:'page'},h('div',{className:'form-wrap'},h('div',{className:'card success-screen'},
- h('div',{className:'success-icon'},'&#10003;'),h('div',{className:'success-title'},'Room '+f.room+' Submitted'),
+ h('div',{className:'success-icon'},CHK_MARK),h('div',{className:'success-title'},'Room '+f.room+' Submitted'),
  h('div',{className:'success-sub'},'Logged at '+new Date().toLocaleTimeString()),
  h('button',{className:'btn btn-p',onClick:function(){resetForm(f.name);render()}},'Round Another Room')
  )));
@@ -707,126 +709,106 @@ function renderRoundsForm(){
  bedSelector
  );
  });
- // -- STEP 2: Environment Check (combined room + per-bed) --
+ // -- STEP 2: Room Assessment (room-level conditions) --
+ steps.push(function(){
+ var allRoomOk=f.envRoom.every(function(x){return x});
+ return h('div',{className:'card'},
+ h('div',{className:'section-header'},'Room Assessment'),
+ h('div',{className:'section-desc'},'Room '+f.room+': Overall room condition — scan the room before approaching beds.'),
+ h('div',{className:'env-block env-block-room'},
+ h('div',{className:'env-block-label'},'Room Condition'),
+ chk(allRoomOk,'Room all clear — everything looks good',function(){
+ var newVal=!allRoomOk;f.envRoom=f.envRoom.map(function(){return newVal});
+ },'all-good-btn'),
+ ROOM_ENV_ITEMS.map(function(item,i){return chk(f.envRoom[i],item,function(){f.envRoom[i]=!f.envRoom[i]})})
+ ),
+ h('div',{className:'field',style:{marginTop:'12px'}},h('label',null,'Room Notes'),
+ h('textarea',{placeholder:'Any room-level issues or observations...',value:f.envNotes,rows:'2',onInput:function(e){f.envNotes=e.target.value}}))
+ );
+ });
+ // -- STEP 3: Bed-by-Bed Assessment (environment + resident combined) --
  steps.push(function(){
  var beds=getSelectedBeds(f);
  initBedData(f);
  var activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
- // Room-level checklist
- var roomBlock=h('div',{className:'env-block env-block-room'},
- h('div',{className:'env-block-label'},'Room-Level'),
- h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'These apply to the room as a whole. Tap to confirm satisfactory.'),
- ROOM_ENV_ITEMS.map(function(item,i){return chk(f.envRoom[i],item,function(){f.envRoom[i]=!f.envRoom[i]})})
- );
- // Per-bed section
  var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ var rd=f.residents[activeBed]||{spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  var singleBed=beds.length<=1;
+ // Bed tabs (combined completion = env done + resident done)
  var bedTabs=null;
  if(!singleBed){
- bedTabs=h('div',{className:'bed-tabs',style:{borderBottomColor:'#f0e6d0'}},
+ bedTabs=h('div',{className:'bed-tabs'},
  beds.map(function(b,i){
  var bd=f.envBeds[b]||{items:[],allOk:false};
- var isDone=bd.allOk||bd.items.some(function(x){return x});
+ var r=f.residents[b]||{};
+ var isDone=(bd.allOk||bd.items.some(function(x){return x}))&&r.spoke;
  return h('button',{
- className:'bed-tab bed-tab-gold'+(i===f.envActiveBedTab?' active':'')+(isDone?' done':''),
+ className:'bed-tab'+(i===f.envActiveBedTab?' active':'')+(isDone?' done':''),
  onClick:function(){f.envActiveBedTab=i;render()}
  },'Bed '+b);
  })
  );
  }
+ var cardLabel=activeBed==='Private'?'Resident Area':'Bed '+activeBed;
+ // -- Bed environment section --
  var allOkHandler=function(){
- var bd=f.envBeds[activeBed];
- var newVal=!bd.allOk;
- bd.allOk=newVal;
- bd.items=bd.items.map(function(){return newVal});
+ var bd=f.envBeds[activeBed];var newVal=!bd.allOk;
+ bd.allOk=newVal;bd.items=bd.items.map(function(){return newVal});
  };
  var itemHandler=function(idx){
- var bd=f.envBeds[activeBed];
- bd.items[idx]=!bd.items[idx];
+ var bd=f.envBeds[activeBed];bd.items[idx]=!bd.items[idx];
  bd.allOk=bd.items.every(function(x){return x});
  };
- var bedBlock=h('div',{className:'env-block env-block-bed'},
- h('div',{className:'env-block-label'},'Per Bed'),
- h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'10px'}},'Check each occupied bed individually.'),
- bedTabs,
- !singleBed?null:beds[0]==='Private'?null:h('div',{style:{fontSize:'13px',fontWeight:'700',color:'var(--accent)',marginBottom:'10px'}},'Bed '+activeBed),
- chk(bedData.allOk,'All items OK for this bed',allOkHandler,'all-good-btn'),
+ var envSection=h('div',{className:'env-block env-block-bed'},
+ h('div',{className:'env-block-label'},'Bed Environment'),
+ chk(bedData.allOk,'All items OK',allOkHandler,'all-good-btn'),
  BED_ENV_ITEMS.map(function(item,i){return chk(bedData.items[i],item,function(){itemHandler(i)})})
  );
- return h('div',{className:'card'},
- h('div',{className:'section-header'},'Environment Check'),
- h('div',{className:'section-desc'},'Room '+f.room+': Room conditions and per-bed checks.'),
- roomBlock,
- bedBlock,
- h('div',{className:'field',style:{marginTop:'12px'}},h('label',null,'Environment Notes'),
- h('textarea',{placeholder:'Describe any issues found - note which bed if bed-specific...',value:f.envNotes,rows:'2',onInput:function(e){f.envNotes=e.target.value}}))
- );
- });
- // -- STEP 3: Resident Check-In (per-bed with tabs) --
- steps.push(function(){
- var beds=getSelectedBeds(f);
- initBedData(f);
- var activeBed=beds[f.resActiveBedTab]||beds[0]||'A';
- var rd=f.residents[activeBed]||{spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:''};
- var singleBed=beds.length<=1;
- var bedTabs=null;
- if(!singleBed){
- bedTabs=h('div',{className:'bed-tabs'},
- beds.map(function(b,i){
- var r=f.residents[b]||{};
- return h('button',{
- className:'bed-tab'+(i===f.resActiveBedTab?' active':'')+(r.done?' done':''),
- onClick:function(){f.resActiveBedTab=i;render()}
- },'Bed '+b);
- })
- );
- }
- var cardLabel=activeBed==='Private'?'Resident':'Bed '+activeBed+' Resident';
- var els=[];
- els.push(h('div',{className:'resident-card-header'},cardLabel));
- // "Were you able to speak?"
- els.push(h('div',{className:'field'},h('label',null,'Were you able to speak with this resident?'),
+ // -- Resident check-in section --
+ var resEls=[];
+ resEls.push(h('div',{className:'field'},h('label',null,'Were you able to speak with this resident?'),
  h('div',{className:'big-toggle',style:{flexWrap:'wrap'}},
- [{l:'Yes',v:'yes',c:'by'},{l:'No - Sleeping',v:'sleeping',c:'bn'},{l:'No - Away',v:'away',c:'bn'},{l:'Bed Empty',v:'empty',c:'sna'}].map(function(o){
- return h('button',{className:'big-btn'+(rd.spoke===o.v?' '+(o.c==='sna'?'sna':o.c):''),style:{flex:'1',minWidth:'120px'},
+ [{l:'Yes',v:'yes',c:'by'},{l:'No - Sleeping',v:'sleeping',c:'bn'},{l:'No - Away',v:'away',c:'bn'},{l:'No - Patient Care',v:'patient_care',c:'bn'},{l:'Bed Empty',v:'empty',c:'sna'}].map(function(o){
+ return h('button',{className:'big-btn'+(rd.spoke===o.v?' '+(o.c==='sna'?'sna':o.c):''),style:{flex:'1',minWidth:'100px'},
  onClick:function(){rd.spoke=o.v;rd.done=true;render()}},o.l)
  })
  )
  ));
- // If spoke = yes, show follow-up questions
  if(rd.spoke==='yes'){
- // Mood rating
- els.push(h('div',{className:'field'},h('label',null,'Resident\'s mood today'),
+ resEls.push(h('div',{className:'field'},h('label',null,'Resident\'s mood today'),
  h('div',{className:'sat-grid'},['Great','Good','Fair','Poor'].map(function(m){
  return h('button',{className:'sat-btn'+(rd.mood===m?' sel':''),onClick:function(){rd.mood=m;render()}},m)
  }))
  ));
- // Concern checklist
- els.push(h('div',{className:'field'},h('label',null,'Any concerns expressed about...'),
+ resEls.push(h('div',{className:'field'},h('label',null,'Any concerns expressed about...'),
  h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Tap all that apply'),
  CONCERN_ITEMS.map(function(item,i){
  return h('div',{className:'concern-item'+(rd.concerns[i]?' checked':''),onClick:function(){rd.concerns[i]=!rd.concerns[i];render()}},
- h('div',{className:'check-icon'},'&#10003;'),
+ h('div',{className:'check-icon'},CHK_MARK),
  h('div',{className:'item-text'},item)
  )
  })
  ));
- // Direct quote
- els.push(h('div',{className:'field'},h('label',null,'In the resident\'s own words, what\'s on their mind?'),
+ resEls.push(h('div',{className:'field'},h('label',null,'In the resident\'s own words, what\'s on their mind?'),
  h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Direct quote - capture the voice of the customer'),
  h('textarea',{placeholder:'e.g., "I wish someone would walk me outside more often"',value:rd.quote,rows:'2',onInput:function(e){rd.quote=e.target.value}})
  ));
- // "Anything I can do?"
- els.push(h('div',{className:'field'},h('label',null,'Did you ask: "Is there anything I can do for you right now?"'),
+ resEls.push(h('div',{className:'field'},h('label',null,'Did you ask: "Is there anything I can do for you right now?"'),
  bt(rd.asked,function(v){rd.asked=v})
  ));
  }
+ var resSection=h('div',{className:'env-block env-block-room',style:{marginTop:'14px'}},
+ h('div',{className:'env-block-label'},'Resident Check-In'),
+ resEls
+ );
  return h('div',{className:'card'},
- h('div',{className:'section-header'},'Resident Check-In'),
- h('div',{className:'section-desc'},'Room '+f.room+': Check in with each resident.'),
+ h('div',{className:'section-header'},'Bed-by-Bed Assessment'),
+ h('div',{className:'section-desc'},'Room '+f.room+': Check the bed area, then speak with the resident.'),
  bedTabs,
- h('div',null,els),
- !singleBed?h('div',{style:{textAlign:'center',marginTop:'12px',fontSize:'12px',color:'var(--text-light)'}},'Tap each bed tab above to record that resident\'s check-in.'):null
+ !singleBed?null:activeBed==='Private'?null:h('div',{style:{fontSize:'13px',fontWeight:'700',color:'var(--primary)',marginBottom:'10px'}},cardLabel),
+ envSection,
+ resSection,
+ !singleBed?h('div',{style:{textAlign:'center',marginTop:'12px',fontSize:'12px',color:'var(--text-light)'}},'Tap each bed tab to complete that bed\'s assessment.'):null
  );
  });
  // -- STEP 4: Staff Check-In --
@@ -921,7 +903,7 @@ async function submitRound(){
  // Build structured entry for local store
  var entry={
  id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
- timestamp:new Date().toISOString(),
+ timestamp:f.date+'T'+new Date().toISOString().split('T')[1],
  rounderName:f.name,roomNumber:f.room,roundDate:f.date,
  selectedBeds:beds,
  environment:{
