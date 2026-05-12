@@ -588,7 +588,8 @@ var ROOM_GROUPS=[
  {label:'West Wing',rooms:['11','12','14','15','16']}
 ];
 var ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
-var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked','O2 tubing dated within 7 days'];
+var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked'];
+var O2_DATING_ITEM='O2 tubing dated within 7 days';
 var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
 var CHK_MARK='\u2713';
 function resetForm(keepName){
@@ -618,7 +619,7 @@ function getSelectedBeds(f){
 function initBedData(f){
  var beds=getSelectedBeds(f);
  beds.forEach(function(b){
- if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return false}),allOk:false,o2InUse:'',o2Dated:false};
  if(!f.residents[b])f.residents[b]={spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  });
 }
@@ -731,7 +732,7 @@ function renderRoundsForm(){
  var beds=getSelectedBeds(f);
  initBedData(f);
  var activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
- var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
+ var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false,o2InUse:'',o2Dated:false};
  var rd=f.residents[activeBed]||{spoke:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  var singleBed=beds.length<=1;
  // Bed tabs (combined completion = env done + resident done)
@@ -754,15 +755,30 @@ function renderRoundsForm(){
  var allOkHandler=function(){
  var bd=f.envBeds[activeBed];var newVal=!bd.allOk;
  bd.allOk=newVal;bd.items=bd.items.map(function(){return newVal});
+ if(bd.o2InUse==='yes')bd.o2Dated=newVal;
  };
  var itemHandler=function(idx){
  var bd=f.envBeds[activeBed];bd.items[idx]=!bd.items[idx];
- bd.allOk=bd.items.every(function(x){return x});
+ bd.allOk=bd.items.every(function(x){return x})&&(bd.o2InUse!=='yes'||bd.o2Dated);
+ };
+ var o2InUseHandler=function(v){
+ var bd=f.envBeds[activeBed];bd.o2InUse=v;
+ if(v!=='yes')bd.o2Dated=false;
+ bd.allOk=bd.items.every(function(x){return x})&&(bd.o2InUse!=='yes'||bd.o2Dated);
+ };
+ var o2DatedHandler=function(){
+ var bd=f.envBeds[activeBed];bd.o2Dated=!bd.o2Dated;
+ bd.allOk=bd.items.every(function(x){return x})&&(bd.o2InUse!=='yes'||bd.o2Dated);
  };
  var envSection=h('div',{className:'env-block env-block-bed'},
  h('div',{className:'env-block-label'},'Bed Environment'),
  chk(bedData.allOk,'All items OK',allOkHandler,'all-good-btn'),
- BED_ENV_ITEMS.map(function(item,i){return chk(bedData.items[i],item,function(){itemHandler(i)})})
+ BED_ENV_ITEMS.map(function(item,i){return chk(bedData.items[i],item,function(){itemHandler(i)})}),
+ h('div',{style:{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid var(--navy-200)'}},
+ h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Is this resident on O2?'),
+ mt(bedData.o2InUse,o2InUseHandler),
+ bedData.o2InUse==='yes'?h('div',{style:{marginTop:'8px'}},chk(bedData.o2Dated,O2_DATING_ITEM,o2DatedHandler)):null
+ )
  );
  // -- Resident check-in section --
  var resEls=[];
@@ -909,9 +925,12 @@ async function submitRound(){
  environment:{
  roomChecks:ROOM_ENV_ITEMS.reduce(function(o,item,i){o[item]=f.envRoom[i];return o},{}),
  perBed:Object.fromEntries(beds.map(function(b){
- var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false};
- return[b,BED_ENV_ITEMS.reduce(function(o,item,i){o[item]=bd.items[i];return o},{})];
+ var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return false}),allOk:false,o2InUse:'',o2Dated:false};
+ var checks=BED_ENV_ITEMS.reduce(function(o,item,i){o[item]=bd.items[i];return o},{});
+ if(bd.o2InUse==='yes')checks[O2_DATING_ITEM]=bd.o2Dated;
+ return[b,checks];
  })),
+ o2Status:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).o2InUse||'']})),
  notes:f.envNotes
  },
  residents:Object.fromEntries(beds.map(function(b){
@@ -964,6 +983,7 @@ async function submitRound(){
  beds.forEach(function(b){
  var bd=f.envBeds[b]||{items:[]};
  BED_ENV_ITEMS.forEach(function(item,i){if(!bd.items[i])envIssues.push((b!=='Private'?'Bed '+b+': ':'')+item+' - NO')});
+ if(bd.o2InUse==='yes'&&!bd.o2Dated)envIssues.push((b!=='Private'?'Bed '+b+': ':'')+O2_DATING_ITEM+' - NO');
  });
  var envNotesParts=envIssues.slice();
  if(f.envNotes)envNotesParts.push(f.envNotes);
