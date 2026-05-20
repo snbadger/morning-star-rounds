@@ -938,7 +938,7 @@ async function submitRound(){
  return[b,{spoke:rd.spoke||'',mood:rd.mood||'',concerns:CONCERN_ITEMS.filter(function(_,i){return(rd.concerns||[])[i]}),quote:rd.quote||'',asked:rd.asked||''}];
  })),
  staff:{spoke:f.staff.spoke,name:f.staff.name||'',haveNeeds:f.staff.haveNeeds||'',barriers:f.staff.barriers||'',recognition:f.staff.recognition||''},
- actions:f.needsAction==='yes'?f.actions.filter(function(a){return a.description}):[],
+ actions:f.needsAction==='yes'?f.actions.filter(function(a){return a.description&&a.department}):[],
  overallFeel:f.overallFeel||'',
  additionalNotes:f.notes
  };
@@ -1063,7 +1063,7 @@ async function submitRound(){
  var obsData=obsResult.data;var obsErr=obsResult.error;
  if(obsErr)console.error('Supabase obs error:',obsErr);
  // Insert action items
- var actionItems=(entry.actions||[]).filter(function(a){return a.description});
+ var actionItems=(entry.actions||[]).filter(function(a){return a.description&&a.department});
  if(actionItems.length>0&&obsData&&obsData.length>0){
  var aiRows=actionItems.map(function(a){return{
  title:a.description,
@@ -1071,7 +1071,7 @@ async function submitRound(){
  category:a.department==='Nursing'?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
  source_type:'rounding',
  source_id:obsData[0].id,
- assigned_to:a.department||entry.rounderName,
+ assigned_to:a.department,
  due_date:new Date(Date.now()+3*86400000).toISOString().split('T')[0],
  status:'open',
  priority:a.priority==='urgent'?'high':a.priority==='high'?'high':a.priority==='low'?'low':'normal'
