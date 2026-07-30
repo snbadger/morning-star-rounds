@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Room Changes</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-danger-ghost{background:#fff;color:var(--danger);border:1.5px solid var(--danger);font-size:13px;padding:10px}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text)}
+input:focus,select:focus{outline:none;border-color:var(--primary-light)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc-card{cursor:pointer;transition:.15s}
+.rc-card:active{transform:scale(.98)}
+.rc-move{font-size:19px;font-weight:800;color:var(--primary)}
+.rc-move .arrow{color:var(--accent);margin:0 6px}
+.rc-meta{font-size:12px;color:var(--text-light);margin-top:4px}
+.progress-wrap{background:#eef1f4;border-radius:8px;height:10px;margin-top:10px;overflow:hidden}
+.progress-bar{height:100%;background:var(--success);border-radius:8px;transition:width .3s}
+.chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;background:#f0f0f0;color:var(--text-light)}
+.chip.done{background:#eafaf1;color:var(--success)}
+.chip.partial{background:#fef9e7;color:#a07708}
+.dept-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 0;cursor:pointer;border-bottom:1px solid var(--border)}
+.dept-hdr .name{font-weight:800;font-size:14px;color:var(--primary)}
+.dept-hdr .count{font-size:12px;font-weight:700;color:var(--text-light)}
+.dept-hdr .count.all-done{color:var(--success)}
+.task{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #f0f2f5;cursor:pointer;align-items:flex-start}
+.task:last-child{border-bottom:none}
+.checkbox{width:26px;height:26px;min-width:26px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;margin-top:1px}
+.task.done .checkbox{background:var(--success);border-color:var(--success)}
+.task-label{font-size:14px;line-height:1.45}
+.task.done .task-label{color:var(--text-light);text-decoration:line-through}
+.task-by{font-size:11px;color:var(--success);font-weight:600;margin-top:2px;text-decoration:none!important;display:block}
+.banner{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:12px;text-align:center}
+.banner-green{background:#eafaf1;color:var(--success)}
+.banner-amber{background:#fef9e7;color:#a07708}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🔄 Room Changes</h1><div class="sub">Morning Star Post Acute</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="page" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var NOTIFY_URL=SUPABASE_URL+'/functions/v1/room-change-notify';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+var ROOM_BEDS={
+ '1':['Private'],'2':['Private'],'3':['Private'],'4':['Private'],
+ '5':['A','B','C','D'],'6':['A','B','C'],'7':['A','B','C'],
+ '8':['A','B','C'],'9':['A','B','C'],'10':['A','B','C'],
+ '11':['A','B','C','D','E','F','G','H'],'12':['A','B','C','D','E','F','G','H'],
+ '14':['A','B','C','D','E','F','G','H'],'15':['A','B','C','D'],'16':['A','B','C','D'],'18':['A','B']
+};
+var ROOMS=Object.keys(ROOM_BEDS);
+var STAFF=["Donna Rogers","Savanna McCormick","Sebastian Lopez","Kim Beatrez","Stephen Badger","Randy Bago","Valerie Estrada","Annie Vang","Amandeep Brar","Belem Gonzalez","Kelsey Kennington","Yessi Flores","Michael Miller","Lucy Malcolm","Joe Fronteras"];
+var DEPTS=["Nursing","Housekeeping","Dietary","Maintenance","Administration","Admissions","Social Services","Other"];
+
+// Task template — snapshotted into room_change_tasks when a change is created.
+// Editing this only affects NEW room changes.
+var TASK_TEMPLATE=[
+ {dept:"Nursing",key:"resident_notified",label:"Resident & responsible party informed of the move (document in PCC)"},
+ {dept:"Nursing",key:"roommate_notified",label:"Roommate(s) notified — old and new room"},
+ {dept:"Nursing",key:"belongings",label:"Belongings packed, moved & double-checked — closet, nightstand, chargers, glasses, dentures, hearing aids"},
+ {dept:"Nursing",key:"pcc_transfer",label:"PCC room/bed transfer completed — chart, care plan & MAR show new location"},
+ {dept:"Nursing",key:"handoff",label:"Receiving nurse briefed & CNA assignment sheet updated"},
+ {dept:"Housekeeping",key:"new_room_ready",label:"New room/bed cleaned & ready BEFORE the move"},
+ {dept:"Housekeeping",key:"old_room_clean",label:"Old bed terminal-cleaned after the move"},
+ {dept:"Housekeeping",key:"curtains_linens",label:"Privacy curtain & linens changed (both rooms as needed)"},
+ {dept:"Dietary",key:"tray_card",label:"Tray card updated with new room/bed"},
+ {dept:"Dietary",key:"seating",label:"Dining room seating chart updated"},
+ {dept:"Dietary",key:"supplements",label:"Snack / supplement delivery list updated"},
+ {dept:"Maintenance",key:"call_light",label:"Call light tested at new bed"},
+ {dept:"Maintenance",key:"bed_check",label:"Bed, rails & mattress inspected at new bed"},
+ {dept:"Maintenance",key:"name_plate",label:"Name / door tag updated at both rooms"},
+ {dept:"Maintenance",key:"tv_phone",label:"TV, phone & outlets working at new bed"}
+];
+var CHECKLIST_DEPTS=["Nursing","Housekeeping","Dietary","Maintenance"];
+var REASONS=["Census / bed management","Clinical need","Resident / family preference","Isolation / infection control","Roommate compatibility","Discharge planning","Other"];
+
+var me={name:localStorage.getItem('rc_name')||'',dept:localStorage.getItem('rc_dept')||''};
+var view='home', currentId=null, changes=[], tasksByChange={};
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
+function loc(r,b){return 'Room '+r+(b&&b!=='Private'?b:'')}
+function fmtWhen(ts){var d=new Date(ts);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]+' · '+me.dept):'Sign in'}
+function editIdentity(){view='identity';render()}
+
+async function loadData(){
+  var r1=await sb.from('room_changes').select('*').order('created_at',{ascending:false}).limit(60);
+  changes=r1.data||[];
+  var ids=changes.map(function(c){return c.id});
+  tasksByChange={};
+  if(ids.length){
+    var r2=await sb.from('room_change_tasks').select('*').in('room_change_id',ids).order('sort_order');
+    (r2.data||[]).forEach(function(t){(tasksByChange[t.room_change_id]=tasksByChange[t.room_change_id]||[]).push(t)});
+  }
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='new'){el.innerHTML=newView();return}
+  if(view==='detail'){el.innerHTML=detailView();return}
+  el.innerHTML=homeView();
+}
+
+function identityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
+  '<div class="hint">Your name is stamped on every box you check, so the team knows who did what.</div>'+
+  '<label>Your name</label><input id="idName" list="staffList" placeholder="Type or pick your name" value="'+esc(me.name)+'">'+
+  '<datalist id="staffList">'+STAFF.map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>'+
+  '<label>Your department</label><select id="idDept">'+DEPTS.map(function(d){return '<option'+(d===me.dept?' selected':'')+'>'+d+'</option>'}).join('')+'</select>'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('idName').value.trim();
+  if(!n){toast('Please enter your name');return}
+  me.name=n;me.dept=document.getElementById('idDept').value;
+  localStorage.setItem('rc_name',me.name);localStorage.setItem('rc_dept',me.dept);
+  view='home';refresh();
+}
+
+function changeProgress(c){
+  var ts=tasksByChange[c.id]||[];
+  var done=ts.filter(function(t){return t.done}).length;
+  return {done:done,total:ts.length};
+}
+function deptChip(c,d){
+  var ts=(tasksByChange[c.id]||[]).filter(function(t){return t.department===d});
+  var done=ts.filter(function(t){return t.done}).length;
+  var cls=ts.length&&done===ts.length?'done':(done>0?'partial':'');
+  return '<span class="chip '+cls+'">'+(cls==='done'?'✓ ':'')+d+' '+done+'/'+ts.length+'</span>';
+}
+
+function homeView(){
+  var open=changes.filter(function(c){return c.status==='open'});
+  var recent=changes.filter(function(c){return c.status!=='open'&&(Date.now()-new Date(c.created_at))<14*864e5});
+  var h='<button class="btn btn-accent" onclick="view=\'new\';render()">＋ Start a New Room Change</button>';
+  h+='<div class="section-title">In Progress ('+open.length+')</div>';
+  if(!open.length)h+='<div class="card empty">No room changes in progress 🎉</div>';
+  open.forEach(function(c){
+    var p=changeProgress(c);
+    h+='<div class="card rc-card" onclick="openDetail(\''+c.id+'\')">'+
+    '<div class="rc-move">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+'</div>'+
+    '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?' · '+esc(c.reason):'')+'</div>'+
+    '<div class="progress-wrap"><div class="progress-bar" style="width:'+(p.total?Math.round(p.done/p.total*100):0)+'%"></div></div>'+
+    '<div class="chips">'+CHECKLIST_DEPTS.map(function(d){return deptChip(c,d)}).join('')+'</div></div>';
+  });
+  if(recent.length){
+    h+='<div class="section-title">Completed / Cancelled (last 14 days)</div>';
+    recent.forEach(function(c){
+      h+='<div class="card rc-card" style="opacity:.75" onclick="openDetail(\''+c.id+'\')">'+
+      '<div class="rc-move" style="font-size:15px">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+
+      ' <span class="chip '+(c.status==='complete'?'done':'')+'" style="float:right">'+(c.status==='complete'?'✓ Complete':'Cancelled')+'</span></div>'+
+      '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · '+fmtWhen(c.created_at)+'</div></div>';
+    });
+  }
+  h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh · updates every 60s</div>';
+  return h;
+}
+
+function bedOptions(room){
+  var beds=ROOM_BEDS[room]||[];
+  return beds.map(function(b){return '<option>'+b+'</option>'}).join('');
+}
+function newView(){
+  return '<span class="back" onclick="view=\'home\';render()">‹ Back</span>'+
+  '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">New Room Change</div>'+
+  '<label>Resident initials</label><input id="nInitials" placeholder="e.g. J.S." maxlength="6" style="text-transform:uppercase">'+
+  '<div class="hint">Initials only — no names (this list is visible to all departments).</div>'+
+  '<div class="row2"><div><label>From room</label><select id="nFromRoom" onchange="document.getElementById(\'nFromBed\').innerHTML=bedOptions(this.value)"><option value="" selected disabled>Room</option>'+ROOMS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>'+
+  '<div><label>Bed</label><select id="nFromBed"></select></div></div>'+
+  '<div class="row2"><div><label>To room</label><select id="nToRoom" onchange="document.getElementById(\'nToBed\').innerHTML=bedOptions(this.value)"><option value="" selected disabled>Room</option>'+ROOMS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>'+
+  '<div><label>Bed</label><select id="nToBed"></select></div></div>'+
+  '<label>Reason</label><select id="nReason">'+REASONS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select>'+
+  '<label>Note (optional)</label><textarea id="nNote" rows="2" placeholder="Anything the team should know — no PHI"></textarea>'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" id="nSubmit" onclick="createChange()">Create & Notify Departments</button></div>'+
+  '<div class="hint">Nursing, Housekeeping, Dietary & Maintenance get an email with the checklist link.</div></div>';
+}
+
+async function createChange(){
+  var ini=document.getElementById('nInitials').value.trim().toUpperCase();
+  var fr=document.getElementById('nFromRoom').value, fb=document.getElementById('nFromBed').value;
+  var tr=document.getElementById('nToRoom').value, tb=document.getElementById('nToBed').value;
+  if(!ini){toast('Enter resident initials');return}
+  if(!fr||!tr){toast('Pick both rooms');return}
+  if(fr===tr&&fb===tb){toast('From and To are the same bed');return}
+  var btn=document.getElementById('nSubmit');btn.disabled=true;btn.textContent='Creating…';
+  var ins=await sb.from('room_changes').insert({
+    from_room:fr,from_bed:fb||null,to_room:tr,to_bed:tb||null,
+    resident_initials:ini,reason:document.getElementById('nReason').value,
+    notes:document.getElementById('nNote').value.trim()||null,
+    initiated_by:me.name,initiated_role:me.dept
+  }).select().single();
+  if(ins.error){toast('Error: '+ins.error.message);btn.disabled=false;btn.textContent='Create & Notify Departments';return}
+  var rows=TASK_TEMPLATE.map(function(t,i){return {room_change_id:ins.data.id,department:t.dept,task_key:t.key,task_label:t.label,sort_order:i}});
+  var tIns=await sb.from('room_change_tasks').insert(rows);
+  if(tIns.error){toast('Tasks error: '+tIns.error.message)}
+  fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_change_id:ins.data.id})})
+    .then(function(r){return r.json()}).then(function(j){toast(j.ok?'Departments notified 📧':'Created — email notify failed')})
+    .catch(function(){toast('Created — email notify failed')});
+  currentId=ins.data.id;view='detail';
+  await loadData();render();
+}
+
+function openDetail(id){currentId=id;view='detail';render()}
+
+function detailView(){
+  var c=changes.find(function(x){return x.id===currentId});
+  if(!c)return '<div class="card empty">Not found</div>';
+  var ts=tasksByChange[c.id]||[];
+  var p=changeProgress(c);
+  var h='<span class="back" onclick="view=\'home\';refresh()">‹ All room changes</span>';
+  if(c.status==='complete')h+='<div class="banner banner-green">✓ Room change complete</div>';
+  if(c.status==='cancelled')h+='<div class="banner banner-amber">Cancelled'+(c.cancelled_by?' by '+esc(c.cancelled_by):'')+'</div>';
+  h+='<div class="card"><div class="rc-move">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+'</div>'+
+  '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?'<br>Reason: '+esc(c.reason):'')+(c.notes?'<br>Note: '+esc(c.notes):'')+'</div>'+
+  '<div class="progress-wrap"><div class="progress-bar" style="width:'+(p.total?Math.round(p.done/p.total*100):0)+'%"></div></div>'+
+  '<div class="rc-meta" style="margin-top:6px">'+p.done+' of '+p.total+' tasks done</div></div>';
+  // user's own department first
+  var order=CHECKLIST_DEPTS.slice().sort(function(a,b){return (a===me.dept?-1:0)-(b===me.dept?-1:0)});
+  order.forEach(function(d){
+    var dts=ts.filter(function(t){return t.department===d});
+    var done=dts.filter(function(t){return t.done}).length;
+    h+='<div class="card"><div class="dept-hdr" style="border-bottom:'+(dts.length?'1px solid var(--border)':'none')+'">'+
+    '<span class="name">'+d+(d===me.dept?' (you)':'')+'</span>'+
+    '<span class="count'+(dts.length&&done===dts.length?' all-done':'')+'">'+(dts.length&&done===dts.length?'✓ done':done+'/'+dts.length)+'</span></div>';
+    dts.forEach(function(t){
+      h+='<div class="task'+(t.done?' done':'')+'" onclick="toggleTask(\''+t.id+'\')">'+
+      '<div class="checkbox">'+(t.done?'✓':'')+'</div>'+
+      '<div><div class="task-label">'+esc(t.task_label)+'</div>'+
+      (t.done&&t.completed_by?'<span class="task-by">✓ '+esc(t.completed_by)+' · '+fmtWhen(t.completed_at)+'</span>':'')+
+      '</div></div>';
+    });
+    h+='</div>';
+  });
+  if(c.status==='open'){
+    h+='<button class="btn btn-danger-ghost" onclick="cancelChange()">Cancel this room change</button>';
+  }
+  return h;
+}
+
+async function toggleTask(taskId){
+  var c=changes.find(function(x){return x.id===currentId});
+  if(!c||c.status!=='open'){toast('This room change is closed');return}
+  var ts=tasksByChange[c.id]||[];
+  var t=ts.find(function(x){return x.id===taskId});
+  if(!t)return;
+  var newDone=!t.done;
+  // optimistic update
+  t.done=newDone;t.completed_by=newDone?me.name:null;t.completed_at=newDone?new Date().toISOString():null;
+  render();
+  var upd=await sb.from('room_change_tasks').update({done:newDone,completed_by:t.completed_by,completed_at:t.completed_at}).eq('id',taskId);
+  if(upd.error){toast('Save failed — check connection');t.done=!newDone;render();return}
+  // all done? auto-complete
+  if(newDone&&ts.every(function(x){return x.done})){
+    await sb.from('room_changes').update({status:'complete',completed_at:new Date().toISOString()}).eq('id',c.id);
+    c.status='complete';
+    toast('🎉 All tasks done — room change complete!');
+    render();
+  }
+}
+
+async function cancelChange(){
+  if(!confirm('Cancel this room change? Departments will see it as cancelled.'))return;
+  await sb.from('room_changes').update({status:'cancelled',cancelled_by:me.name}).eq('id',currentId);
+  toast('Room change cancelled');
+  await refresh();
+}
+
+async function refresh(){await loadData();render()}
+setInterval(function(){if(view==='home'&&me.name)refresh()},60000);
+refresh();
+</script>
+</body>
+</html>
