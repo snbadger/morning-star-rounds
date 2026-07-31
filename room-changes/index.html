@@ -92,18 +92,16 @@ var TASK_TEMPLATE=[
  {dept:"Nursing",key:"belongings",label:"Belongings packed, moved & double-checked — closet, nightstand, chargers, glasses, dentures, hearing aids"},
  {dept:"Nursing",key:"pcc_transfer",label:"PCC room/bed transfer completed — chart, care plan & MAR show new location"},
  {dept:"Nursing",key:"handoff",label:"Receiving nurse briefed & CNA assignment sheet updated"},
+ {dept:"Nursing",key:"dietary_notified",label:"Dietary notified of the move — tray card, dining seat & supplement list updated"},
  {dept:"Housekeeping",key:"new_room_ready",label:"New room/bed cleaned & ready BEFORE the move"},
  {dept:"Housekeeping",key:"old_room_clean",label:"Old bed terminal-cleaned after the move"},
  {dept:"Housekeeping",key:"curtains_linens",label:"Privacy curtain & linens changed (both rooms as needed)"},
- {dept:"Dietary",key:"tray_card",label:"Tray card updated with new room/bed"},
- {dept:"Dietary",key:"seating",label:"Dining room seating chart updated"},
- {dept:"Dietary",key:"supplements",label:"Snack / supplement delivery list updated"},
  {dept:"Maintenance",key:"call_light",label:"Call light tested at new bed"},
  {dept:"Maintenance",key:"bed_check",label:"Bed, rails & mattress inspected at new bed"},
  {dept:"Maintenance",key:"name_plate",label:"Name / door tag updated at both rooms"},
  {dept:"Maintenance",key:"tv_phone",label:"TV, phone & outlets working at new bed"}
 ];
-var CHECKLIST_DEPTS=["Nursing","Housekeeping","Dietary","Maintenance"];
+var CHECKLIST_DEPTS=["Nursing","Housekeeping","Maintenance"];
 var REASONS=["Census / bed management","Clinical need","Resident / family preference","Isolation / infection control","Roommate compatibility","Discharge planning","Other"];
 
 var me={name:localStorage.getItem('rc_name')||'',dept:localStorage.getItem('rc_dept')||''};
@@ -207,7 +205,7 @@ function newView(){
   '<label>Reason</label><select id="nReason">'+REASONS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select>'+
   '<label>Note (optional)</label><textarea id="nNote" rows="2" placeholder="Anything the team should know — no PHI"></textarea>'+
   '<div style="margin-top:18px"><button class="btn btn-primary" id="nSubmit" onclick="createChange()">Create & Notify Departments</button></div>'+
-  '<div class="hint">Nursing, Housekeeping, Dietary & Maintenance get an email with the checklist link.</div></div>';
+  '<div class="hint">Department heads (incl. Dietary) get an email with the checklist link. Nursing confirms the tray card &amp; seating updates with Dietary.</div></div>';
 }
 
 async function createChange(){
