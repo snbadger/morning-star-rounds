@@ -111,6 +111,7 @@ var view='home', currentId=null, changes=[], tasksByChange={};
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
 function loc(r,b){return 'Room '+r+(b&&b!=='Private'?b:'')}
+function resDisp(c){return c.resident_name||c.resident_initials}
 function fmtWhen(ts){var d=new Date(ts);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]+' · '+me.dept):'Sign in'}
 function editIdentity(){view='identity';render()}
@@ -173,7 +174,7 @@ function homeView(){
     var p=changeProgress(c);
     h+='<div class="card rc-card" onclick="openDetail(\''+c.id+'\')">'+
     '<div class="rc-move">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+'</div>'+
-    '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?' · '+esc(c.reason):'')+'</div>'+
+    '<div class="rc-meta">Resident '+esc(resDisp(c))+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?' · '+esc(c.reason):'')+'</div>'+
     '<div class="progress-wrap"><div class="progress-bar" style="width:'+(p.total?Math.round(p.done/p.total*100):0)+'%"></div></div>'+
     '<div class="chips">'+CHECKLIST_DEPTS.map(function(d){return deptChip(c,d)}).join('')+'</div></div>';
   });
@@ -183,7 +184,7 @@ function homeView(){
       h+='<div class="card rc-card" style="opacity:.75" onclick="openDetail(\''+c.id+'\')">'+
       '<div class="rc-move" style="font-size:15px">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+
       ' <span class="chip '+(c.status==='complete'?'done':'')+'" style="float:right">'+(c.status==='complete'?'✓ Complete':'Cancelled')+'</span></div>'+
-      '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · '+fmtWhen(c.created_at)+'</div></div>';
+      '<div class="rc-meta">Resident '+esc(resDisp(c))+' · '+fmtWhen(c.created_at)+'</div></div>';
     });
   }
   h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh · updates every 60s</div>';
@@ -197,8 +198,9 @@ function bedOptions(room){
 function newView(){
   return '<span class="back" onclick="view=\'home\';render()">‹ Back</span>'+
   '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">New Room Change</div>'+
-  '<label>Resident initials</label><input id="nInitials" placeholder="e.g. J.S." maxlength="6" style="text-transform:uppercase">'+
-  '<div class="hint">Initials only — no names (this list is visible to all departments).</div>'+
+  '<div class="row2"><div><label>Resident last name</label><input id="nLast" placeholder="e.g. Smith" maxlength="40"></div>'+
+  '<div><label>First initial</label><input id="nFirst" placeholder="e.g. J" maxlength="1" style="text-transform:uppercase"></div></div>'+
+  '<div class="hint">Shown as "Smith, J." — visible to all departments.</div>'+
   '<div class="row2"><div><label>From room</label><select id="nFromRoom" onchange="document.getElementById(\'nFromBed\').innerHTML=bedOptions(this.value)"><option value="" selected disabled>Room</option>'+ROOMS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>'+
   '<div><label>Bed</label><select id="nFromBed"></select></div></div>'+
   '<div class="row2"><div><label>To room</label><select id="nToRoom" onchange="document.getElementById(\'nToBed\').innerHTML=bedOptions(this.value)"><option value="" selected disabled>Room</option>'+ROOMS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select></div>'+
@@ -210,16 +212,19 @@ function newView(){
 }
 
 async function createChange(){
-  var ini=document.getElementById('nInitials').value.trim().toUpperCase();
+  var last=document.getElementById('nLast').value.trim();
+  var first=document.getElementById('nFirst').value.trim().toUpperCase();
   var fr=document.getElementById('nFromRoom').value, fb=document.getElementById('nFromBed').value;
   var tr=document.getElementById('nToRoom').value, tb=document.getElementById('nToBed').value;
-  if(!ini){toast('Enter resident initials');return}
+  if(!last||!first){toast('Enter resident last name and first initial');return}
+  var resName=last.charAt(0).toUpperCase()+last.slice(1)+', '+first+'.';
+  var ini=first+last.charAt(0).toUpperCase();
   if(!fr||!tr){toast('Pick both rooms');return}
   if(fr===tr&&fb===tb){toast('From and To are the same bed');return}
   var btn=document.getElementById('nSubmit');btn.disabled=true;btn.textContent='Creating…';
   var ins=await sb.from('room_changes').insert({
     from_room:fr,from_bed:fb||null,to_room:tr,to_bed:tb||null,
-    resident_initials:ini,reason:document.getElementById('nReason').value,
+    resident_name:resName,resident_initials:ini,reason:document.getElementById('nReason').value,
     notes:document.getElementById('nNote').value.trim()||null,
     initiated_by:me.name,initiated_role:me.dept
   }).select().single();
@@ -245,7 +250,7 @@ function detailView(){
   if(c.status==='complete')h+='<div class="banner banner-green">✓ Room change complete</div>';
   if(c.status==='cancelled')h+='<div class="banner banner-amber">Cancelled'+(c.cancelled_by?' by '+esc(c.cancelled_by):'')+'</div>';
   h+='<div class="card"><div class="rc-move">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+'</div>'+
-  '<div class="rc-meta">Resident '+esc(c.resident_initials)+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?'<br>Reason: '+esc(c.reason):'')+(c.notes?'<br>Note: '+esc(c.notes):'')+'</div>'+
+  '<div class="rc-meta">Resident '+esc(resDisp(c))+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?'<br>Reason: '+esc(c.reason):'')+(c.notes?'<br>Note: '+esc(c.notes):'')+'</div>'+
   '<div class="progress-wrap"><div class="progress-bar" style="width:'+(p.total?Math.round(p.done/p.total*100):0)+'%"></div></div>'+
   '<div class="rc-meta" style="margin-top:6px">'+p.done+' of '+p.total+' tasks done</div></div>';
   // user's own department first
