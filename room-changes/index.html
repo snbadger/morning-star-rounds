@@ -99,9 +99,10 @@ var TASK_TEMPLATE=[
  {dept:"Maintenance",key:"call_light",label:"Call light tested at new bed"},
  {dept:"Maintenance",key:"bed_check",label:"Bed, rails & mattress inspected at new bed"},
  {dept:"Maintenance",key:"name_plate",label:"Name / door tag updated at both rooms"},
- {dept:"Maintenance",key:"tv_phone",label:"TV, phone & outlets working at new bed"}
+ {dept:"Maintenance",key:"tv_phone",label:"TV, phone & outlets working at new bed"},
+ {dept:"Social Services",key:"adjustment_followup",label:"Follow-up visit after the move — check how the resident is adjusting to the new room, address any concerns & document in PCC"}
 ];
-var CHECKLIST_DEPTS=["Nursing","Housekeeping","Maintenance"];
+var CHECKLIST_DEPTS=["Nursing","Housekeeping","Maintenance","Social Services"];
 var REASONS=["Census / bed management","Clinical need","Resident / family preference","Isolation / infection control","Roommate compatibility","Discharge planning","Other"];
 
 var me={name:localStorage.getItem('rc_name')||'',dept:localStorage.getItem('rc_dept')||''};
@@ -205,7 +206,7 @@ function newView(){
   '<label>Reason</label><select id="nReason">'+REASONS.map(function(r){return '<option>'+r+'</option>'}).join('')+'</select>'+
   '<label>Note (optional)</label><textarea id="nNote" rows="2" placeholder="Anything the team should know — no PHI"></textarea>'+
   '<div style="margin-top:18px"><button class="btn btn-primary" id="nSubmit" onclick="createChange()">Create & Notify Departments</button></div>'+
-  '<div class="hint">Department heads (incl. Dietary) get an email with the checklist link. Nursing confirms the tray card &amp; seating updates with Dietary.</div></div>';
+  '<div class="hint">Department heads (incl. Dietary) get an email with the checklist link. Nursing confirms the tray card &amp; seating updates with Dietary. Social Services does a follow-up visit after the move, and Medical Records is emailed when everything is complete.</div></div>';
 }
 
 async function createChange(){
@@ -288,6 +289,8 @@ async function toggleTask(taskId){
     c.status='complete';
     toast('🎉 All tasks done — room change complete!');
     render();
+    fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_change_id:c.id,event:'complete'})})
+      .catch(function(){/* completion email is best-effort */});
   }
 }
 
