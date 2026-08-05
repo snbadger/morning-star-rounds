@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Morning Star — Staffing Form Signatures</title>
+<style>
+  :root { --navy:#1a3c5e; --green:#27ae60; --red:#c0392b; --amber:#e67e22; --gray:#7f8c8d; --line:#dde3e8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; background:#f4f6f8; color:#2c3e50; }
+  .wrap { max-width:760px; margin:0 auto; padding:16px; }
+  header { background:var(--navy); color:#fff; padding:18px 16px; }
+  header h1 { font-size:1.15rem; }
+  header p { font-size:.85rem; opacity:.85; margin-top:2px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:14px; }
+  .card h2 { font-size:1rem; color:var(--navy); margin-bottom:10px; }
+  .stat-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .stat { flex:1 1 100px; background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center; }
+  .stat b { display:block; font-size:1.3rem; color:var(--navy); }
+  .stat span { font-size:.72rem; color:var(--gray); }
+  table { width:100%; border-collapse:collapse; font-size:.82rem; }
+  th { text-align:left; color:var(--gray); font-weight:600; padding:6px 6px; border-bottom:2px solid var(--line); font-size:.72rem; text-transform:uppercase; }
+  td { padding:7px 6px; border-bottom:1px solid var(--line); }
+  .flag { display:inline-block; font-size:.66rem; font-weight:700; padding:2px 7px; border-radius:99px; margin:1px 2px 1px 0; white-space:nowrap; }
+  .f-da { background:#fdf2e3; color:var(--amber); }
+  .f-low { background:#fdecea; color:var(--red); }
+  .f-cna { background:#eaf2fd; color:#2471a3; }
+  .f-ok { background:#e8f8ef; color:var(--green); }
+  a.view { color:var(--navy); font-weight:600; text-decoration:none; }
+  #pad { width:100%; height:170px; border:2px dashed #b8c4cd; border-radius:10px; background:#fff; touch-action:none; }
+  .btn { display:inline-block; border:0; border-radius:10px; padding:12px 22px; font-size:1rem; font-weight:700; cursor:pointer; }
+  .btn-primary { background:var(--navy); color:#fff; width:100%; margin-top:12px; }
+  .btn-ghost { background:#eef2f5; color:var(--navy); font-size:.8rem; padding:8px 14px; margin-top:8px; }
+  .consent { display:flex; gap:10px; align-items:flex-start; font-size:.82rem; margin-top:12px; color:#4a5a68; }
+  .consent input { margin-top:3px; transform:scale(1.2); }
+  .done { text-align:center; padding:30px 10px; }
+  .done .big { font-size:3rem; }
+  .muted { color:var(--gray); font-size:.8rem; }
+  .toggle { font-size:.8rem; color:var(--navy); cursor:pointer; font-weight:600; user-select:none; }
+  .hidden { display:none; }
+  #err { background:#fdecea; color:var(--red); border-radius:10px; padding:14px; margin-top:14px; display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Morning Star Post Acute — Staffing Form Signatures</h1>
+  <p>CDPH 612 / 530 review &amp; electronic signature</p>
+</header>
+<div class="wrap">
+  <div id="err"></div>
+  <div id="app"></div>
+</div>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SB_URL = "https://pmnudshutxwidxdtouqj.supabase.co";
+const SB_KEY = "sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET";
+const sb = createClient(SB_URL, SB_KEY);
+const app = document.getElementById("app");
+const errBox = document.getElementById("err");
+const fail = (m) => { errBox.textContent = m; errBox.style.display = "block"; };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtD = (d) => { const [y,m,dd] = d.split("-"); return `${Number(m)}/${Number(dd)}/${y.slice(2)}`; };
+const pdfUrl = (p) => `${SB_URL}/storage/v1/object/public/signature-forms/${p}`;
+
+const token = new URLSearchParams(location.search).get("t");
+if (!token) { fail("This page needs a personal signing link. Check the email you received."); throw new Error("no token"); }
+
+const { data: signer, error: sErr } = await sb.from("signature_signers").select("*").eq("token", token).maybeSingle();
+if (sErr || !signer) { fail("Signing link not recognized. Please use the link from your email, or contact Stephen."); throw new Error("bad token"); }
+const { data: batch } = await sb.from("signature_batches").select("*").eq("id", signer.batch_id).single();
+let q = sb.from("signature_items").select("*").eq("batch_id", signer.batch_id).order("form_date");
+if (signer.scope === "530") q = q.eq("form_type", "530");
+const { data: items } = await q;
+const i612 = items.filter(i => i.form_type === "612");
+const i530 = items.filter(i => i.form_type === "530");
+
+const flagChips = (i) => {
+  const out = [];
+  if ((i.flags || "").includes("STILL_BELOW")) out.push('<span class="flag f-low">STILL &lt;3.5 ADJ</span>');
+  else if ((i.flags || "").includes("NEEDS_DA")) out.push('<span class="flag f-da">+DON/MDS 16h</span>');
+  if ((i.flags || "").includes("CNA_LOW")) out.push('<span class="flag f-cna">CNA &lt;2.4</span>');
+  if (!out.length) out.push('<span class="flag f-ok">OK</span>');
+  return out.join("");
+};
+const tableFor = (list, label, open) => list.length ? `
+  <div class="card">
+    <h2>${label} (${list.length}) <span class="toggle" data-t>${open ? "hide" : "show"}</span></h2>
+    <div class="${open ? "" : "hidden"}" data-body>
+    <table><thead><tr><th>Date</th><th>DHPPD</th><th>Flags</th><th></th></tr></thead><tbody>
+    ${list.map(i => `<tr><td><b>${fmtD(i.form_date)}</b></td>
+      <td>${i.adjusted_dhppd ?? i.dhppd ?? "—"}${i.cna_dhppd ? `<span class="muted"> / CNA ${i.cna_dhppd}</span>` : ""}</td>
+      <td>${flagChips(i)}</td>
+      <td>${i.pdf_path ? `<a class="view" target="_blank" rel="noopener" href="${pdfUrl(i.pdf_path)}">view</a>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>
+  </div>` : "";
+
+if (signer.status === "signed") {
+  app.innerHTML = `<div class="card done"><div class="big">✅</div>
+    <h2>Already signed</h2>
+    <p class="muted">${esc(signer.signer_name)} signed this batch on ${new Date(signer.signed_at).toLocaleString("en-US",{timeZone:"America/Los_Angeles"})}.</p></div>`;
+} else {
+  const what = signer.scope === "530"
+    ? `the <b>${i530.length} CDPH 530</b> forms listing you as supplemental licensed staffing`
+    : `all <b>${i612.length} CDPH 612</b> daily staffing forms (DON/Designee signature) and <b>${i530.length} CDPH 530</b> forms`;
+  const consentText = `I, ${signer.signer_name}, have reviewed the CDPH 612/530 staffing forms for ${batch.label}. I adopt the signature drawn below as my legal electronic signature and authorize it to be applied to each form listed on this page.`;
+  app.innerHTML = `
+    <div class="card">
+      <h2>Hello ${esc(signer.signer_name.split(" ")[0])} 👋</h2>
+      <p style="font-size:.9rem">Please review and sign ${what} for <b>${esc(batch.label)}</b>. Tap any date to open the actual PDF. Your signature will be applied to every form listed below.</p>
+      <div class="stat-row" style="margin-top:12px">
+        <div class="stat"><b>${(signer.scope === "530" ? 0 : i612.length) + i530.length}</b><span>forms to sign</span></div>
+        ${signer.scope !== "530" ? `<div class="stat"><b>${i612.length}</b><span>612 daily reports</span></div>` : ""}
+        <div class="stat"><b>${i530.length}</b><span>530 sign-in sheets</span></div>
+      </div>
+    </div>
+    ${signer.scope !== "530" ? tableFor(i612, "CDPH 612 — Daily Staffing Reports", false) : ""}
+    ${tableFor(i530, "CDPH 530 — Supplemental Staffing Sign-Ins", true)}
+    <div class="card">
+      <h2>Draw your signature</h2>
+      <canvas id="pad"></canvas>
+      <button class="btn btn-ghost" id="clear">Clear</button>
+      <label class="consent"><input type="checkbox" id="consent"><span>${esc(consentText)}</span></label>
+      <button class="btn btn-primary" id="sign" disabled>Sign ${(signer.scope === "530" ? 0 : i612.length) + i530.length} forms</button>
+      <p class="muted" style="margin-top:8px">Recorded with date, time, and device details for the audit trail. Times Pacific.</p>
+    </div>`;
+
+  document.querySelectorAll("[data-t]").forEach(t => t.addEventListener("click", () => {
+    const body = t.closest(".card").querySelector("[data-body]");
+    body.classList.toggle("hidden");
+    t.textContent = body.classList.contains("hidden") ? "show" : "hide";
+  }));
+
+  const pad = document.getElementById("pad");
+  const ctx = pad.getContext("2d");
+  const scale = window.devicePixelRatio || 1;
+  const sizePad = () => {
+    const w = pad.clientWidth, h = pad.clientHeight;
+    pad.width = w * scale; pad.height = h * scale;
+    ctx.scale(scale, scale); ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#12263a";
+  };
+  sizePad();
+  let drawing = false, drew = false;
+  const pos = (e) => { const r = pad.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  pad.addEventListener("pointerdown", e => { drawing = true; drew = true; const [x,y] = pos(e); ctx.beginPath(); ctx.moveTo(x,y); pad.setPointerCapture(e.pointerId); refresh(); });
+  pad.addEventListener("pointermove", e => { if (!drawing) return; const [x,y] = pos(e); ctx.lineTo(x,y); ctx.stroke(); });
+  pad.addEventListener("pointerup", () => drawing = false);
+  document.getElementById("clear").addEventListener("click", () => { ctx.clearRect(0,0,pad.width,pad.height); drew = false; refresh(); });
+  const consent = document.getElementById("consent");
+  const signBtn = document.getElementById("sign");
+  const refresh = () => { signBtn.disabled = !(drew && consent.checked); };
+  consent.addEventListener("change", refresh);
+  pad.addEventListener("pointerup", refresh);
+
+  signBtn.addEventListener("click", async () => {
+    signBtn.disabled = true; signBtn.textContent = "Signing…";
+    const png = pad.toDataURL("image/png");
+    const { data, error } = await sb.rpc("sign_batch", { p_token: token, p_signature_png: png, p_consent: consentText, p_user_agent: navigator.userAgent });
+    if (error || !data?.ok) {
+      fail("Could not record the signature: " + (error?.message || data?.error || "unknown error"));
+      signBtn.disabled = false; signBtn.textContent = "Try again";
+      return;
+    }
+    app.innerHTML = `<div class="card done"><div class="big">✅</div>
+      <h2>Thank you, ${esc(signer.signer_name.split(" ")[0])}!</h2>
+      <p style="margin-top:6px">Your signature was recorded and will be applied to every form in this batch. Nothing else to do.</p>
+      <p class="muted" style="margin-top:10px">Signed ${new Date().toLocaleString("en-US",{timeZone:"America/Los_Angeles"})} (Pacific)</p></div>`;
+  });
+}
+</script>
+</body>
+</html>
