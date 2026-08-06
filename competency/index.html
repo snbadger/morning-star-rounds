@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Skill Validation</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.tabs{display:flex;gap:6px;max-width:560px;margin:12px auto 0;padding:0 16px}
+.tab{flex:1;padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:center;color:var(--text-light)}
+.tab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.tab .n{display:inline-block;background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
+.page{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text)}
+input:focus,select:focus{outline:none;border-color:var(--primary-light)}
+.topic-banner{background:#eaf2f8;border:1.5px solid var(--primary-light);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:8px}
+.chk{padding:13px 0;border-bottom:1px solid #f0f2f5}
+.chk:last-child{border-bottom:none}
+.chk-type{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 8px;border-radius:8px;display:inline-block;margin-bottom:5px}
+.chk-type.o{background:#eaf2f8;color:var(--primary-light)}
+.chk-type.a{background:#fdf2e9;color:var(--accent)}
+.chk-q{font-size:14px;font-weight:600;line-height:1.45}
+.chk-k{font-size:12px;color:var(--text-light);margin-top:4px;line-height:1.4}
+.chk-k b{color:var(--text)}
+.chk-btns{display:flex;gap:6px;margin-top:9px}
+.cb{flex:1;padding:10px 4px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;text-align:center;color:var(--text-light);transition:.12s}
+.cb:active{transform:scale(.96)}
+.cb.met{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.cb.coach{border-color:var(--warn);background:#fef9e7;color:#a07708}
+.cb.not{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.result-pill{padding:12px;border-radius:10px;font-size:14px;font-weight:800;text-align:center;margin-top:12px}
+.rp-v{background:#eafaf1;color:var(--success)}
+.rp-c{background:#fef9e7;color:#a07708}
+.rp-n{background:#fdedec;color:var(--danger)}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.b-green{background:#eafaf1;color:var(--success)}.b-red{background:#fdedec;color:var(--danger)}.b-amber{background:#fef9e7;color:#a07708}.b-gray{background:#f0f0f0;color:var(--text-light)}
+.cov-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0f2f5;font-size:14px}
+.cov-row:last-child{border-bottom:none}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.fu-meta{font-size:12px;color:var(--text-light);margin-top:3px;line-height:1.4}
+.fu-btns{display:flex;gap:8px;margin-top:10px}
+.fu-btns .btn{padding:10px;font-size:13px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+.stat-strip{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center}
+.stat .v{font-size:22px;font-weight:800}
+.stat .l{font-size:10px;color:var(--text-light);font-weight:700;text-transform:uppercase;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🎓 Skill Validation</h1><div class="sub">Inservice follow-through · Morning Star Post Acute</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="tabs">
+  <div class="tab" id="tabNew" onclick="go('new')">✓ Validate</div>
+  <div class="tab" id="tabCov" onclick="go('coverage')">Coverage</div>
+  <div class="tab" id="tabFu" onclick="go('followups')">Follow-ups<span class="n" id="fuCount" style="display:none"></span></div>
+</div>
+<div class="page" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+var VALIDATORS=["Yessi Flores","Donna Rogers","Savanna McCormick","Stephen Badger"];
+
+// 2026 DSD calendar teach weeks (from dsd_schedule) — used to default the topic picker.
+var SCHEDULE={28:'2026-08-03',45:'2026-08-03',29:'2026-08-10',30:'2026-08-17',33:'2026-09-07',32:'2026-09-14',34:'2026-09-21',31:'2026-09-28',38:'2026-10-05',36:'2026-10-12',35:'2026-10-19',37:'2026-10-26',40:'2026-11-02',41:'2026-11-09',39:'2026-11-16',42:'2026-11-23',13:'2026-12-07',43:'2026-12-14',44:'2026-12-21'};
+
+// Floor checks per inservice module. ty:'o' = observe during care, ty:'a' = ask (teach-back).
+// q = what to observe / ask. k = what "met" looks like (from the taught key points).
+var MODULES=[
+{id:1,m:1,t:"Dementia 1/5 — The Person & the Disease",checks:[
+ {ty:"a",q:"What would make you suspect delirium instead of the dementia just getting worse?",k:"Sudden or fluctuating confusion over hours–days = medical change; report to the nurse immediately."},
+ {ty:"a",q:"Tell me one thing about this resident's story or preferences and how it changes your care.",k:"Names a real preference/routine/baseline and connects it to how they give care."},
+ {ty:"o",q:"During care: cues and sets up so the resident does what they can — doesn't take over or argue with the resident's reality.",k:"Supports remaining abilities; no arguing or repeated correcting."}]},
+{id:2,m:1,t:"Emergency & Disaster Preparedness / Life Safety",checks:[
+ {ty:"a",q:"Where is the EOP on this unit, and what is your role in an emergency?",k:"Points to the location; states their assigned role."},
+ {ty:"a",q:"The building starts shaking — what do you do during and after?",k:"Drop, cover, hold on; check residents and report status after; no self-initiated evacuation unless immediate life threat."},
+ {ty:"a",q:"Power goes out — which outlets do you use and who do you check first?",k:"Red generator outlets for critical equipment; equipment-dependent residents first."}]},
+{id:3,m:1,t:"Hand Hygiene & PPE — Managing Outbreaks",checks:[
+ {ty:"o",q:"Observe one care episode: hand hygiene before touching the resident, after contact, and after touching surroundings.",k:"Hits the 5-moments triggers without prompting."},
+ {ty:"a",q:"When must it be soap and water instead of hand sanitizer?",k:"Visibly soiled hands; C. diff; norovirus/GI illness."},
+ {ty:"o",q:"Have them walk through (or demonstrate) PPE removal.",k:"Gloves → eye protection → gown → mask, then hand hygiene; gown/gloves off before leaving the room."},
+ {ty:"a",q:"Two residents on your hall have the same rash/GI symptoms — what do you do?",k:"Report to the nurse and IP now — not at end of shift."}]},
+{id:4,m:1,t:"Infection Control — Respiratory & TB",checks:[
+ {ty:"a",q:"A resident is 'just not themselves' — more tired, eating less. What do you do and when?",k:"Report to the licensed nurse the same shift; atypical changes may be the first sign of infection."},
+ {ty:"a",q:"What TB warning signs would you report?",k:"Cough >3 weeks, night sweats, weight loss, coughing up blood → report to nurse/IP."},
+ {ty:"o",q:"Masking follows current signage and facility direction.",k:"Correct source-control per posted precautions."}]},
+{id:5,m:2,t:"Resident Assessment: Vitals, Pain, Behaviors & Restraints",checks:[
+ {ty:"a",q:"How can you tell a resident who can't speak is in pain, and what do you do?",k:"Grimacing, guarding, restlessness → report to the nurse immediately."},
+ {ty:"a",q:"Can you put up side rails or apply a restraint on your own?",k:"Never — only per assessment, order, and care plan; CNAs never apply/remove restraints on their own."},
+ {ty:"a",q:"A resident's behavior is escalating — what do you check before anyone thinks about medication?",k:"Pain, toileting, hunger, fear, overstimulation — behavior is communication."}]},
+{id:6,m:2,t:"Mandated Reporter — Elder & Dependent Adult Abuse",checks:[
+ {ty:"a",q:"Who is a mandated reporter here? Can you assume the charge nurse will report for you?",k:"Every employee personally; the duty cannot be delegated."},
+ {ty:"a",q:"You suspect abuse — what are your first steps, and how fast?",k:"Report same shift to charge nurse/supervisor and Administrator; 2 hours to CDPH/law enforcement if serious bodily injury, otherwise 24; never investigate or confront first."}]},
+{id:7,m:2,t:"Problems & Needs of the Aged and Chronically Ill",checks:[
+ {ty:"a",q:"What small changes in an elderly resident matter enough to report?",k:"Eating less, sleeping more, new confusion, 'not themselves' — report same shift, never dismiss as old age."},
+ {ty:"o",q:"During care: does WITH not FOR — offers choices, promotes independence, speaks to the resident not over them.",k:"Dignity and independence visible in the interaction."}]},
+{id:8,m:2,t:"Lifting, Transfers & ROM",checks:[
+ {ty:"o",q:"Checks the care plan/Kardex transfer status before transferring.",k:"Verifies status first; reports mismatches to the nurse."},
+ {ty:"o",q:"Mechanical lift: two trained staff and a sling inspection before use.",k:"Never solo; damaged slings pulled from service."},
+ {ty:"o",q:"Body mechanics: wide base, bends knees, load close, pivots — no twisting, never lifts under the arms.",k:"Safe mechanics throughout."},
+ {ty:"a",q:"Doing ROM, how far do you go and what makes you stop?",k:"Slowly to the point of resistance, never past pain; stop and report pain/stiffness/swelling."}]},
+{id:9,m:3,t:"Dementia 2/5 — What is Abuse?",checks:[
+ {ty:"a",q:"Is rushing care or using baby talk an abuse issue? Why?",k:"Yes — rushing, ignoring, and infantilizing erode dignity and can constitute abuse/neglect."},
+ {ty:"a",q:"You're getting frustrated mid-care — what do you do?",k:"Pause, make the resident safe, step away or hand off to a coworker; offer the same relief to struggling coworkers."},
+ {ty:"a",q:"When do you report something concerning you saw?",k:"Immediately — never wait to gather proof, never investigate alone."}]},
+{id:10,m:3,t:"Elopement — Prevention & Action",checks:[
+ {ty:"a",q:"You can't find your resident — walk me through exactly what you do.",k:"Notify the charge nurse immediately; missing-resident procedure and head count start now."},
+ {ty:"a",q:"A door alarm looks broken or keeps chirping — what do you do?",k:"Report to Maintenance immediately; never bypass or silence it."}]},
+{id:11,m:3,t:"Dignity & Privacy",checks:[
+ {ty:"o",q:"Knocks, announces, and waits before entering; curtain fully pulled; only the care area exposed.",k:"All three, every time."},
+ {ty:"o",q:"Adult, respectful language and preferred name; toileting needs cued discreetly.",k:"No pet names or baby talk; no resident talk in public areas."},
+ {ty:"o",q:"Dining: assistance seated at eye level, unhurried; clothing protector offered, not imposed.",k:"Dignified dining; never uses labels like 'feeder'."},
+ {ty:"a",q:"Can you take a photo with a resident on your phone?",k:"Never — no photos on personal devices, no social media; report suspected violations."}]},
+{id:12,m:3,t:"Resident Rights & Civil Rights",checks:[
+ {ty:"a",q:"A resident refuses their shower — what do you do?",k:"Respect the refusal, report to the nurse, explore why, re-offer later; never punish or ignore."},
+ {ty:"a",q:"A resident wants to wake at 9 instead of 7 — do they get to?",k:"Yes — self-determination over schedules, care, visitors, routines."}]},
+{id:13,m:4,t:"Communication with the Elder Population",checks:[
+ {ty:"o",q:"Faces the resident at eye level, lowers pitch (no shouting), reduces noise; glasses/hearing aids on and working.",k:"Sets up communication before talking."},
+ {ty:"o",q:"Short sentences, one instruction at a time, adult tone with preferred name.",k:"No elderspeak; waits for a response."},
+ {ty:"a",q:"A resident is suddenly harder to understand than yesterday — what do you do?",k:"Report to the nurse right away — could be stroke or delirium."}]},
+{id:14,m:4,t:"HIPAA — Confidentiality",checks:[
+ {ty:"a",q:"Is 'Room 12, the one with the wound' PHI even without a name?",k:"Yes — anything that could identify a resident, name not required."},
+ {ty:"a",q:"Can you look up a resident you're not assigned to?",k:"No — curiosity look-ups are violations even if nothing is shared."},
+ {ty:"a",q:"You realize you accidentally shared something you shouldn't have — now what?",k:"Report your own mistake to the supervisor/privacy officer immediately."}]},
+{id:15,m:4,t:"Interpersonal Relationships & Communication",checks:[
+ {ty:"o",q:"Handoff: repeats back what they heard and confirms before acting (closed-loop).",k:"Closed-loop communication in use."},
+ {ty:"a",q:"A family member is upset with you at the nurses station — how do you handle it?",k:"Listen fully, acknowledge, stay non-defensive, move it private, follow through or connect them; offer the grievance process."},
+ {ty:"a",q:"A resident's family offers you a $50 gift card — what do you do?",k:"Decline politely — no gifts, loans, personal business, or social media with residents/families."}]},
+{id:16,m:4,t:"Violence in the Workplace",checks:[
+ {ty:"a",q:"A resident swings at you during care — what do you do?",k:"Step back, protect yourself without retaliating, call for help, report to the charge nurse for assessment."},
+ {ty:"a",q:"Do verbal threats or near-misses get reported?",k:"Yes — all incidents, same shift; they go in the violent incident log."},
+ {ty:"o",q:"De-escalation in action: calm low voice, gives space, listens, offers choices, calls for help early.",k:"Uses de-escalation before the situation peaks."}]},
+{id:17,m:5,t:"Dementia 3/5 — Listening & Speaking",checks:[
+ {ty:"o",q:"Approaches from the front, at eye level, preferred name, calm adult tone.",k:"Never startles from behind; no elderspeak."},
+ {ty:"o",q:"One-step instructions paired with gestures; allows time before repeating.",k:"Paces to the resident."},
+ {ty:"a",q:"A resident insists she needs to go home to her mother — what do you say?",k:"Respond to the feeling and gently redirect; never argue, quiz, or force reorientation."}]},
+{id:18,m:5,t:"Fall Prevention & Intervention (F689)",checks:[
+ {ty:"o",q:"Room check: call light in reach, bed low and locked, non-skid footwear on, pathway clear and dry.",k:"Universal precautions in place for every resident."},
+ {ty:"a",q:"What do you cover on purposeful rounding?",k:"Pain, positioning, personal/toileting needs, placement of belongings; proactive toileting for at-risk residents."},
+ {ty:"a",q:"You find a resident on the floor — what's the FIRST rule?",k:"Do NOT move them; stay with the resident and call the nurse to assess for injury first."},
+ {ty:"a",q:"What happens after every fall?",k:"Huddle, root cause review, care plan update communicated to all shifts."}]},
+{id:19,m:5,t:"Food & Nutritional Services",checks:[
+ {ty:"o",q:"Tray card verified against the tray and diet order before serving.",k:"Never guesses a diet; wrong trays held and corrected."},
+ {ty:"a",q:"A resident on thickened liquids asks for water from the fountain — OK?",k:"No — thickened-liquid orders apply to ALL liquids at ALL times."},
+ {ty:"o",q:"Residents upright for meals, assisted at their pace; coughing/wet voice/pocketing → stops and reports.",k:"Safe dining and aspiration awareness."}]},
+{id:20,m:5,t:"Pressure Ulcer & Skin Breakdown Prevention (F686)",checks:[
+ {ty:"a",q:"What are you looking for during bathing and incontinence care, and what do you do if you see it?",k:"Redness, open areas, blisters, skin complaints → report to the nurse right away."},
+ {ty:"o",q:"Repositions per care plan, floats heels, uses draw sheet or lift — never drags across bedding.",k:"Pressure-relief practices in daily care."}]},
+{id:21,m:6,t:"Oral Care & Denture Care",checks:[
+ {ty:"a",q:"How do you clean and store dentures?",k:"Over a towel/basin, cool water only; labeled denture cup with water or solution — never tissues or napkins."},
+ {ty:"a",q:"What would you report from looking in a resident's mouth?",k:"Sores, white patches, broken/loose teeth, bleeding, pain."},
+ {ty:"a",q:"A resident clamps their mouth shut and refuses oral care — what do you do? And do tube-feeding residents still need oral care?",k:"Calm front approach, try again later, report ongoing refusals; yes — tube-fed residents are at higher aspiration risk and still need it twice daily."}]},
+{id:22,m:6,t:"Harassment Prevention",checks:[
+ {ty:"a",q:"Who can you report harassment to — do you have to go up the chain?",k:"Any channel: supervisor, DON, Administrator, or HR; verbal or written; no chain of command required."},
+ {ty:"a",q:"A resident or visitor is harassing a staff member or another resident — does that get reported?",k:"Yes — so protections can be put in place; harassment OF a resident is abuse and goes through the abuse policy."}]},
+{id:23,m:6,t:"Trauma-Informed Care (F699)",checks:[
+ {ty:"o",q:"Approaches from the front, explains each step before touching, asks permission.",k:"Every resident, every time."},
+ {ty:"a",q:"A resident becomes distressed mid-care — what do you do?",k:"Stop, reassure, re-approach later; never force care; report new fear or refusals the same shift."},
+ {ty:"a",q:"Should you ask a resident about the details of their past trauma?",k:"No — trauma-informed care doesn't require knowing the story."}]},
+{id:24,m:7,t:"Bowel & Bladder Management (F690)",checks:[
+ {ty:"a",q:"A resident who was continent is now having accidents — what is that and what do you do?",k:"A change of condition — report it, don't just manage with briefs."},
+ {ty:"o",q:"Toileting program followed as care-planned; call lights answered promptly.",k:"Scheduled/prompted toileting actually happening."},
+ {ty:"o",q:"Catheter: bag below bladder, tubing secured, closed system, peri care done.",k:"Also reports UTI warning signs — including new confusion."},
+ {ty:"a",q:"How are BMs tracked, and when do you speak up?",k:"Documented every shift; no BM in 3 days → report; frequent small liquid stools may be impaction, not diarrhea."}]},
+{id:25,m:7,t:"Dementia 4/5 — Actions & Reactions",checks:[
+ {ty:"a",q:"A resident starts yelling during care — what do you look for first?",k:"Pain, toileting, hunger, overstimulation, fatigue, fear — behavior is communication."},
+ {ty:"a",q:"How do you describe a behavior when you report it?",k:"ABC — what happened before (antecedent), the behavior objectively, what happened after; report patterns."},
+ {ty:"o",q:"Uses calm front approach, stop-and-return, redirection, reduced stimulation.",k:"Nonpharmacologic interventions first."}]},
+{id:26,m:7,t:"Resident Activities (F679)",checks:[
+ {ty:"a",q:"Whose job is it to get residents to activities?",k:"All staff — invite, prepare, escort, engage; bedbound residents get in-room programming."},
+ {ty:"a",q:"A resident who used to love bingo stopped going — what do you do?",k:"Report to the Activities department and the nurse for care-plan follow-up."}]},
+{id:27,m:7,t:"Slips, Trips & Falls — Staff Safety",checks:[
+ {ty:"a",q:"You find a spill in the hallway and you're on your way somewhere — what do you do?",k:"Guard or mark it immediately and stay until cleaned or handed off — no walking past."},
+ {ty:"o",q:"Wet floor signs at all approaches when mopping, removed when dry; cords out of walkways.",k:"Hazard control practiced, hazards reported."},
+ {ty:"a",q:"You tweak your back helping a resident but it seems minor — report it?",k:"Yes — all injuries AND near-misses, same shift; reporting is protected."}]},
+{id:28,m:8,t:"Accident Prevention — O2 Storage & Handling",checks:[
+ {ty:"o",q:"Walk the unit: cylinders secured upright in racks/carts, full vs. empty separated and labeled, away from heat.",k:"No free-standing, leaning, or loose cylinders anywhere."},
+ {ty:"a",q:"A resident's O2 looks low or the tubing is off — can you adjust the flow?",k:"No — only licensed nurses adjust flow; verify tubing placement, report low gauges and hazards immediately."},
+ {ty:"a",q:"You spot a frayed cord on a concentrator — what do you do?",k:"Remove from service, tag it, report to Maintenance the same day."}]},
+{id:29,m:8,t:"Signs of Cardiopulmonary Distress",checks:[
+ {ty:"a",q:"What early changes would make you speak up, and when do you report them?",k:"Eating less, more confused or tired, breathing differently — report same shift (Stop and Watch), never wait until end of shift."},
+ {ty:"a",q:"A resident has bluish lips and is working hard to breathe — what do you do?",k:"Stay with them, position upright, escalate to the nurse immediately — emergency level."}]},
+{id:30,m:8,t:"Choking Prevention & Intervention",checks:[
+ {ty:"o",q:"Tray verified against the diet card; wrong-texture tray held and corrected.",k:"Never served 'just this once.'"},
+ {ty:"o",q:"Residents upright (~90°) for all eating and drinking; supervision level matches the care plan.",k:"Positioning and supervision correct."},
+ {ty:"a",q:"A resident can't cough, speak, or breathe — walk me through your response.",k:"Shout for help, abdominal thrusts per training, CPR and 911 if unresponsive; no blind finger sweeps."}]},
+{id:31,m:9,t:"Antibiotic Stewardship",checks:[
+ {ty:"a",q:"A resident's urine is dark and smells strong but they feel fine — what does that usually mean?",k:"Often dehydration — hydrate, monitor, report; not by itself a reason for antibiotics."},
+ {ty:"a",q:"A resident on antibiotics develops diarrhea — what do you do?",k:"Report promptly (possible C. diff) and switch to soap-and-water hand hygiene."}]},
+{id:32,m:9,t:"Dementia 5/5 — Making a Difference",checks:[
+ {ty:"a",q:"Tell me this resident's story — and one way you use it in their day.",k:"Knows history/preferences/routines and applies them."},
+ {ty:"o",q:"Cues and assists rather than taking over; builds meaningful moments into routine care.",k:"Supports remaining abilities."},
+ {ty:"a",q:"You feel yourself getting frustrated — what's the play?",k:"Pause, make the resident safe, step back, get a coworker or nurse; report behavior changes."}]},
+{id:33,m:9,t:"Hazard Communication (SDS)",checks:[
+ {ty:"a",q:"Show me where you'd find the SDS for a product you use, and where first aid info is on it.",k:"Locates binder/electronic access; finds first-aid section."},
+ {ty:"o",q:"Spot-check spray bottles/buckets in use: labeled with product name and hazard warning.",k:"No unlabeled secondary containers."},
+ {ty:"a",q:"Why can't bleach and ammonia products ever mix — and what if you get chemical in your eye?",k:"Toxic gas; flush immediately with water per the SDS and report to supervisor right away."}]},
+{id:34,m:9,t:"Lock Out / Tag Out",checks:[
+ {ty:"a",q:"Equipment you need has a lock or tag on it — what do you do?",k:"Never remove, bypass, or use it; only the person who applied it removes it; use the backup process and tell your supervisor."},
+ {ty:"a",q:"A piece of equipment is acting up — what's the process?",k:"Take out of service, label it, report via work order — servicing is Maintenance's job, and unplugging doesn't remove all hazardous energy."}]},
+{id:35,m:10,t:"Death & Dying — Hospice",checks:[
+ {ty:"o",q:"Comfort care in action: frequent mouth/lip care, gentle repositioning, skin protection; reports grimacing/moaning/restlessness.",k:"Comfort measures plus pain-cue reporting."},
+ {ty:"a",q:"Why do we keep talking gently to a dying resident?",k:"Hearing is believed to be one of the last senses to fade."},
+ {ty:"a",q:"How do you know a resident's code status?",k:"The licensed nurse verifies from the POLST and physician orders — never assume or guess; changes for hospice residents still get reported."}]},
+{id:36,m:10,t:"Fire Prevention & Response",checks:[
+ {ty:"a",q:"Point out the nearest pull station, extinguisher, smoke barrier doors, and your evacuation route.",k:"Knows all four on their assigned unit."},
+ {ty:"a",q:"What do RACE and PASS stand for?",k:"Rescue, Alarm, Contain, Extinguish/Evacuate; Pull, Aim, Squeeze, Sweep — fight only small fires with your exit at your back."},
+ {ty:"a",q:"The alarm sounds on your hall — what do you do with residents?",k:"Close doors, reassure and account for residents, move horizontally behind the nearest smoke barrier when directed."}]},
+{id:37,m:10,t:"LGBTQ+ Resident Care",checks:[
+ {ty:"a",q:"You're not sure of a resident's pronouns — what do you do? And if you slip up?",k:"Ask politely and privately; use chosen name/pronouns always; on a mistake — correct yourself, brief apology, move on."},
+ {ty:"a",q:"Can you mention a resident's orientation, gender history, or HIV status to a coworker?",k:"Only as needed for care with the resident's consent — never otherwise."},
+ {ty:"a",q:"You hear someone mocking a resident — what do you do?",k:"Report to supervisor, DSD, or Administrator; good-faith reporting is protected."}]},
+{id:38,m:10,t:"Sensory Deficits — Blindness, Deafness, Confusion",checks:[
+ {ty:"o",q:"Vision loss: announces self on entering, sighted-guide for walking, clock method to describe the meal tray.",k:"All three techniques in use."},
+ {ty:"o",q:"Hearing loss: faces the resident, gains attention first, reduces noise, lower pitch — no shouting.",k:"Communication set up correctly."},
+ {ty:"o",q:"Devices: hearing aids in labeled cases (never on trays/linens), glasses clean and ON during waking hours.",k:"Reports lost/broken devices the same day."},
+ {ty:"a",q:"A resident is suddenly much more confused than this morning — what is that?",k:"An acute change — report to the nurse immediately."}]},
+{id:39,m:11,t:"Abuse Prevention — Elder Justice Act",checks:[
+ {ty:"a",q:"What are the reporting timelines, and what do you NOT do?",k:"2 hours if serious bodily injury, 24 hours otherwise; report first — never investigate or confront."},
+ {ty:"a",q:"One resident hits another — walk me through your response.",k:"Separate/ensure safety, check for injuries, notify the nurse and administration; it gets reported per F609."}]},
+{id:40,m:11,t:"Behavioral Health & Management (F740/F741)",checks:[
+ {ty:"a",q:"A resident's behavior changes — what's it telling you and what comes first?",k:"Communication of an unmet need; find and address the trigger, person-centered nonpharm interventions before any med."},
+ {ty:"a",q:"A resident says something that sounds like self-harm — what do you do?",k:"Report to the nurse/provider immediately and keep the resident safe — never keep it to yourself."},
+ {ty:"a",q:"How do you report a behavior episode?",k:"What happened before, the behavior objectively, what you did, how they responded (ABIR)."}]},
+{id:41,m:11,t:"Bloodborne Pathogens — HBV, HIV & PPE",checks:[
+ {ty:"a",q:"Whose blood and body fluids do you treat as infectious?",k:"Everyone's — standard precautions for every resident."},
+ {ty:"a",q:"You find an uncapped needle — what do you do (and what do you never do)?",k:"Never recap by hand; into a puncture-resistant labeled sharps container immediately."},
+ {ty:"a",q:"You get splashed or stuck — first two moves?",k:"Wash/flush the area immediately; report to your supervisor at once for post-exposure evaluation."}]},
+{id:42,m:11,t:"Theft & Loss / Grievance Process",checks:[
+ {ty:"a",q:"A resident says her ring is missing — what do you do?",k:"Report promptly and document; any staff member can receive a grievance — acknowledge it and route to the grievance official/SSD."},
+ {ty:"a",q:"Is 'borrowing' a resident's sweater or charger a problem?",k:"Yes — misappropriation of property (F602); must be reported."}]},
+{id:43,m:12,t:"Compliance & Ethics / Code of Conduct",checks:[
+ {ty:"a",q:"A coworker running late asks you to clock them in — what do you say?",k:"No — never clock in/out for anyone; it's a compliance violation and gets reported."},
+ {ty:"a",q:"Can you chart care before you do it, or sign for someone else?",k:"Never — no pre-charting, no documenting care not provided; report via supervisor, Administrator, or hotline (anonymous OK)."}]},
+{id:44,m:12,t:"QAPI — The Five Elements",checks:[
+ {ty:"a",q:"Who owns quality in this building?",k:"Every staff member, every department."},
+ {ty:"a",q:"What's a PIP — and is being on one a punishment?",k:"A team project to fix a problem area; never discipline — we ask WHY, not WHO."},
+ {ty:"a",q:"Where do you take a problem, near-miss, or improvement idea?",k:"Huddles, supervisor, or rounding — honest data is the fuel of QAPI."}]},
+{id:45,m:8,t:"Oxygen Delivery Devices (F695)",checks:[
+ {ty:"o",q:"Spot-check an O2 resident: tubing free of kinks/trip hazards, concentrator plugged directly into the wall, cylinders upright.",k:"Safety checks every shift; no smoking/open flame near O2."},
+ {ty:"a",q:"What's the max flow on a nasal cannula, and what skin areas do you check?",k:"6 L/min max; behind ears, cheeks, nares every shift."},
+ {ty:"a",q:"Can a CNA change the flow rate or take the O2 off? What DO you do?",k:"Never — report dislodged devices, low tanks, skin redness, and any breathing change to the nurse immediately."},
+ {ty:"a",q:"The bag on a non-rebreather mask is flat — is that OK?",k:"No — it must run 10–15 L/min with the bag inflated; tell the nurse immediately, it's an emergency device."}]}
+];
+
+var MONTHS=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+var me={name:localStorage.getItem('cv_name')||''};
+var view='new', roster=[], vals=[], followups=[], answers={}, covModule=null;
+var prefill={staff:null,module:null};
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
+function tc(s){return String(s||'').toLowerCase().replace(/(^|[\s\-'])[a-z]/g,function(c){return c.toUpperCase()})}
+function fmtWhen(ts){var d=new Date(ts);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})}
+function modById(id){return MODULES.find(function(m){return m.id===id})}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+
+function currentModuleId(){
+  var today=new Date().toISOString().slice(0,10), best=null, bestDate='';
+  Object.keys(SCHEDULE).forEach(function(id){
+    if(SCHEDULE[id]<=today && SCHEDULE[id]>=bestDate){bestDate=SCHEDULE[id];best=parseInt(id)}
+  });
+  if(best)return best;
+  var m=new Date().getMonth()+1;
+  var inMonth=MODULES.filter(function(x){return x.m===m});
+  return inMonth.length?inMonth[0].id:MODULES[0].id;
+}
+
+async function loadData(){
+  var r1=await sb.from('v_competency_roster').select('staff_name,position_title');
+  roster=(r1.data||[]).map(function(r){return {name:tc(r.staff_name),role:r.position_title==='RNA-SNF'?'RNA':'CNA'}});
+  var r2=await sb.from('competency_validations').select('id,created_at,validator_name,staff_name,module_id,topic,result,notes').order('created_at',{ascending:false}).limit(500);
+  vals=r2.data||[];
+  var r3=await sb.from('v_competency_open_followups').select('*');
+  followups=r3.data||[];
+  var fc=document.getElementById('fuCount');
+  fc.style.display=followups.length?'inline-block':'none';fc.textContent=followups.length;
+}
+
+function go(v){view=v;render()}
+function render(){
+  whoChip();
+  ['tabNew','tabCov','tabFu'].forEach(function(id){document.getElementById(id).classList.remove('active')});
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='coverage'){document.getElementById('tabCov').classList.add('active');el.innerHTML=coverageView();return}
+  if(view==='followups'){document.getElementById('tabFu').classList.add('active');el.innerHTML=followupsView();return}
+  document.getElementById('tabNew').classList.add('active');el.innerHTML=newView();
+  var sel=document.getElementById('nModule');if(sel)moduleChanged();
+}
+
+function identityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who is validating?</div>'+
+  '<div class="hint">Your name is stamped on every validation.</div>'+
+  '<label>Your name</label><input id="idName" list="valList" placeholder="Type or pick your name" value="'+esc(me.name)+'">'+
+  '<datalist id="valList">'+VALIDATORS.map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('idName').value.trim();
+  if(!n){toast('Please enter your name');return}
+  me.name=n;localStorage.setItem('cv_name',n);view='new';render();
+}
+
+function moduleOptions(selId){
+  var byMonth={};
+  MODULES.forEach(function(m){(byMonth[m.m]=byMonth[m.m]||[]).push(m)});
+  var h='';
+  Object.keys(byMonth).sort(function(a,b){return a-b}).forEach(function(mo){
+    h+='<optgroup label="'+MONTHS[mo]+'">';
+    byMonth[mo].forEach(function(m){h+='<option value="'+m.id+'"'+(m.id===selId?' selected':'')+'>'+esc(m.t)+'</option>'});
+    h+='</optgroup>';
+  });
+  return h;
+}
+
+function newView(){
+  var selId=prefill.module||currentModuleId();
+  var cur=modById(currentModuleId());
+  var staffVal=prefill.staff||'';
+  prefill={staff:null,module:null};
+  var h='<div class="card">'+
+  '<div style="font-weight:800;font-size:16px;color:var(--primary)">Validate a Skill</div>'+
+  '<div class="topic-banner">📅 This week\'s topic: <b>'+esc(cur.t)+'</b></div>'+
+  '<label>Inservice topic</label><select id="nModule" onchange="moduleChanged()">'+moduleOptions(selId)+'</select>'+
+  '<label>Staff member</label><input id="nStaff" list="cnaList" placeholder="Type or pick a name" value="'+esc(staffVal)+'">'+
+  '<datalist id="cnaList">'+roster.map(function(r){return '<option value="'+esc(r.name)+'">'}).join('')+'</datalist>'+
+  '<div class="hint">Roster: active CNAs/RNAs. Other roles — just type the name.</div>'+
+  '</div><div class="card" id="checklistCard"></div>';
+  return h;
+}
+
+function moduleChanged(){
+  var id=parseInt(document.getElementById('nModule').value);
+  answers={};
+  renderChecklist(id);
+}
+function renderChecklist(id){
+  var m=modById(id);
+  var h='<div style="font-weight:800;font-size:14px;color:var(--primary);margin-bottom:4px">On-the-floor checks</div>'+
+  '<div class="hint" style="margin-bottom:6px">👁 Observe = watch it happen during care. 💬 Ask = teach-back — the gray line is what a solid answer covers.</div>';
+  m.checks.forEach(function(c,i){
+    var a=answers[i]||'';
+    h+='<div class="chk"><span class="chk-type '+c.ty+'">'+(c.ty==='o'?'👁 Observe':'💬 Ask')+'</span>'+
+    '<div class="chk-q">'+esc(c.q)+'</div>'+
+    '<div class="chk-k">Listen/look for: '+esc(c.k)+'</div>'+
+    '<div class="chk-btns">'+
+    '<button class="cb'+(a==='met'?' met':'')+'" onclick="setAns('+i+',\'met\')">✓ Met</button>'+
+    '<button class="cb'+(a==='coached'?' coach':'')+'" onclick="setAns('+i+',\'coached\')">⚠ Coached</button>'+
+    '<button class="cb'+(a==='not_met'?' not':'')+'" onclick="setAns('+i+',\'not_met\')">✗ Not yet</button>'+
+    '</div></div>';
+  });
+  h+='<label>Note (optional — no resident names)</label><textarea id="nNote" rows="2" placeholder="e.g. coached on doffing order at bedside"></textarea>';
+  h+='<div id="resultPreview"></div>';
+  h+='<div style="margin-top:14px"><button class="btn btn-primary" id="nSubmit" onclick="submitValidation()">Save Validation</button></div>';
+  document.getElementById('checklistCard').innerHTML=h;
+  previewResult(id);
+}
+function setAns(i,v){
+  var note=document.getElementById('nNote');var noteVal=note?note.value:'';
+  answers[i]=v;
+  var id=parseInt(document.getElementById('nModule').value);
+  renderChecklist(id);
+  var n2=document.getElementById('nNote');if(n2)n2.value=noteVal;
+}
+function computeResult(m){
+  var arr=m.checks.map(function(c,i){return answers[i]});
+  if(arr.some(function(a){return !a}))return null;
+  if(arr.indexOf('not_met')>=0)return 'needs_reeducation';
+  if(arr.indexOf('coached')>=0)return 'validated_with_coaching';
+  return 'validated';
+}
+function previewResult(id){
+  var m=modById(id);var r=computeResult(m);
+  var el=document.getElementById('resultPreview');
+  if(!r){el.innerHTML='';return}
+  var map={validated:['rp-v','✓ VALIDATED — understood & applying it'],validated_with_coaching:['rp-c','⚠ VALIDATED WITH COACHING — corrected on the spot'],needs_reeducation:['rp-n','✗ NEEDS RE-EDUCATION — schedule 1:1 & re-check']};
+  el.innerHTML='<div class="result-pill '+map[r][0]+'">'+map[r][1]+'</div>';
+}
+async function submitValidation(){
+  var id=parseInt(document.getElementById('nModule').value);
+  var m=modById(id);
+  var staff=document.getElementById('nStaff').value.trim();
+  if(!staff){toast('Pick or type the staff member');return}
+  var r=computeResult(m);
+  if(!r){toast('Answer every check first');return}
+  var rr=roster.find(function(x){return x.name.toLowerCase()===staff.toLowerCase()});
+  var checks=m.checks.map(function(c,i){return {type:c.ty==='o'?'observe':'ask',check:c.q,result:answers[i]}});
+  var btn=document.getElementById('nSubmit');btn.disabled=true;btn.textContent='Saving…';
+  var ins=await sb.from('competency_validations').insert({
+    validator_name:me.name,staff_name:tc(staff),staff_role:rr?rr.role:'CNA',
+    module_id:id,topic:m.t,checks:checks,result:r,
+    notes:(document.getElementById('nNote').value.trim()||null)
+  });
+  if(ins.error){toast('Error: '+ins.error.message);btn.disabled=false;btn.textContent='Save Validation';return}
+  toast(r==='validated'?'✓ Saved — validated!':(r==='needs_reeducation'?'Saved — added to follow-ups':'✓ Saved with coaching note'));
+  answers={};
+  await loadData();render();
+}
+
+function coverageView(){
+  var selId=covModule||currentModuleId();
+  covModule=selId;
+  var mvals=vals.filter(function(v){return v.module_id===selId});
+  var latest={};
+  mvals.slice().reverse().forEach(function(v){latest[v.staff_name.toLowerCase()]=v});
+  var done=0,coach=0,need=0;
+  var rows=roster.map(function(r){
+    var v=latest[r.name.toLowerCase()];
+    if(v){if(v.result==='validated')done++;else if(v.result==='validated_with_coaching')coach++;else need++}
+    return {r:r,v:v};
+  });
+  rows.sort(function(a,b){return (a.v?1:0)-(b.v?1:0) || a.r.name.localeCompare(b.r.name)});
+  var notYet=roster.length-done-coach-need;
+  var h='<div class="card"><label style="margin-top:0">Topic</label><select onchange="covModule=parseInt(this.value);render()">'+moduleOptions(selId)+'</select></div>';
+  h+='<div class="stat-strip">'+
+  '<div class="stat"><div class="v" style="color:var(--success)">'+(done+coach)+'</div><div class="l">Validated</div></div>'+
+  '<div class="stat"><div class="v" style="color:var(--danger)">'+need+'</div><div class="l">Re-educate</div></div>'+
+  '<div class="stat"><div class="v" style="color:var(--text-light)">'+notYet+'</div><div class="l">Not yet</div></div></div>';
+  h+='<div class="card">';
+  rows.forEach(function(x){
+    var b='<span class="badge b-gray">—</span>';
+    if(x.v){
+      if(x.v.result==='validated')b='<span class="badge b-green">✓ '+fmtWhen(x.v.created_at)+'</span>';
+      else if(x.v.result==='validated_with_coaching')b='<span class="badge b-amber">⚠ coached '+fmtWhen(x.v.created_at)+'</span>';
+      else b='<span class="badge b-red">✗ re-educate</span>';
+    }
+    h+='<div class="cov-row" onclick="startFor(\''+esc(x.r.name).replace(/'/g,"\\'")+'\','+selId+')"><span>'+esc(x.r.name)+' <span style="color:var(--text-light);font-size:11px">'+x.r.role+'</span></span>'+b+'</div>';
+  });
+  h+='</div><div class="hint" style="text-align:center">Tap a name to start a validation for this topic.</div>';
+  return h;
+}
+function startFor(name,moduleId){prefill={staff:name,module:moduleId};view='new';render()}
+
+function followupsView(){
+  var h='';
+  if(!followups.length)return '<div class="card empty">No open follow-ups 🎉</div>';
+  h+='<div class="hint" style="margin-bottom:10px">Open until the staff member passes a re-validation (or you mark the 1:1 re-education done — a re-check is still expected).</div>';
+  followups.forEach(function(f){
+    h+='<div class="card"><div style="font-weight:800;font-size:15px">'+esc(f.staff_name)+'</div>'+
+    '<div class="fu-meta">'+esc(f.topic)+'<br>Flagged '+fmtWhen(f.created_at)+' by '+esc(f.validator_name)+' · <b>'+f.days_open+' day'+(f.days_open===1?'':'s')+' open</b>'+
+    (f.notes?'<br>Note: '+esc(f.notes):'')+'</div>'+
+    '<div class="fu-btns">'+
+    '<button class="btn btn-primary" onclick="startFor(\''+esc(f.staff_name).replace(/'/g,"\\'")+'\','+f.module_id+')">Re-validate now</button>'+
+    '<button class="btn btn-ghost" onclick="markDone(\''+f.id+'\')">1:1 done</button>'+
+    '</div></div>';
+  });
+  return h;
+}
+async function markDone(id){
+  var upd=await sb.from('competency_validations').update({followup_done_at:new Date().toISOString(),followup_done_by:me.name}).eq('id',id);
+  if(upd.error){toast('Error: '+upd.error.message);return}
+  toast('Marked — remember the re-check');
+  await loadData();render();
+}
+
+async function init(){await loadData();render()}
+init();
+</script>
+</body>
+</html>
