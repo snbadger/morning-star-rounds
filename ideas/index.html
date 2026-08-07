@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Ideas for Improvement</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:620px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px}
+label .opt{text-transform:none;letter-spacing:0;font-weight:600;color:#aab3ba}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+textarea{min-height:96px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cat{font-size:13px;font-weight:600;padding:9px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none}
+.cat.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.tabs{display:flex;gap:6px;background:#e4e8ec;padding:4px;border-radius:11px;margin-bottom:14px}
+.tab{flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.tab.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hint{font-size:12.5px;color:var(--text-light);margin-top:7px;line-height:1.5}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:30px 10px;line-height:1.6}
+.thanks{text-align:center;padding:26px 14px}
+.thanks .big{font-size:52px;line-height:1}
+.thanks h2{color:var(--success);margin:12px 0 8px;font-size:22px}
+.thanks p{color:var(--text-light);font-size:14.5px;line-height:1.6;max-width:390px;margin:0 auto}
+/* ---- board ---- */
+.tally{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.tally .n{font-size:46px;font-weight:800;line-height:1}
+.tally .lbl{font-size:12.5px;opacity:.8;text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+.bars{display:flex;align-items:flex-end;gap:5px;height:74px;margin-top:16px}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.bar .fill{width:100%;background:rgba(255,255,255,.35);border-radius:3px 3px 0 0;min-height:2px}
+.bar.cur .fill{background:var(--accent)}
+.bar .m{font-size:9px;opacity:.6}
+.bar .v{font-size:10px;font-weight:700}
+.idea{border-left:4px solid var(--border);padding:12px 14px;background:#fff;border-radius:0 10px 10px 0;margin-bottom:9px;border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.idea.wip{border-left-color:var(--primary-light)}
+.idea.triaged{border-left-color:var(--warn)}
+.idea.new{border-left-color:var(--text-light)}
+.idea.escalated{border-left-color:var(--danger)}
+.idea.done{border-left-color:var(--success);background:#fafdfb}
+.idea .txt{font-size:14.5px;line-height:1.5}
+.idea .fix{font-size:13px;color:var(--text-light);margin-top:5px;line-height:1.5}
+.idea .meta{font-size:11.5px;color:var(--text-light);margin-top:7px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9px;background:#eef1f4;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}
+.tag.jdi{background:#eafaf1;color:var(--success)}
+.tag.a3{background:#fdf0e6;color:#b8621b}
+.tag.late{background:#fdecea;color:var(--danger)}
+.tag.who{background:#eaf2f8;color:var(--primary)}
+.dept-block{margin-bottom:18px}
+.dept-name{font-weight:800;font-size:14px;color:var(--primary);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.dept-name .ct{font-size:12px;font-weight:700;color:var(--text-light)}
+table.sc{width:100%;border-collapse:collapse;font-size:13px}
+table.sc th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light);padding:6px 6px 6px 0;border-bottom:1.5px solid var(--border)}
+table.sc td{padding:8px 6px 8px 0;border-bottom:1px solid #f0f2f5}
+table.sc td.n{text-align:center;font-weight:700}
+table.sc th.n{text-align:center}
+.load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+@media print{.header,.tabs,.no-print{display:none!important}body{background:#fff;padding:0}.page{max-width:100%}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>💡 Ideas for Improvement</h1>
+    <div class="sub">Morning Star Post Acute</div>
+  </div>
+  <div class="who" id="whoChip" onclick="editIdentity()">Sign in</div>
+</div>
+<div class="page" id="app"><div class="load">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var NOTIFY_URL=SUPABASE_URL+'/functions/v1/idea-notify';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+// Where people work (free text name + this dropdown).
+var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Laundry","Maintenance",
+"Activities","Social Services","Business Office","Medical Records","Admissions","HR / Staffing",
+"Therapy / Rehab","MDS","Staff Education","Administration","Other"];
+
+// "Who can fix this" -> value must be a key in .claude/config/department-routing.json
+// so the existing asana-sync job routes it without any new plumbing.
+var FIX_DEPTS=[
+ {label:"Nursing",route:"Nursing"},
+ {label:"Dietary / Kitchen",route:"Dietary"},
+ {label:"Housekeeping / Laundry",route:"Maintenance/EVS"},
+ {label:"Maintenance / Building",route:"Maintenance/EVS"},
+ {label:"Activities",route:"Activities"},
+ {label:"Social Services",route:"Social Services"},
+ {label:"Business Office",route:"Business Office"},
+ {label:"Medical Records",route:"Medical Records"},
+ {label:"Admissions",route:"Admissions"},
+ {label:"HR / Payroll / Supplies",route:"HR"},
+ {label:"Therapy / Rehab",route:"Rehab"},
+ {label:"MDS",route:"MDS"},
+ {label:"Staff Education / Infection Prevention",route:"DSD/IP"},
+ {label:"I'm not sure",route:"unsure"}
+];
+
+var CATEGORIES=["Resident Care","Safety","Equipment / Building","Supplies","Staffing",
+"Communication","Waste / Wasted Time","Other"];
+
+var me={name:localStorage.getItem('ii_name')||'',dept:localStorage.getItem('ii_dept')||''};
+var view='submit', form=blankForm(), busy=false;
+var board={open:[],done:[],monthly:[],scorecard:[]}, boardLoaded=false;
+
+function blankForm(){return{problem:'',idea:'',category:'',fix:'',location:''}}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function go(v){view=v;render();window.scrollTo(0,0);if(v==='board'&&!boardLoaded)loadBoard()}
+function fmtDate(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})}
+
+/* ---------------- identity ---------------- */
+function identityView(){
+  return '<div class="card">'+
+   '<h2 style="font-size:18px;margin-bottom:4px">Who are you?</h2>'+
+   '<div class="hint">Your name goes on the idea so we can give you credit at huddle and follow up with you when it\'s done.</div>'+
+   '<label>Your name</label>'+
+   '<input id="iName" value="'+esc(me.name)+'" placeholder="First and last name" autocomplete="name">'+
+   '<label>Where do you work?</label>'+
+   '<select id="iDept">'+opts(WORK_DEPTS,me.dept,'Select your department…')+'</select>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-primary" onclick="saveIdentity()">Continue</button>'+
+   '</div>';
+}
+function opts(list,sel,ph){
+  var h=ph?'<option value="">'+esc(ph)+'</option>':'';
+  list.forEach(function(o){
+    var v=typeof o==='string'?o:o.route, l=typeof o==='string'?o:o.label;
+    h+='<option value="'+esc(v)+'"'+(String(sel)===String(v)?' selected':'')+'>'+esc(l)+'</option>';
+  });
+  return h;
+}
+function saveIdentity(){
+  var n=document.getElementById('iName').value.trim(), d=document.getElementById('iDept').value;
+  if(n.length<3){toast('Please enter your first and last name');return}
+  if(!d){toast('Please pick your department');return}
+  me.name=n;me.dept=d;
+  localStorage.setItem('ii_name',n);localStorage.setItem('ii_dept',d);
+  view='submit';render();
+}
+
+/* ---------------- submit ---------------- */
+function tabs(active){
+  return '<div class="tabs">'+
+   '<div class="tab'+(active==='submit'?' on':'')+'" onclick="go(\'submit\')">Share an Idea</div>'+
+   '<div class="tab'+(active==='board'?' on':'')+'" onclick="go(\'board\')">The Board</div>'+
+   '</div>';
+}
+function submitView(){
+  return tabs('submit')+
+   '<div class="card">'+
+   '<div style="font-size:15px;line-height:1.55;margin-bottom:2px">'+
+   '<b>See a problem? Have a better way?</b> Tell us. Every idea gets an owner and gets tracked until it\'s done.</div>'+
+   '<label>What\'s the problem?</label>'+
+   '<textarea id="fProblem" placeholder="What isn\'t working, what slows you down, or what could be better for our residents?">'+esc(form.problem)+'</textarea>'+
+   '<label>Your idea to fix it <span class="opt">— optional</span></label>'+
+   '<textarea id="fIdea" placeholder="If you already have a fix in mind, tell us. If not, leave this blank — we\'ll work it out." style="min-height:70px">'+esc(form.idea)+'</textarea>'+
+   '<label>What is this about?</label>'+
+   '<div class="cats" id="cats">'+CATEGORIES.map(function(c){
+      return '<div class="cat'+(form.category===c?' on':'')+'" onclick="pickCat(\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+'</div>';
+   }).join('')+'</div>'+
+   '<label>Who can fix this? <span class="opt">— your best guess is fine</span></label>'+
+   '<select id="fFix">'+opts(FIX_DEPTS,form.fix,'Select a department…')+'</select>'+
+   '<label>Where? <span class="opt">— optional (hall, room, station)</span></label>'+
+   '<input id="fLoc" value="'+esc(form.location)+'" placeholder="e.g. 200 hall, nurses station, kitchen">'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" id="subBtn" onclick="submitIdea()">Submit Idea</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">Submitting as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+
+   ' &nbsp;<a href="#" onclick="editIdentity();return false" style="color:var(--primary-light)">change</a></div>'+
+   '</div>'+
+   '<div class="card" style="background:#fdf6ec;border-color:#f3e2c7">'+
+   '<div style="font-size:13px;line-height:1.6;color:#8a6a2f">'+
+   '<b>This is not the place to report abuse, neglect, or an injury.</b> If a resident has been harmed or is at risk right now, '+
+   'tell your supervisor, the DON, or the Administrator immediately — those reports have legal deadlines and can\'t wait for a huddle.'+
+   '</div></div>';
+}
+function pickCat(c){readForm();form.category=(form.category===c?'':c);render()}
+function readForm(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  form.problem=g('fProblem');form.idea=g('fIdea');form.fix=g('fFix');form.location=g('fLoc');
+}
+async function submitIdea(){
+  if(busy)return;
+  readForm();
+  if(form.problem.trim().length<10){toast('Tell us a little more about the problem');return}
+  if(!form.category){toast('Pick what this is about');return}
+  busy=true;
+  var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Submitting…';
+  // Must go through the RPC, not a direct insert. A direct insert with .select() uses
+  // RETURNING, which RLS filters for tripwired rows — that rolled the insert back and
+  // silently dropped exactly the submissions we most need to keep.
+  var r=await sb.rpc('submit_improvement_idea',{
+    p_name:me.name,
+    p_dept:me.dept,
+    p_problem:form.problem.trim(),
+    p_idea:form.idea.trim()||null,
+    p_category:form.category,
+    p_owning_dept:(form.fix&&form.fix!=='unsure')?form.fix:null,
+    p_location:form.location.trim()||null
+  });
+  busy=false;b.disabled=false;b.textContent='Submit Idea';
+  if(r.error||!r.data){toast('Could not submit — '+((r.error&&r.error.message)||'please try again'));return}
+  // Fire-and-forget: the function decides whether this needs an immediate alert.
+  fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({idea_id:r.data})}).catch(function(){});
+  form=blankForm();
+  view='thanks';render();window.scrollTo(0,0);
+}
+function thanksView(){
+  return '<div class="card thanks">'+
+   '<div class="big">💡</div>'+
+   '<h2>Thank you, '+esc(me.name.split(' ')[0])+'!</h2>'+
+   '<p>Your idea is in. It gets reviewed, assigned to an owner, and tracked on the huddle board until it\'s finished — '+
+   'so it doesn\'t get dropped. Watch for it at the next huddle.</p>'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" onclick="go(\'submit\')">Share Another Idea</button>'+
+   '<div style="height:9px"></div>'+
+   '<button class="btn btn-ghost" onclick="go(\'board\')">See the Board</button>'+
+   '</div>';
+}
+
+/* ---------------- board ---------------- */
+async function loadBoard(){
+  var mStart=new Date();mStart.setDate(1);mStart.setHours(0,0,0,0);
+  var res=await Promise.all([
+    sb.from('v_ideas_board').select('*'),
+    sb.from('improvement_ideas').select('*').eq('status','completed').gte('completed_at',mStart.toISOString()).order('completed_at',{ascending:false}),
+    sb.from('v_ideas_implemented_monthly').select('*').limit(12),
+    sb.from('v_ideas_dept_scorecard').select('*')
+  ]);
+  board.open=res[0].data||[];board.done=res[1].data||[];
+  board.monthly=res[2].data||[];board.scorecard=res[3].data||[];
+  boardLoaded=true;render();
+}
+function boardView(){
+  if(!boardLoaded)return tabs('board')+'<div class="load">Loading the board…</div>';
+  var mKey=new Date();mKey=mKey.getFullYear()+'-'+String(mKey.getMonth()+1).padStart(2,'0');
+  var thisMo=board.monthly.find(function(m){return String(m.month).slice(0,7)===mKey});
+  var count=thisMo?thisMo.ideas_implemented:0;
+  var max=Math.max.apply(null,board.monthly.map(function(m){return m.ideas_implemented}).concat([1]));
+  var series=board.monthly.slice().reverse();
+
+  var h=tabs('board');
+
+  // Ideas Implemented tracker (the Summit IO tracker, live)
+  h+='<div class="tally"><div class="n">'+count+'</div>'+
+     '<div class="lbl">Ideas implemented this month</div>'+
+     (series.length?'<div class="bars">'+series.map(function(m){
+        var isCur=String(m.month).slice(0,7)===mKey;
+        var pct=Math.round((m.ideas_implemented/max)*54)+2;
+        return '<div class="bar'+(isCur?' cur':'')+'">'+
+          '<div class="v">'+m.ideas_implemented+'</div>'+
+          '<div class="fill" style="height:'+pct+'px"></div>'+
+          '<div class="m">'+new Date(m.month+'T12:00:00').toLocaleDateString('en-US',{month:'short'})+'</div></div>';
+      }).join('')+'</div>':'')+
+     '</div>';
+
+  // Work in process, grouped by department
+  h+='<div class="section-title">Work in Process</div>';
+  if(!board.open.length){
+    h+='<div class="card"><div class="empty">Nothing open right now.<br>Be the first — tap <b>Share an Idea</b>.</div></div>';
+  }else{
+    var byDept={},order=[];
+    board.open.forEach(function(i){
+      var d=i.dept||'Unassigned';
+      if(!byDept[d]){byDept[d]=[];order.push(d)}
+      byDept[d].push(i);
+    });
+    order.sort();
+    h+='<div class="card">'+order.map(function(d){
+      return '<div class="dept-block"><div class="dept-name">'+esc(d)+
+        '<span class="ct">'+byDept[d].length+'</span></div>'+
+        byDept[d].map(ideaCard).join('')+'</div>';
+    }).join('')+'</div>';
+  }
+
+  // Completed this month
+  h+='<div class="section-title">Completed This Month</div>';
+  h+='<div class="card">'+(board.done.length
+    ? board.done.map(function(i){
+        return '<div class="idea done"><div class="txt">'+esc(i.problem)+'</div>'+
+          (i.outcome?'<div class="fix"><b>What we did:</b> '+esc(i.outcome)+'</div>':'')+
+          '<div class="meta"><span class="tag who">'+esc(i.suggestor_name)+'</span>'+
+          '<span>✓ '+fmtDate(i.completed_at)+'</span>'+
+          (i.lead?'<span>· closed by '+esc(i.lead)+'</span>':'')+'</div></div>';
+      }).join('')
+    : '<div class="empty">Nothing closed yet this month.</div>')+'</div>';
+
+  // Department scorecard
+  if(board.scorecard.length){
+    h+='<div class="section-title">By Department</div><div class="card">'+
+     '<table class="sc"><thead><tr><th>Department</th><th class="n">In</th><th class="n">Done</th>'+
+     '<th class="n">Open</th><th class="n">Late</th><th class="n">Avg days</th></tr></thead><tbody>'+
+     board.scorecard.map(function(s){
+       return '<tr><td>'+esc(s.dept)+'</td><td class="n">'+s.total_submitted+'</td>'+
+         '<td class="n" style="color:var(--success)">'+s.completed+'</td>'+
+         '<td class="n">'+s.open_items+'</td>'+
+         '<td class="n"'+(s.overdue>0?' style="color:var(--danger)"':'')+'>'+s.overdue+'</td>'+
+         '<td class="n">'+(s.avg_days_to_close==null?'—':s.avg_days_to_close)+'</td></tr>';
+     }).join('')+'</tbody></table></div>';
+  }
+
+  h+='<div class="no-print" style="text-align:center;margin-top:14px">'+
+     '<button class="btn btn-ghost" onclick="boardLoaded=false;loadBoard()">Refresh</button></div>';
+  return h;
+}
+function ideaCard(i){
+  var cls=i.status==='wip'?'wip':i.status==='triaged'?'triaged':i.status==='escalated'?'escalated':'new';
+  var tags='';
+  if(i.classification==='just_do_it')tags+='<span class="tag jdi">Just Do It</span>';
+  if(i.classification==='a3_candidate'||i.classification==='process_change')tags+='<span class="tag a3">Needs an A3</span>';
+  if(i.days_overdue>0)tags+='<span class="tag late">'+i.days_overdue+'d late</span>';
+  return '<div class="idea '+cls+'">'+
+   '<div class="txt">'+esc(i.problem)+'</div>'+
+   (i.idea?'<div class="fix">💡 '+esc(i.idea)+'</div>':'')+
+   '<div class="meta"><span class="tag who">'+esc(i.suggestor_name)+'</span>'+tags+
+   (i.lead?'<span>· '+esc(i.lead)+'</span>':'')+
+   (i.due_date?'<span>· due '+fmtDate(i.due_date)+'</span>':'')+
+   '<span>· day '+i.age_days+'</span>'+
+   '</div></div>';
+}
+
+/* ---------------- shell ---------------- */
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(view==='board'){el.innerHTML=boardView();return}
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='thanks'){el.innerHTML=thanksView();return}
+  el.innerHTML=submitView();
+}
+if(!sb){document.getElementById('app').innerHTML='<div class="card"><div class="empty">Could not connect. Check your internet and reload.</div></div>';}
+else{ if(location.hash==='#board')view='board'; render(); if(view==='board')loadBoard(); }
+</script>
+</body>
+</html>
