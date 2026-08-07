@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Team Building Prep</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:60px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.header h1{font-size:18px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:12px;opacity:.8;margin-top:3px}
+.page{max-width:620px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.intro{font-size:14px;line-height:1.6}
+.intro b{color:var(--primary)}
+.part{font-size:12px;font-weight:800;color:#fff;background:var(--primary);display:inline-block;padding:5px 12px;border-radius:14px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.part.two{background:var(--accent)}
+.hint{font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:6px}
+label{display:block;font-size:13px;font-weight:700;margin:16px 0 6px;line-height:1.4}
+label .num{color:var(--primary-light);margin-right:5px}
+input[type=text],select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.q{padding:14px 0;border-bottom:1px solid #f0f2f5}
+.q:last-child{border-bottom:none}
+.q-text{font-size:14.5px;font-weight:600;line-height:1.45;margin-bottom:10px}
+.q-text .num{color:var(--accent);font-weight:800;margin-right:6px}
+.scale{display:flex;gap:6px}
+.sc{flex:1;padding:12px 2px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:15px;font-weight:800;cursor:pointer;text-align:center;color:var(--text-light);transition:.12s;-webkit-tap-highlight-color:transparent}
+.sc:active{transform:scale(.94)}
+.sc.on{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.scale-key{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);margin-top:6px}
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;text-align:center;background:var(--primary);color:#fff;margin-top:8px}
+.btn:disabled{opacity:.45}
+.progress{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:10px 16px;font-size:13px;font-weight:700;text-align:center;color:var(--text-light);z-index:90}
+.progress b{color:var(--primary)}
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:12px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+.done{text-align:center;padding:40px 20px}
+.done .big{font-size:52px;margin-bottom:14px}
+.done h2{font-size:22px;color:var(--primary);margin-bottom:10px}
+.done p{font-size:15px;line-height:1.6;color:var(--text-light)}
+.err{background:#fdedec;border:1.5px solid var(--danger);color:#a03027;padding:12px;border-radius:10px;font-size:13.5px;line-height:1.5;margin-top:12px;display:none}
+.err.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Team Building Prep</h1>
+  <div class="sub">Millerton Lake &middot; Friday, August 28</div>
+</div>
+
+<div class="page" id="form">
+
+  <div class="card intro">
+    Two quick parts, about <b>five minutes</b> total. Please finish by <b>Friday, August 21</b>.<br><br>
+    Part 1 is a guessing game &mdash; Stephen reads the answers aloud at the lake and the group guesses who it is. <b>Don't compare notes.</b><br><br>
+    Part 2 gives you a personal one-page working-styles profile you'll get at the event. There are no good or bad answers.
+  </div>
+
+  <div class="card">
+    <label for="who">Who are you?</label>
+    <select id="who">
+      <option value="">— Select your name —</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="part">Part 1 &mdash; Get to know you</div>
+    <div class="hint">Short answers are perfect. Have fun with it.</div>
+
+    <label><span class="num">1.</span>If you could live anywhere, where would it be?</label>
+    <input type="text" id="live_where" autocomplete="off">
+
+    <label><span class="num">2.</span>Favorite band or musical artist?</label>
+    <input type="text" id="music_artist" autocomplete="off">
+
+    <label><span class="num">3.</span>If you could travel to any era, when would you visit?</label>
+    <input type="text" id="era" autocomplete="off">
+
+    <label><span class="num">4.</span>Favorite book?</label>
+    <input type="text" id="favorite_book" autocomplete="off">
+
+    <label><span class="num">5.</span>One thing on your bucket list?</label>
+    <input type="text" id="bucket_list" autocomplete="off">
+
+    <label><span class="num">6.</span>Go-to drink?</label>
+    <input type="text" id="go_to_drink" autocomplete="off">
+
+    <label><span class="num">7.</span>Favorite late-night snack?</label>
+    <input type="text" id="late_night_snack" autocomplete="off">
+
+    <label><span class="num">8.</span>Most-used emoji?</label>
+    <input type="text" id="most_used_emoji" autocomplete="off">
+
+    <label><span class="num">9.</span>Early bird or night owl?</label>
+    <select id="chronotype">
+      <option value="">— Pick one —</option>
+      <option>Early bird</option>
+      <option>Night owl</option>
+      <option>Somewhere in between</option>
+    </select>
+
+    <label><span class="num">10.</span>Favorite karaoke song?</label>
+    <input type="text" id="karaoke_song" autocomplete="off">
+
+    <label><span class="num">11.</span>A hidden talent nobody at work knows about?</label>
+    <input type="text" id="hidden_talent" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <div class="part two">Part 2 &mdash; Working styles</div>
+    <div class="hint">Rate each statement: <b>1 = not me at all</b>, <b>5 = very much me</b>. Go with your gut &mdash; first instinct.</div>
+    <div id="scales"></div>
+  </div>
+
+  <div class="card">
+    <button class="btn" id="submit" disabled>Submit</button>
+    <div class="err" id="err"></div>
+  </div>
+
+</div>
+
+<div class="done page" id="done" style="display:none">
+  <div class="card">
+    <div class="big">&#127881;</div>
+    <h2>You're all set</h2>
+    <p>Thanks &mdash; your answers are in.<br><br>See you at Millerton Lake on Friday, August 28. Don't tell anyone your answers.</p>
+  </div>
+</div>
+
+<div class="progress" id="prog"><b>0</b> of 20 rated</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+var EVENT='Millerton Lake 2026-08-28';
+
+var ROSTER=[
+ 'Amandeep Brar','Annie Vang','Belem Gonzalez','Benjamin Carter','Donna Rogers',
+ 'Elizabeth Olivares','Joe Fronteras','Kelsey Kennington','Kim Beatrez','Lucy Malcolm',
+ 'Michael Miller','Randy Bago','Savanna McCormick','Sebastian Lopez','Stephen Badger',
+ 'Tamara Barajas','Valerie Estrada','Yessi Flores'
+];
+
+var STATEMENTS=[
+ "I get energized by brainstorming new ways to do things.",
+ "I like learning about topics beyond what my job requires.",
+ "When facing a problem, my first move is to generate lots of options.",
+ "Routine bothers me more than ambiguity does.",
+ "People would say I'm full of ideas.",
+ "I think best when I'm talking things through with other people.",
+ "Getting others excited about a plan is one of my strengths.",
+ "I naturally notice how people are feeling in a meeting.",
+ "I'd rather work on a team than alone.",
+ "People would say I bring energy to a room.",
+ "I double-check details before I call something done.",
+ "I like building checklists, trackers, and systems.",
+ "I want to see the data before I commit to a decision.",
+ "Errors that others shrug off genuinely bother me.",
+ "People would say I'm precise and well-prepared.",
+ "I feel restless until a task is fully finished.",
+ "Deadlines motivate me — I speed up as they approach.",
+ "I'd rather make a good decision now than a perfect one later.",
+ "I push through obstacles that would stop others.",
+ "People would say I get things done."
+];
+
+var TEXT_FIELDS=['live_where','music_artist','era','favorite_book','bucket_list','go_to_drink','late_night_snack','most_used_emoji','chronotype','karaoke_song','hidden_talent'];
+var ratings={};
+
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
+
+function buildRoster(){
+  var s=document.getElementById('who');
+  ROSTER.forEach(function(n){var o=document.createElement('option');o.value=n;o.textContent=n;s.appendChild(o)});
+  s.addEventListener('change',refresh);
+}
+
+function buildScales(){
+  var wrap=document.getElementById('scales');
+  STATEMENTS.forEach(function(txt,i){
+    var n=i+1;
+    var d=document.createElement('div');d.className='q';
+    var q=document.createElement('div');q.className='q-text';
+    q.innerHTML='<span class="num">'+n+'.</span>'+txt;
+    d.appendChild(q);
+    var sc=document.createElement('div');sc.className='scale';
+    for(var v=1;v<=5;v++){
+      (function(val){
+        var b=document.createElement('button');
+        b.className='sc';b.type='button';b.textContent=val;
+        b.addEventListener('click',function(){
+          ratings['q'+n]=val;
+          Array.prototype.forEach.call(sc.children,function(c){c.classList.remove('on')});
+          b.classList.add('on');
+          refresh();
+        });
+        sc.appendChild(b);
+      })(v);
+    }
+    d.appendChild(sc);
+    var k=document.createElement('div');k.className='scale-key';
+    k.innerHTML='<span>Not me at all</span><span>Very much me</span>';
+    d.appendChild(k);
+    wrap.appendChild(d);
+  });
+}
+
+function refresh(){
+  var n=Object.keys(ratings).length;
+  var who=document.getElementById('who').value;
+  document.getElementById('prog').innerHTML='<b>'+n+'</b> of 20 rated';
+  document.getElementById('submit').disabled=!(who && n===20);
+}
+
+document.getElementById('submit').addEventListener('click',async function(){
+  var btn=this, err=document.getElementById('err');
+  err.classList.remove('show');
+  btn.disabled=true; btn.textContent='Submitting…';
+  var row={event_name:EVENT, staff_name:document.getElementById('who').value};
+  TEXT_FIELDS.forEach(function(f){
+    var v=document.getElementById(f).value.trim();
+    row[f]= v===''? null : v;
+  });
+  for(var i=1;i<=20;i++){ row['q'+i]=ratings['q'+i]; }
+  row.updated_at=new Date().toISOString();
+
+  var res=await sb.from('team_building_responses')
+    .upsert(row,{onConflict:'event_name,staff_name'});
+
+  if(res.error){
+    btn.disabled=false; btn.textContent='Submit';
+    err.textContent='Could not save: '+res.error.message+' — try again, or text Stephen and he will take your answers directly.';
+    err.classList.add('show');
+    return;
+  }
+  document.getElementById('form').style.display='none';
+  document.getElementById('prog').style.display='none';
+  document.getElementById('done').style.display='block';
+  window.scrollTo(0,0);
+});
+
+buildRoster();
+buildScales();
+refresh();
+</script>
+</body>
+</html>
