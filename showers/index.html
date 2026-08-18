@@ -49,6 +49,7 @@ textarea{min-height:70px;resize:vertical}
 .cbox{width:26px;height:26px;min-width:26px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
 .check-row.on .cbox{background:var(--success);border-color:var(--success)}
 .check-row.na .cbox{background:var(--text-light);border-color:var(--text-light);font-size:10px;font-weight:800}
+.check-row.ref .cbox{background:var(--danger);border-color:var(--danger);font-size:9px;font-weight:800}
 .check-label{font-size:14px;line-height:1.35;flex:1}
 .check-sub{font-size:11px;color:var(--text-light)}
 .skin-chip{display:inline-block;padding:9px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--text-light);margin:0 6px 8px 0;cursor:pointer}
@@ -124,10 +125,10 @@ var ROOM_BEDS={
 var ALL_BEDS=[];Object.keys(ROOM_BEDS).forEach(function(r){ROOM_BEDS[r].forEach(function(b){ALL_BEDS.push(r+b)})});
 
 var TASKS=[
- {key:'nails',label:'Nails cleaned & trimmed',sub:'Diabetic residents: nurse trims — mark N/A'},
- {key:'facial_hair',label:'Facial hair shaved / trimmed',sub:'Mark N/A if not applicable'},
- {key:'wash',label:'Hair & body washed',sub:'Shampoo and soap'},
- {key:'lotion',label:'Moisturizing lotion applied',sub:''}
+ {key:'nails',label:'Nails cleaned & trimmed',short:'nails',sub:'Diabetic residents: nurse trims — mark N/A'},
+ {key:'facial_hair',label:'Facial hair shaved / trimmed',short:'facial hair',sub:'Mark N/A if not applicable'},
+ {key:'wash',label:'Hair & body washed',short:'wash',sub:'Shampoo and soap'},
+ {key:'lotion',label:'Moisturizing lotion applied',short:'lotion',sub:''}
 ];
 var SKIN_ISSUES=[
  {key:'bruising',label:'Bruising'},{key:'skin_tear',label:'Skin tear'},{key:'redness',label:'Redness'},
@@ -269,7 +270,7 @@ function captureText(){
   });
 }
 function setOutcome(o){captureText();form.outcome=o;render()}
-function toggleTask(k){captureText();var v=form.tasks[k];form.tasks[k]=(v===true)?'na':(v==='na')?false:true;render()}
+function toggleTask(k){captureText();var v=form.tasks[k];form.tasks[k]=(v===true)?'na':(v==='na')?'refused':(v==='refused')?false:true;render()}
 function setSkinOk(ok){captureText();form.skin_ok=ok;if(ok){form.skin_issues=[];form.skin_note=''}render()}
 function toggleSkin(k){captureText();var i=form.skin_issues.indexOf(k);if(i>=0)form.skin_issues.splice(i,1);else form.skin_issues.push(k);render()}
 function toggleStep(k){
@@ -301,11 +302,11 @@ function formView(){
   }
 
   if(f.outcome==='shower'||f.outcome==='bed_bath'){
-    h+='<div class="card"><label style="margin-top:0">Care completed <span style="font-weight:400;text-transform:none">(tap: ✓ done → N/A → blank)</span></label>';
+    h+='<div class="card"><label style="margin-top:0">Care completed <span style="font-weight:400;text-transform:none">(tap: ✓ yes → N/A → REF refused → blank)</span></label>';
     TASKS.forEach(function(t){
       var v=f.tasks[t.key];
-      h+='<div class="check-row '+(v===true?'on':v==='na'?'na':'')+'" onclick="toggleTask(\''+t.key+'\')">'+
-         '<div class="cbox">'+(v===true?'✓':v==='na'?'N/A':'')+'</div>'+
+      h+='<div class="check-row '+(v===true?'on':v==='na'?'na':v==='refused'?'ref':'')+'" onclick="toggleTask(\''+t.key+'\')">'+
+         '<div class="cbox">'+(v===true?'✓':v==='na'?'N/A':v==='refused'?'REF':'')+'</div>'+
          '<div class="check-label">'+t.label+(t.sub?'<div class="check-sub">'+t.sub+'</div>':'')+'</div></div>';
     });
     h+='</div>';
@@ -388,7 +389,9 @@ function nurseView(){
     }
     if(l.notes)det.push('📝 '+esc(l.notes));
     var tdone=Object.keys(l.tasks||{}).filter(function(k){return l.tasks[k]===true}).length;
-    if(l.outcome!=='refused')det.push('Care tasks: '+tdone+'/'+TASKS.length+' done');
+    var tref=TASKS.filter(function(t){return l.tasks&&l.tasks[t.key]==='refused'});
+    if(l.outcome!=='refused')det.push('Care tasks: '+tdone+'/'+TASKS.length+' done'+
+      (tref.length?' · 🚫 refused: '+tref.map(function(t){return t.short}).join(', '):''));
     h+='<div class="nurse-row"><div class="nr-hd"><span class="nr-room">Room '+l.room_bed.replace('P','')+'</span>'+
        '<span class="nr-out" style="color:'+outColor(l.outcome)+'">'+outLabel(l.outcome).toUpperCase()+'</span></div>'+
        '<div class="nr-detail">'+esc(l.cna_name)+' · '+fmtTime(l.updated_at)+(det.length?'<br>'+det.join('<br>'):'')+'</div>'+
