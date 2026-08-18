@@ -53,8 +53,8 @@ textarea{min-height:70px;resize:vertical}
 .check-label{font-size:16px;line-height:1.35;flex:1}
 .check-sub{font-size:12.5px;color:var(--text-light)}
 .skin-chip{display:inline-block;padding:11px 16px;border-radius:22px;border:1.5px solid var(--border);background:#fff;font-size:15px;font-weight:700;color:var(--text-light);margin:0 6px 8px 0;cursor:pointer}
-.bodymap{display:flex;justify-content:space-around;gap:8px;margin:10px 0 4px;background:#f8fafb;border:1.5px solid var(--border);border-radius:12px;padding:10px 4px 4px}
-.bodymap svg{width:49%;max-width:230px;height:auto;touch-action:manipulation}
+.bodymap{display:flex;justify-content:space-around;gap:4px;margin:10px 0 4px;background:#f8fafb;border:1.5px solid var(--border);border-radius:12px;padding:8px 2px 4px}
+.bodymap svg{width:50%;max-width:280px;height:auto;touch-action:manipulation}
 .bodymap .bview{text-align:center}
 .bodymap .bcap{font-size:13px;font-weight:800;letter-spacing:1px;color:var(--text-light);margin-top:2px}
 .body-region{fill:#eef1f4;stroke:#b8c2cc;stroke-width:1.2;cursor:pointer}
@@ -169,7 +169,7 @@ var BODY_BACK=[
  ['Right back of thigh','r',71,136,18,48],['Right calf','r',72,186,16,46],['Right heel','e',81,241,11,8]
 ];
 function bodySVG(regions,cap){
-  var s='<div class="bview"><svg viewBox="0 0 140 256" xmlns="http://www.w3.org/2000/svg">';
+  var s='<div class="bview"><svg viewBox="22 0 96 256" xmlns="http://www.w3.org/2000/svg">';
   regions.forEach(function(g){
     var lbl=g[0],sel=form.skin_locations.indexOf(lbl)>=0?' sel':'';
     var on=' onclick="toggleLoc(&quot;'+lbl+'&quot;)"',cls=' class="body-region'+sel+'"';
