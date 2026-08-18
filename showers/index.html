@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Shower Sheet</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--purple:#8e44ad;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+textarea{min-height:70px;resize:vertical}
+.seg{display:flex;background:#e8ebef;border-radius:10px;padding:3px;margin-bottom:12px}
+.seg div{flex:1;text-align:center;padding:9px 4px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.seg div.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.outcome-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px}
+.outcome-btn{padding:13px 4px;border-radius:10px;border:2px solid var(--border);background:#fff;font-size:13px;font-weight:800;cursor:pointer;text-align:center;color:var(--text-light)}
+.outcome-btn.sel-shower{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.outcome-btn.sel-bed_bath{border-color:var(--purple);background:#f5eefa;color:var(--purple)}
+.outcome-btn.sel-refused{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.room-card{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:10px;border:1.5px solid var(--border);background:#fff;margin-bottom:8px;cursor:pointer}
+.room-card:active{transform:scale(.985)}
+.room-num{font-size:19px;font-weight:800;min-width:52px;color:var(--primary)}
+.room-status{flex:1;font-size:13px;font-weight:700;color:var(--text-light)}
+.room-by{font-size:11px;color:var(--text-light);font-weight:400}
+.dot{width:14px;height:14px;border-radius:50%;background:#d5dbe1}
+.st-shower{border-color:var(--success);background:#f4fcf7}.st-shower .dot{background:var(--success)}.st-shower .room-status{color:var(--success)}
+.st-bed_bath{border-color:var(--purple);background:#faf5fd}.st-bed_bath .dot{background:var(--purple)}.st-bed_bath .room-status{color:var(--purple)}
+.st-refused{border-color:var(--danger);background:#fdf3f2}.st-refused .dot{background:var(--danger)}.st-refused .room-status{color:var(--danger)}
+.flag{font-size:15px}
+.progress-wrap{background:#eef1f4;border-radius:8px;height:10px;margin-top:10px;overflow:hidden}
+.progress-bar{height:100%;background:var(--success);border-radius:8px;transition:width .3s}
+.check-row{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid #f0f2f5;cursor:pointer}
+.check-row:last-child{border-bottom:none}
+.cbox{width:26px;height:26px;min-width:26px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
+.check-row.on .cbox{background:var(--success);border-color:var(--success)}
+.check-row.na .cbox{background:var(--text-light);border-color:var(--text-light);font-size:10px;font-weight:800}
+.check-label{font-size:14px;line-height:1.35;flex:1}
+.check-sub{font-size:11px;color:var(--text-light)}
+.skin-chip{display:inline-block;padding:9px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--text-light);margin:0 6px 8px 0;cursor:pointer}
+.skin-chip.on{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.skin-chip.ok.on{border-color:var(--success);background:#eafaf1;color:var(--success)}
+.banner{padding:12px 16px;border-radius:10px;font-size:13.5px;font-weight:700;margin:10px 0;text-align:center;line-height:1.4}
+.banner-red{background:#fdedec;color:var(--danger);border:1.5px solid #f5b7b1}
+.banner-green{background:#eafaf1;color:var(--success)}
+.banner-amber{background:#fef9e7;color:#a07708}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+.step{border:1.5px solid var(--border);border-radius:10px;padding:11px;margin-bottom:8px}
+.step.on{border-color:var(--danger);background:#fffafa}
+.step-hd{display:flex;align-items:center;gap:10px;cursor:pointer}
+.step-hd .cbox{border-radius:50%}
+.step.on .cbox{background:var(--danger);border-color:var(--danger)}
+.step-t{font-size:13.5px;font-weight:700;flex:1;line-height:1.3}
+.step input{margin-top:8px;padding:9px;font-size:14px}
+.nurse-row{padding:12px 0;border-bottom:1px solid #f0f2f5}
+.nurse-row:last-child{border-bottom:none}
+.nr-hd{display:flex;justify-content:space-between;align-items:center}
+.nr-room{font-weight:800;font-size:15px;color:var(--primary)}
+.nr-out{font-size:12px;font-weight:800}
+.nr-detail{font-size:12.5px;color:var(--text-light);margin-top:3px;line-height:1.45}
+.nr-review{margin-top:7px;font-size:12.5px;font-weight:700}
+.nr-review .rbtn{display:inline-block;padding:7px 14px;border-radius:8px;border:1.5px solid var(--primary);color:var(--primary);cursor:pointer;background:#fff}
+.nr-review .done{color:var(--success)}
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.tabbar div{flex:1;text-align:center;padding:10px 0 max(10px,env(safe-area-inset-bottom));font-size:12px;font-weight:700;color:var(--text-light);cursor:pointer}
+.tabbar div.on{color:var(--primary)}
+.tabbar .ico{font-size:19px;display:block}
+body{padding-bottom:86px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🚿 Shower Sheet</h1><div class="sub">Morning Star Post Acute</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="page" id="app"></div>
+<div class="tabbar" id="tabbar" style="display:none">
+  <div id="tabCna" onclick="setTab('cna')"><span class="ico">🚿</span>My Showers</div>
+  <div id="tabNurse" onclick="setTab('nurse')"><span class="ico">🩺</span>Charge Nurse</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// FACILITY SHOWER SCHEDULE — "MStar Schedule (2)", revised 2025.04.03.
+// Suffix P = private room (rooms 1–4). Sunday = weekly-tasks day, no scheduled showers.
+var SCHEDULE={
+ 1:{AM:['5A','6C','8A','10C','11G','12B','14A','15C','16B'],PM:['4P','5B','9B','9C','11A','11F','12A','12D','14C','14E']},
+ 2:{AM:['2P','6B','8B','10B','11H','12E','14H','15D','16C'],PM:['3P','7A','9A','10A','11D','11E','12H','12G','14D','18A']},
+ 3:{AM:['5C','7B','7C','8C','11B','12C','14B','15A','16A','16D'],PM:['1P','5D','6A','11C','12F','14F','14G','15B','18B']},
+ 0:{AM:[],PM:[]}
+};
+SCHEDULE[4]=SCHEDULE[1];SCHEDULE[5]=SCHEDULE[2];SCHEDULE[6]=SCHEDULE[3];
+
+var ROOM_BEDS={
+ '1':['P'],'2':['P'],'3':['P'],'4':['P'],
+ '5':['A','B','C','D'],'6':['A','B','C'],'7':['A','B','C'],
+ '8':['A','B','C'],'9':['A','B','C'],'10':['A','B','C'],
+ '11':['A','B','C','D','E','F','G','H'],'12':['A','B','C','D','E','F','G','H'],
+ '14':['A','B','C','D','E','F','G','H'],'15':['A','B','C','D'],'16':['A','B','C','D'],'18':['A','B']
+};
+var ALL_BEDS=[];Object.keys(ROOM_BEDS).forEach(function(r){ROOM_BEDS[r].forEach(function(b){ALL_BEDS.push(r+b)})});
+
+var TASKS=[
+ {key:'nails',label:'Nails cleaned & trimmed',sub:'Diabetic residents: nurse trims — mark N/A'},
+ {key:'facial_hair',label:'Facial hair shaved / trimmed',sub:'Mark N/A if not applicable'},
+ {key:'wash',label:'Hair & body washed',sub:'Shampoo and soap'},
+ {key:'lotion',label:'Moisturizing lotion applied',sub:''}
+];
+var SKIN_ISSUES=[
+ {key:'bruising',label:'Bruising'},{key:'skin_tear',label:'Skin tear'},{key:'redness',label:'Redness'},
+ {key:'open_area',label:'Open area'},{key:'dryness',label:'Dryness'}
+];
+var REFUSAL_STEPS=[
+ {key:'alt_time',label:'1. Offered an alternate time / different staff member',needName:false},
+ {key:'second_cna',label:'2. Second CNA attempted the shower',needName:true,ph:'Second CNA name'},
+ {key:'nurse',label:'3. Licensed nurse offered (care plan for refusal initiated)',needName:true,ph:'Nurse name'},
+ {key:'dsd_don',label:'4. DSD / DON notified and attempted',needName:true,ph:'DSD/DON name'}
+];
+var BB_REASONS=['Resident preference today','Medical condition / MD order','Shower room unavailable','Resident unable to tolerate shower','Other'];
+
+var me={name:localStorage.getItem('sh_name')||''};
+var tab=localStorage.getItem('sh_tab')||'cna';
+var view='home', logs=[], form=null;
+var today=localDate(new Date());
+var selDate=today;
+var selShift=(new Date()).getHours()<13?'AM':'PM';
+
+function localDate(d){return d.toLocaleDateString('en-CA')}
+function yesterday(){var d=new Date();d.setDate(d.getDate()-1);return localDate(d)}
+function dowOf(ds){var p=ds.split('-');return new Date(+p[0],+p[1]-1,+p[2]).getDay()}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function setTab(t){tab=t;localStorage.setItem('sh_tab',t);view='home';loadAndRender()}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function outLabel(o){return o==='shower'?'Shower':o==='bed_bath'?'Bed bath':'Refused'}
+function outColor(o){return o==='shower'?'var(--success)':o==='bed_bath'?'var(--purple)':'var(--danger)'}
+
+async function loadData(){
+  var r=await sb.from('shower_logs').select('*').eq('log_date',selDate).order('room_bed');
+  logs=r.data||[];
+}
+async function loadAndRender(){await loadData();render()}
+
+function render(){
+  whoChip();
+  document.getElementById('tabbar').style.display=(me.name&&view!=='identity')?'flex':'none';
+  document.getElementById('tabCna').className=tab==='cna'?'on':'';
+  document.getElementById('tabNurse').className=tab==='nurse'?'on':'';
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='form'){el.innerHTML=formView();return}
+  el.innerHTML=tab==='nurse'?nurseView():homeView();
+}
+
+function identityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
+  '<div class="hint">Your name is stamped on every shower you document — just like signing the paper sheet.</div>'+
+  '<label>Your name (First Last)</label><input id="idName" placeholder="e.g. Maria Lopez" value="'+esc(me.name)+'">'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>'+
+  '<div class="card hint" style="margin-top:4px">🔒 No resident names anywhere in this app — rooms and beds only.</div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('idName').value.trim();
+  if(!n){toast('Please enter your name');return}
+  me.name=n;localStorage.setItem('sh_name',n);view='home';loadAndRender();
+}
+
+function shiftLogs(){return logs.filter(function(l){return l.shift===selShift})}
+function logFor(rb){return shiftLogs().find(function(l){return l.room_bed===rb})}
+
+function dateSeg(){
+  return '<div class="seg">'+
+  '<div class="'+(selDate===yesterday()?'on':'')+'" onclick="setDate(\''+yesterday()+'\')">Yesterday</div>'+
+  '<div class="'+(selDate===today?'on':'')+'" onclick="setDate(\''+today+'\')">Today</div>'+
+  '</div><div class="seg">'+
+  '<div class="'+(selShift==='AM'?'on':'')+'" onclick="setShift(\'AM\')">☀️ AM Shift</div>'+
+  '<div class="'+(selShift==='PM'?'on':'')+'" onclick="setShift(\'PM\')">🌙 PM Shift</div></div>';
+}
+function setDate(d){selDate=d;loadAndRender()}
+function setShift(s){selShift=s;render()}
+
+function homeView(){
+  var sched=SCHEDULE[dowOf(selDate)][selShift]||[];
+  var extras=shiftLogs().filter(function(l){return sched.indexOf(l.room_bed)<0}).map(function(l){return l.room_bed});
+  var all=sched.concat(extras);
+  var done=all.filter(function(rb){return !!logFor(rb)}).length;
+  var h=dateSeg();
+  var dow=dowOf(selDate);
+  if(!sched.length&&dow===0)h+='<div class="banner banner-amber">Sunday — no scheduled showers (weekly tasks day). You can still log one below.</div>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">'+
+     (selShift==='AM'?'AM':'PM')+' Shower Schedule</b><span style="font-size:13px;font-weight:700;color:'+(done>=all.length&&all.length?'var(--success)':'var(--text-light)')+'">'+done+' of '+all.length+' documented</span></div>'+
+     '<div class="progress-wrap"><div class="progress-bar" style="width:'+(all.length?Math.round(done/all.length*100):0)+'%"></div></div></div>';
+  all.forEach(function(rb){
+    var l=logFor(rb);
+    var cls=l?('st-'+l.outcome):'';
+    var status=l?outLabel(l.outcome):'Tap to document';
+    var flags='';
+    if(l&&l.skin_issues&&l.skin_issues.length)flags+=' <span class="flag" title="Skin issue">⚠️</span>';
+    if(l&&l.nurse_reviewed_by)flags+=' <span class="flag" title="Nurse reviewed">✔️</span>';
+    var by=l?('<div class="room-by">'+esc(l.cna_name)+' · '+fmtTime(l.updated_at)+'</div>'):'';
+    var extra=sched.indexOf(rb)<0?' <span style="font-size:10px;font-weight:800;color:var(--accent)">EXTRA</span>':'';
+    h+='<div class="room-card '+cls+'" onclick="openForm(\''+rb+'\')"><div class="dot"></div>'+
+       '<div class="room-num">'+rb.replace('P','')+(rb.slice(-1)==='P'?'<span style="font-size:11px;color:var(--text-light)"> priv</span>':'')+'</div>'+
+       '<div class="room-status">'+status+flags+extra+by+'</div><div style="color:var(--text-light)">›</div></div>';
+  });
+  h+='<div style="margin-top:14px"><button class="btn btn-ghost" onclick="addExtra()">+ Log an off-schedule shower</button></div>';
+  return h;
+}
+function addExtra(){
+  var sched=SCHEDULE[dowOf(selDate)][selShift]||[];
+  var taken=shiftLogs().map(function(l){return l.room_bed});
+  var opts=ALL_BEDS.filter(function(rb){return sched.indexOf(rb)<0&&taken.indexOf(rb)<0});
+  var rb=prompt('Room/bed (e.g. 5A, 11G, or 2 for a private room):');
+  if(!rb)return;
+  rb=rb.trim().toUpperCase();
+  if(/^\d+$/.test(rb)&&ROOM_BEDS[rb]&&ROOM_BEDS[rb][0]==='P')rb+='P';
+  if(ALL_BEDS.indexOf(rb)<0){toast(rb+' is not a valid room/bed');return}
+  openForm(rb);
+}
+
+function blankForm(rb){
+  var sched=SCHEDULE[dowOf(selDate)][selShift]||[];
+  return {room_bed:rb,scheduled:sched.indexOf(rb)>=0,outcome:null,bed_bath_reason:'',tasks:{},
+    skin_ok:null,skin_issues:[],skin_note:'',notes:'',refusal_steps:{}};
+}
+function openForm(rb){
+  var l=logFor(rb);
+  if(l){
+    form={id:l.id,room_bed:rb,scheduled:l.scheduled,outcome:l.outcome,bed_bath_reason:l.bed_bath_reason||'',
+      tasks:l.tasks||{},skin_ok:(l.skin_issues&&l.skin_issues.length)?false:true,
+      skin_issues:l.skin_issues||[],skin_note:l.skin_note||'',notes:l.notes||'',refusal_steps:l.refusal_steps||{}};
+  }else form=blankForm(rb);
+  view='form';render();window.scrollTo(0,0);
+}
+function fv(id){var e=document.getElementById(id);return e?e.value:''}
+function captureText(){
+  if(!form)return;
+  if(document.getElementById('fNotes'))form.notes=fv('fNotes');
+  if(document.getElementById('fSkinNote'))form.skin_note=fv('fSkinNote');
+  if(document.getElementById('fBBReason'))form.bed_bath_reason=fv('fBBReason');
+  REFUSAL_STEPS.forEach(function(s){
+    var e=document.getElementById('rs_'+s.key);
+    if(e&&form.refusal_steps[s.key])form.refusal_steps[s.key].by=e.value;
+  });
+}
+function setOutcome(o){captureText();form.outcome=o;render()}
+function toggleTask(k){captureText();var v=form.tasks[k];form.tasks[k]=(v===true)?'na':(v==='na')?false:true;render()}
+function setSkinOk(ok){captureText();form.skin_ok=ok;if(ok){form.skin_issues=[];form.skin_note=''}render()}
+function toggleSkin(k){captureText();var i=form.skin_issues.indexOf(k);if(i>=0)form.skin_issues.splice(i,1);else form.skin_issues.push(k);render()}
+function toggleStep(k){
+  captureText();
+  if(form.refusal_steps[k])delete form.refusal_steps[k];
+  else form.refusal_steps[k]={done:true,by:k==='alt_time'?me.name:'',at:new Date().toISOString()};
+  render();
+}
+function backHome(){view='home';form=null;loadAndRender()}
+
+function formView(){
+  var f=form;
+  var h='<span class="back" onclick="backHome()">‹ Back to schedule</span>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center">'+
+     '<div style="font-size:22px;font-weight:800;color:var(--primary)">Room '+f.room_bed.replace('P','')+(f.room_bed.slice(-1)==='P'?' <span style="font-size:12px;color:var(--text-light)">private</span>':'')+'</div>'+
+     '<div style="font-size:12px;font-weight:700;color:var(--text-light)">'+selDate+' · '+selShift+'</div></div>'+
+     (f.scheduled?'':'<div class="hint">Off-schedule entry</div>');
+  h+='<label>What happened?</label><div class="outcome-row">'+
+     '<div class="outcome-btn '+(f.outcome==='shower'?'sel-shower':'')+'" onclick="setOutcome(\'shower\')">🚿 Shower</div>'+
+     '<div class="outcome-btn '+(f.outcome==='bed_bath'?'sel-bed_bath':'')+'" onclick="setOutcome(\'bed_bath\')">🛏️ Bed Bath</div>'+
+     '<div class="outcome-btn '+(f.outcome==='refused'?'sel-refused':'')+'" onclick="setOutcome(\'refused\')">🚫 Refused</div></div>';
+  h+='</div>';
+
+  if(f.outcome==='bed_bath'){
+    h+='<div class="card"><label>Reason for bed bath (not shower)</label><select id="fBBReason">'+
+    '<option value="">— pick a reason —</option>'+
+    BB_REASONS.map(function(r){return '<option'+(f.bed_bath_reason===r?' selected':'')+'>'+r+'</option>'}).join('')+
+    '</select></div>';
+  }
+
+  if(f.outcome==='shower'||f.outcome==='bed_bath'){
+    h+='<div class="card"><label style="margin-top:0">Care completed <span style="font-weight:400;text-transform:none">(tap: ✓ done → N/A → blank)</span></label>';
+    TASKS.forEach(function(t){
+      var v=f.tasks[t.key];
+      h+='<div class="check-row '+(v===true?'on':v==='na'?'na':'')+'" onclick="toggleTask(\''+t.key+'\')">'+
+         '<div class="cbox">'+(v===true?'✓':v==='na'?'N/A':'')+'</div>'+
+         '<div class="check-label">'+t.label+(t.sub?'<div class="check-sub">'+t.sub+'</div>':'')+'</div></div>';
+    });
+    h+='</div>';
+    h+='<div class="card"><label style="margin-top:0">Skin check</label>'+
+       '<div class="hint" style="margin-bottom:9px">Look for bruising, skin tears, redness, open areas, dryness — everywhere.</div>'+
+       '<span class="skin-chip ok '+(f.skin_ok===true?'on':'')+'" onclick="setSkinOk(true)">✓ Skin intact — nothing new</span>'+
+       '<div style="margin:6px 0 2px;font-size:12px;font-weight:700;color:var(--text-light)">OR mark what you found:</div>';
+    SKIN_ISSUES.forEach(function(s){
+      h+='<span class="skin-chip '+(f.skin_issues.indexOf(s.key)>=0?'on':'')+'" onclick="toggleSkin(\''+s.key+'\')">'+s.label+'</span>';
+    });
+    if(f.skin_issues.length){
+      h+='<div class="banner banner-red">⚠️ STOP — show the charge nurse before dressing the resident.</div>'+
+         '<label>Where / describe what you see</label><textarea id="fSkinNote" placeholder="e.g. quarter-size bruise, left forearm">'+esc(f.skin_note)+'</textarea>';
+    }
+    h+='</div>';
+  }
+
+  if(f.outcome==='refused'){
+    h+='<div class="card"><label style="margin-top:0">Refusal steps — work down the list</label>'+
+       '<div class="hint" style="margin-bottom:10px">Check each step as it happens. Steps 2–4 need the name of who tried.</div>';
+    REFUSAL_STEPS.forEach(function(s){
+      var st=f.refusal_steps[s.key];
+      h+='<div class="step '+(st?'on':'')+'"><div class="step-hd" onclick="toggleStep(\''+s.key+'\')">'+
+         '<div class="cbox">'+(st?'✓':'')+'</div><div class="step-t">'+s.label+'</div></div>';
+      if(st&&s.needName)h+='<input id="rs_'+s.key+'" placeholder="'+s.ph+'" value="'+esc(st.by||'')+'">';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  if(f.outcome){
+    h+='<div class="card"><label style="margin-top:0">Notes / comments / behaviors</label>'+
+       '<textarea id="fNotes" placeholder="Anything the nurse or next shift should know. No resident names.">'+esc(f.notes)+'</textarea></div>';
+    h+='<button class="btn btn-primary" id="saveBtn" onclick="saveForm()">Save — signed as '+esc(me.name)+'</button>';
+  }
+  return h;
+}
+
+var saving=false;
+async function saveForm(){
+  if(saving)return;
+  captureText();
+  var f=form;
+  if(!f.outcome){toast('Pick what happened first');return}
+  if(f.outcome==='bed_bath'&&!f.bed_bath_reason){toast('Pick the bed bath reason');return}
+  if((f.outcome==='shower'||f.outcome==='bed_bath')&&f.skin_ok===null&&!f.skin_issues.length){toast('Complete the skin check');return}
+  if(f.outcome==='refused'&&!Object.keys(f.refusal_steps).length){toast('Check at least refusal step 1');return}
+  saving=true;document.getElementById('saveBtn').disabled=true;
+  var row={log_date:selDate,shift:selShift,room_bed:f.room_bed,scheduled:f.scheduled,outcome:f.outcome,
+    bed_bath_reason:f.outcome==='bed_bath'?f.bed_bath_reason:null,
+    tasks:f.outcome==='refused'?{}:f.tasks,
+    skin_issues:f.outcome==='refused'?[]:f.skin_issues,
+    skin_note:f.skin_issues.length?f.skin_note:null,
+    notes:f.notes||null,
+    refusal_steps:f.outcome==='refused'?f.refusal_steps:null,
+    cna_name:me.name,updated_at:new Date().toISOString(),source:'shower-app'};
+  var res=await sb.from('shower_logs').upsert(row,{onConflict:'log_date,shift,room_bed'});
+  saving=false;
+  if(res.error){document.getElementById('saveBtn').disabled=false;toast('Save failed — try again');console.error(res.error);return}
+  toast('Saved — Room '+f.room_bed.replace('P',''));
+  backHome();
+}
+
+function nurseView(){
+  var h=dateSeg();
+  var list=shiftLogs();
+  var flags=list.filter(function(l){return (l.skin_issues&&l.skin_issues.length)||l.outcome==='refused'});
+  h+='<div class="card" style="padding:12px 16px"><b style="font-size:14px">🩺 Charge Nurse Review — '+selShift+'</b>'+
+     '<div class="hint">Replaces the paper sheet turn-in. Review each entry; skin issues and refusals are flagged.</div></div>';
+  if(flags.length)h+='<div class="banner banner-red">'+flags.length+' entr'+(flags.length===1?'y needs':'ies need')+' your attention (skin issue or refusal)</div>';
+  if(!list.length){h+='<div class="card"><div class="empty">Nothing documented for '+selDate+' '+selShift+' yet.</div></div>';return h}
+  h+='<div class="card">';
+  list.forEach(function(l){
+    var det=[];
+    if(l.skin_issues&&l.skin_issues.length)det.push('⚠️ SKIN: '+l.skin_issues.map(function(k){var s=SKIN_ISSUES.find(function(x){return x.key===k});return s?s.label:k}).join(', ')+(l.skin_note?' — '+esc(l.skin_note):''));
+    if(l.outcome==='bed_bath'&&l.bed_bath_reason)det.push('Reason: '+esc(l.bed_bath_reason));
+    if(l.outcome==='refused'&&l.refusal_steps){
+      var steps=REFUSAL_STEPS.filter(function(s){return l.refusal_steps[s.key]}).map(function(s){return s.label.split('.')[0]+(l.refusal_steps[s.key].by&&s.needName?' ('+esc(l.refusal_steps[s.key].by)+')':'')});
+      det.push('Steps done: '+steps.join(' · '));
+    }
+    if(l.notes)det.push('📝 '+esc(l.notes));
+    var tdone=Object.keys(l.tasks||{}).filter(function(k){return l.tasks[k]===true}).length;
+    if(l.outcome!=='refused')det.push('Care tasks: '+tdone+'/'+TASKS.length+' done');
+    h+='<div class="nurse-row"><div class="nr-hd"><span class="nr-room">Room '+l.room_bed.replace('P','')+'</span>'+
+       '<span class="nr-out" style="color:'+outColor(l.outcome)+'">'+outLabel(l.outcome).toUpperCase()+'</span></div>'+
+       '<div class="nr-detail">'+esc(l.cna_name)+' · '+fmtTime(l.updated_at)+(det.length?'<br>'+det.join('<br>'):'')+'</div>'+
+       '<div class="nr-review">'+(l.nurse_reviewed_by?'<span class="done">✔️ Reviewed by '+esc(l.nurse_reviewed_by)+' at '+fmtTime(l.nurse_reviewed_at)+'</span>':
+       '<span class="rbtn" onclick="reviewLog(\''+l.id+'\')">Mark reviewed</span>')+'</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+async function reviewLog(id){
+  var res=await sb.from('shower_logs').update({nurse_reviewed_by:me.name,nurse_reviewed_at:new Date().toISOString()}).eq('id',id);
+  if(res.error){toast('Update failed — try again');return}
+  toast('Marked reviewed');loadAndRender();
+}
+
+loadAndRender();
+</script>
+</body>
+</html>
