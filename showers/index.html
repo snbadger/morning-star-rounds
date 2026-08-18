@@ -53,6 +53,13 @@ textarea{min-height:70px;resize:vertical}
 .check-label{font-size:14px;line-height:1.35;flex:1}
 .check-sub{font-size:11px;color:var(--text-light)}
 .skin-chip{display:inline-block;padding:9px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--text-light);margin:0 6px 8px 0;cursor:pointer}
+.bodymap{display:flex;justify-content:space-around;gap:8px;margin:10px 0 4px;background:#f8fafb;border:1.5px solid var(--border);border-radius:12px;padding:10px 4px 4px}
+.bodymap svg{width:46%;max-width:150px;height:auto;touch-action:manipulation}
+.bodymap .bview{text-align:center}
+.bodymap .bcap{font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--text-light);margin-top:2px}
+.body-region{fill:#eef1f4;stroke:#b8c2cc;stroke-width:1.2;cursor:pointer}
+.body-region.sel{fill:#f5b7b1;stroke:var(--danger);stroke-width:2}
+.loc-chip{display:inline-block;padding:5px 11px;border-radius:14px;background:#fdedec;border:1.5px solid var(--danger);color:var(--danger);font-size:12px;font-weight:700;margin:2px 5px 3px 0}
 .skin-chip.on{border-color:var(--danger);background:#fdedec;color:var(--danger)}
 .skin-chip.ok.on{border-color:var(--success);background:#eafaf1;color:var(--success)}
 .banner{padding:12px 16px;border-radius:10px;font-size:13.5px;font-weight:700;margin:10px 0;text-align:center;line-height:1.4}
@@ -141,6 +148,38 @@ var REFUSAL_STEPS=[
  {key:'dsd_don',label:'4. DSD / DON notified and attempted',needName:true,ph:'DSD/DON name'}
 ];
 var BB_REASONS=['Resident preference today','Medical condition / MD order','Shower room unavailable','Resident unable to tolerate shower','Other'];
+
+// Body map regions. On the FRONT view the resident's right side is on the
+// viewer's left; on the BACK view they match. Same label front+back = same
+// location (both instances highlight together).
+var BODY_FRONT=[
+ ['Head / face','e',70,20,15,17],['Neck','r',62,36,16,10],
+ ['Chest','r',47,46,46,36],['Abdomen','r',49,82,42,32],['Groin / peri area','r',53,114,34,14],
+ ['Right upper arm','r',28,50,17,40],['Right forearm','r',26,92,15,38],['Right hand','e',33,140,9,11],
+ ['Left upper arm','r',95,50,17,40],['Left forearm','r',99,92,15,38],['Left hand','e',107,140,9,11],
+ ['Right thigh','r',51,130,18,52],['Right shin','r',52,184,16,50],['Right foot / toes','e',59,243,11,8],
+ ['Left thigh','r',71,130,18,52],['Left shin','r',72,184,16,50],['Left foot / toes','e',81,243,11,8]
+];
+var BODY_BACK=[
+ ['Back of head','e',70,20,15,17],['Upper back','r',47,46,46,42],['Lower back','r',49,90,42,20],
+ ['Left upper arm','r',28,50,17,36],['Left elbow','c',36,92,8],['Left forearm','r',26,102,15,30],['Left hand','e',33,140,9,11],
+ ['Right upper arm','r',95,50,17,36],['Right elbow','c',104,92,8],['Right forearm','r',99,102,15,30],['Right hand','e',107,140,9,11],
+ ['Buttocks','r',51,112,38,22],['Sacrum / coccyx','r',63,106,14,12],
+ ['Left back of thigh','r',51,136,18,48],['Left calf','r',52,186,16,46],['Left heel','e',59,241,11,8],
+ ['Right back of thigh','r',71,136,18,48],['Right calf','r',72,186,16,46],['Right heel','e',81,241,11,8]
+];
+function bodySVG(regions,cap){
+  var s='<div class="bview"><svg viewBox="0 0 140 256" xmlns="http://www.w3.org/2000/svg">';
+  regions.forEach(function(g){
+    var lbl=g[0],sel=form.skin_locations.indexOf(lbl)>=0?' sel':'';
+    var on=' onclick="toggleLoc(&quot;'+lbl+'&quot;)"',cls=' class="body-region'+sel+'"';
+    if(g[1]==='r')s+='<rect x="'+g[2]+'" y="'+g[3]+'" width="'+g[4]+'" height="'+g[5]+'" rx="7"'+cls+on+'><title>'+lbl+'</title></rect>';
+    else if(g[1]==='e')s+='<ellipse cx="'+g[2]+'" cy="'+g[3]+'" rx="'+g[4]+'" ry="'+g[5]+'"'+cls+on+'><title>'+lbl+'</title></ellipse>';
+    else s+='<circle cx="'+g[2]+'" cy="'+g[3]+'" r="'+g[4]+'"'+cls+on+'><title>'+lbl+'</title></circle>';
+  });
+  return s+'</svg><div class="bcap">'+cap+'</div></div>';
+}
+function toggleLoc(lbl){captureText();var i=form.skin_locations.indexOf(lbl);if(i>=0)form.skin_locations.splice(i,1);else form.skin_locations.push(lbl);render()}
 
 var me={name:localStorage.getItem('sh_name')||''};
 var tab=localStorage.getItem('sh_tab')||'cna';
@@ -247,14 +286,14 @@ function addExtra(){
 function blankForm(rb){
   var sched=SCHEDULE[dowOf(selDate)][selShift]||[];
   return {room_bed:rb,scheduled:sched.indexOf(rb)>=0,outcome:null,bed_bath_reason:'',tasks:{},
-    skin_ok:null,skin_issues:[],skin_note:'',notes:'',refusal_steps:{}};
+    skin_ok:null,skin_issues:[],skin_locations:[],skin_note:'',notes:'',refusal_steps:{}};
 }
 function openForm(rb){
   var l=logFor(rb);
   if(l){
     form={id:l.id,room_bed:rb,scheduled:l.scheduled,outcome:l.outcome,bed_bath_reason:l.bed_bath_reason||'',
       tasks:l.tasks||{},skin_ok:(l.skin_issues&&l.skin_issues.length)?false:true,
-      skin_issues:l.skin_issues||[],skin_note:l.skin_note||'',notes:l.notes||'',refusal_steps:l.refusal_steps||{}};
+      skin_issues:l.skin_issues||[],skin_locations:l.skin_locations||[],skin_note:l.skin_note||'',notes:l.notes||'',refusal_steps:l.refusal_steps||{}};
   }else form=blankForm(rb);
   view='form';render();window.scrollTo(0,0);
 }
@@ -271,8 +310,8 @@ function captureText(){
 }
 function setOutcome(o){captureText();form.outcome=o;render()}
 function toggleTask(k){captureText();var v=form.tasks[k];form.tasks[k]=(v===true)?'na':(v==='na')?'refused':(v==='refused')?false:true;render()}
-function setSkinOk(ok){captureText();form.skin_ok=ok;if(ok){form.skin_issues=[];form.skin_note=''}render()}
-function toggleSkin(k){captureText();var i=form.skin_issues.indexOf(k);if(i>=0)form.skin_issues.splice(i,1);else form.skin_issues.push(k);render()}
+function setSkinOk(ok){captureText();form.skin_ok=ok;if(ok){form.skin_issues=[];form.skin_locations=[];form.skin_note=''}render()}
+function toggleSkin(k){captureText();var i=form.skin_issues.indexOf(k);if(i>=0)form.skin_issues.splice(i,1);else form.skin_issues.push(k);form.skin_ok=form.skin_issues.length?false:null;render()}
 function toggleStep(k){
   captureText();
   if(form.refusal_steps[k])delete form.refusal_steps[k];
@@ -319,7 +358,10 @@ function formView(){
     });
     if(f.skin_issues.length){
       h+='<div class="banner banner-red">⚠️ STOP — show the charge nurse before dressing the resident.</div>'+
-         '<label>Where / describe what you see</label><textarea id="fSkinNote" placeholder="e.g. quarter-size bruise, left forearm">'+esc(f.skin_note)+'</textarea>';
+         '<label>Tap the body where you found it</label>'+
+         '<div class="bodymap">'+bodySVG(BODY_FRONT,'FRONT')+bodySVG(BODY_BACK,'BACK')+'</div>'+
+         (f.skin_locations.length?'<div style="margin:4px 0 2px">'+f.skin_locations.map(function(l){return '<span class="loc-chip">📍 '+esc(l)+'</span>'}).join('')+'</div>':'<div class="hint">Tap an area to mark it — tap again to remove. Front & back views.</div>')+
+         '<label>Describe what you see</label><textarea id="fSkinNote" placeholder="e.g. quarter-size bruise, new since last shower">'+esc(f.skin_note)+'</textarea>';
     }
     h+='</div>';
   }
@@ -359,6 +401,7 @@ async function saveForm(){
     bed_bath_reason:f.outcome==='bed_bath'?f.bed_bath_reason:null,
     tasks:f.outcome==='refused'?{}:f.tasks,
     skin_issues:f.outcome==='refused'?[]:f.skin_issues,
+    skin_locations:(f.outcome==='refused'||!f.skin_issues.length)?[]:f.skin_locations,
     skin_note:f.skin_issues.length?f.skin_note:null,
     notes:f.notes||null,
     refusal_steps:f.outcome==='refused'?f.refusal_steps:null,
@@ -381,7 +424,9 @@ function nurseView(){
   h+='<div class="card">';
   list.forEach(function(l){
     var det=[];
-    if(l.skin_issues&&l.skin_issues.length)det.push('⚠️ SKIN: '+l.skin_issues.map(function(k){var s=SKIN_ISSUES.find(function(x){return x.key===k});return s?s.label:k}).join(', ')+(l.skin_note?' — '+esc(l.skin_note):''));
+    if(l.skin_issues&&l.skin_issues.length)det.push('⚠️ SKIN: '+l.skin_issues.map(function(k){var s=SKIN_ISSUES.find(function(x){return x.key===k});return s?s.label:k}).join(', ')+
+      (l.skin_locations&&l.skin_locations.length?' 📍 '+l.skin_locations.map(esc).join(', '):'')+
+      (l.skin_note?' — '+esc(l.skin_note):''));
     if(l.outcome==='bed_bath'&&l.bed_bath_reason)det.push('Reason: '+esc(l.bed_bath_reason));
     if(l.outcome==='refused'&&l.refusal_steps){
       var steps=REFUSAL_STEPS.filter(function(s){return l.refusal_steps[s.key]}).map(function(s){return s.label.split('.')[0]+(l.refusal_steps[s.key].by&&s.needName?' ('+esc(l.refusal_steps[s.key].by)+')':'')});
