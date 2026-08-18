@@ -440,16 +440,23 @@ function nurseView(){
     h+='<div class="nurse-row"><div class="nr-hd"><span class="nr-room">Room '+l.room_bed.replace('P','')+'</span>'+
        '<span class="nr-out" style="color:'+outColor(l.outcome)+'">'+outLabel(l.outcome).toUpperCase()+'</span></div>'+
        '<div class="nr-detail">'+esc(l.cna_name)+' · '+fmtTime(l.updated_at)+(det.length?'<br>'+det.join('<br>'):'')+'</div>'+
-       '<div class="nr-review">'+(l.nurse_reviewed_by?'<span class="done">✔️ Reviewed by '+esc(l.nurse_reviewed_by)+' at '+fmtTime(l.nurse_reviewed_at)+'</span>':
-       '<span class="rbtn" onclick="reviewLog(\''+l.id+'\')">Mark reviewed</span>')+'</div></div>';
+       '<div class="nr-review">'+(l.nurse_reviewed_by?'<span class="done">✔️ Reviewed by '+esc(l.nurse_reviewed_by)+' at '+fmtTime(l.nurse_reviewed_at)+'</span> <span class="rbtn" style="font-size:12px;padding:5px 10px;margin-left:8px;border-color:var(--text-light);color:var(--text-light)" onclick="unreviewLog(\''+l.id+'\',\''+esc(l.room_bed)+'\')">Undo</span>':
+       '<span class="rbtn" onclick="reviewLog(\''+l.id+'\',\''+esc(l.room_bed)+'\')">Mark reviewed</span>')+'</div></div>';
   });
   h+='</div>';
   return h;
 }
-async function reviewLog(id){
+async function reviewLog(id,rb){
+  if(!confirm('Sign off as CHARGE NURSE review for Room '+rb.replace('P','')+'?\n\nThis stamps "'+me.name+'" as the reviewing nurse. CNAs: please don\'t sign this — hand the phone to the charge nurse.'))return;
   var res=await sb.from('shower_logs').update({nurse_reviewed_by:me.name,nurse_reviewed_at:new Date().toISOString()}).eq('id',id);
   if(res.error){toast('Update failed — try again');return}
   toast('Marked reviewed');loadAndRender();
+}
+async function unreviewLog(id,rb){
+  if(!confirm('Remove the nurse review sign-off for Room '+rb.replace('P','')+'? The entry goes back to "needs review."'))return;
+  var res=await sb.from('shower_logs').update({nurse_reviewed_by:null,nurse_reviewed_at:null}).eq('id',id);
+  if(res.error){toast('Update failed — try again');return}
+  toast('Review sign-off removed');loadAndRender();
 }
 
 loadAndRender();
