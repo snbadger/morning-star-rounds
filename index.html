@@ -241,6 +241,17 @@ var ROSTER=[
 {name:"Sebastian Lopez",dept:"Maintenance/EVS",rooms:[],assigned:false}
 ];
 var ALL_ROOMS=["1","2","3","4","5","6","7","8","9","10","11","12","14","15","16","18"];
+// -- AUDIT ROOM PICKER: date-seeded random room for floating auditors (assigned, no fixed rooms) --
+// Same pick all day; each 16-day block is a fresh shuffle, so every room comes up once before any repeats.
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function auditRoomForDate(dateStr){
+ var days=Math.floor(new Date(dateStr+'T12:00:00').getTime()/86400000);
+ var n=ALL_ROOMS.length;
+ var rng=mulberry32(Math.floor(days/n)+1);
+ var order=ALL_ROOMS.slice();
+ for(var i=order.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=order[i];order[i]=order[j];order[j]=t}
+ return order[days%n];
+}
 var DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
 var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
 // -- SUPABASE CLIENT --
@@ -697,6 +708,20 @@ function renderRoundsForm(){
  roomOptions.push(h('optgroup',{label:g.label},opts));
  });
  // Bed selector
+ // Audit-room suggestion for floating auditors
+ var rosterSel=ROSTER.find(function(x){return x.name===f.name});
+ var auditBanner=null;
+ if(rosterSel&&rosterSel.assigned&&!rosterSel.rooms.length){
+ var ar=auditRoomForDate(f.date||today());
+ auditBanner=h('div',{style:{background:'#eef6ee',border:'1px solid #b7d8b7',padding:'10px 14px',margin:'4px 0 12px',borderRadius:'8px'}},
+ h('div',{style:{fontWeight:'600'}},'🎲 Today’s audit room: Room '+ar),
+ h('div',{style:{fontSize:'12px',color:'#555',margin:'4px 0 8px'}},'Randomly assigned for '+fmtDate(f.date||today())+' — same pick all day; every room comes up before any repeats.'),
+ f.room===ar?h('div',{style:{fontSize:'13px',fontWeight:'600',color:'#2e7d32'}},'Selected ✓'):
+ h('button',{className:'btn btn-p',onClick:function(){f.room=ar;f.selectedBeds=[];f.envBeds={};f.residents={};
+ if(ROOM_BEDS[ar]&&ROOM_BEDS[ar][0]==='Private')f.selectedBeds=['Private'];
+ initBedData(f);render();}},'Use Room '+ar)
+ );
+ }
  var bedSelector=null;
  if(f.room){
  if(isPrivate){
@@ -732,6 +757,7 @@ function renderRoundsForm(){
  h('div',{className:'field'},h('label',null,'Your Name ',h('span',{className:'req'},'*')),
  h('select',{value:f.name,onChange:function(e){f.name=e.target.value;render()}},h('option',{value:''},'Select your name...'),ROSTER.map(function(r){return h('option',{value:r.name},r.name+' - '+r.dept)}))),
  h('div',{className:'field'},h('label',null,'Date ',h('span',{className:'req'},'*')),h('input',{type:'date',value:f.date,onChange:function(e){f.date=e.target.value;render()}})),
+ auditBanner,
  h('div',{className:'field'},h('label',null,'Room Number ',h('span',{className:'req'},'*')),
  h('select',{value:f.room,onChange:function(e){f.room=e.target.value;f.selectedBeds=[];f.envBeds={};f.residents={};
  if(f.room&&ROOM_BEDS[f.room]&&ROOM_BEDS[f.room][0]==='Private')f.selectedBeds=['Private'];
