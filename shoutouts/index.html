@@ -82,7 +82,9 @@ var VALUES=[
 ];
 
 // Same identity keys as the Ideas app — sign in once, recognized everywhere on this site.
-var me={name:localStorage.getItem('ii_name')||'',dept:localStorage.getItem('ii_dept')||''};
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+var me={name:lsGet('ii_name')||'',dept:lsGet('ii_dept')||''};
 var view='submit', form=blankForm(), busy=false, wall=[], wallLoaded=false;
 
 function blankForm(){return{to:'',value:'',message:''}}
@@ -115,7 +117,7 @@ function saveIdentity(){
   if(n.length<3){toast('Please enter your first and last name');return}
   if(!d){toast('Please pick your department');return}
   me.name=n;me.dept=d;
-  localStorage.setItem('ii_name',n);localStorage.setItem('ii_dept',d);
+  lsSet('ii_name',n);lsSet('ii_dept',d);
   view='submit';render();
 }
 
