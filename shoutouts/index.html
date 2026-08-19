@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Shout Outs</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--gold:#f5b301;--success:#27ae60;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.header .sub a{color:#9ec5e8;text-decoration:none}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:620px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px}
+label .opt{text-transform:none;letter-spacing:0;font-weight:600;color:#aab3ba}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+textarea{min-height:90px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cat{font-size:13px;font-weight:600;padding:9px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none}
+.cat.on{background:var(--gold);border-color:var(--gold);color:#5c4402}
+.tabs{display:flex;gap:6px;background:#e4e8ec;padding:4px;border-radius:11px;margin-bottom:14px}
+.tab{flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.tab.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hint{font-size:12.5px;color:var(--text-light);margin-top:7px;line-height:1.5}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:30px 10px;line-height:1.6}
+.thanks{text-align:center;padding:26px 14px}
+.thanks .big{font-size:52px;line-height:1}
+.thanks h2{color:var(--success);margin:12px 0 8px;font-size:22px}
+.thanks p{color:var(--text-light);font-size:14.5px;line-height:1.6;max-width:390px;margin:0 auto}
+.so{background:#fff;border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:13px 15px;margin-bottom:10px}
+.so .to{font-size:15px;font-weight:800;color:var(--primary)}
+.so .val{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:9px;background:#fdf5dd;color:#8a6a10;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;vertical-align:2px}
+.so .msg{font-size:14.5px;line-height:1.55;margin-top:6px}
+.so .meta{font-size:11.5px;color:var(--text-light);margin-top:8px}
+.load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+.wall-hdr{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.wall-hdr .n{font-size:38px;font-weight:800;line-height:1}
+.wall-hdr .lbl{font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>⭐ Shout Outs</h1>
+    <div class="sub"><a href="../">← All Apps</a> · Morning Star Post Acute</div>
+  </div>
+  <div class="who" id="whoChip" onclick="editIdentity()">Sign in</div>
+</div>
+<div class="page" id="app"><div class="load">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Laundry","Maintenance",
+"Activities","Social Services","Business Office","Medical Records","Admissions","HR / Staffing",
+"Therapy / Rehab","MDS","Staff Education","Administration","Other"];
+
+// Jericho HEART values
+var VALUES=[
+ {v:'Honesty',d:'Truthful, even when it\'s hard'},
+ {v:'Excellence',d:'Went above and beyond'},
+ {v:'Appreciation',d:'Made someone feel valued'},
+ {v:'Respect',d:'Treated others with dignity'},
+ {v:'Teamwork',d:'Helped without being asked'}
+];
+
+// Same identity keys as the Ideas app — sign in once, recognized everywhere on this site.
+var me={name:localStorage.getItem('ii_name')||'',dept:localStorage.getItem('ii_dept')||''};
+var view='submit', form=blankForm(), busy=false, wall=[], wallLoaded=false;
+
+function blankForm(){return{to:'',value:'',message:''}}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function go(v){view=v;render();window.scrollTo(0,0);if(v==='wall'&&!wallLoaded)loadWall()}
+function fmtDate(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})}
+
+function identityView(){
+  return '<div class="card">'+
+   '<h2 style="font-size:18px;margin-bottom:4px">Who are you?</h2>'+
+   '<div class="hint">Shout outs are signed — recognition means more with a name on it.</div>'+
+   '<label>Your name</label>'+
+   '<input id="iName" value="'+esc(me.name)+'" placeholder="First and last name" autocomplete="name">'+
+   '<label>Where do you work?</label>'+
+   '<select id="iDept">'+opts(WORK_DEPTS,me.dept,'Select your department…')+'</select>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-primary" onclick="saveIdentity()">Continue</button>'+
+   '</div>';
+}
+function opts(list,sel,ph){
+  var h=ph?'<option value="">'+esc(ph)+'</option>':'';
+  list.forEach(function(o){h+='<option value="'+esc(o)+'"'+(String(sel)===String(o)?' selected':'')+'>'+esc(o)+'</option>'});
+  return h;
+}
+function saveIdentity(){
+  var n=document.getElementById('iName').value.trim(), d=document.getElementById('iDept').value;
+  if(n.length<3){toast('Please enter your first and last name');return}
+  if(!d){toast('Please pick your department');return}
+  me.name=n;me.dept=d;
+  localStorage.setItem('ii_name',n);localStorage.setItem('ii_dept',d);
+  view='submit';render();
+}
+
+function tabs(active){
+  return '<div class="tabs">'+
+   '<div class="tab'+(active==='submit'?' on':'')+'" onclick="go(\'submit\')">Give a Shout Out</div>'+
+   '<div class="tab'+(active==='wall'?' on':'')+'" onclick="go(\'wall\')">The Wall</div>'+
+   '</div>';
+}
+function submitView(){
+  return tabs('submit')+
+   '<div class="card">'+
+   '<div style="font-size:15px;line-height:1.55"><b>Catch someone living our HEART values?</b> Say it out loud. Shout outs go on the wall and get read at huddle.</div>'+
+   '<label>Who are you shouting out?</label>'+
+   '<input id="fTo" value="'+esc(form.to)+'" placeholder="Co-worker\'s name">'+
+   '<label>Which HEART value did they show? <span class="opt">— pick one</span></label>'+
+   '<div class="cats">'+VALUES.map(function(x){
+     return '<div class="cat'+(form.value===x.v?' on':'')+'" onclick="pickVal(\''+x.v+'\')" title="'+esc(x.d)+'">'+esc(x.v)+'</div>';
+   }).join('')+'</div>'+
+   '<label>What did they do?</label>'+
+   '<textarea id="fMsg" placeholder="Tell us what happened and why it mattered.">'+esc(form.message)+'</textarea>'+
+   '<div class="hint">Keep it about your co-worker — no resident names or health details, please.</div>'+
+   '<div style="height:18px"></div>'+
+   '<button class="btn btn-accent" id="subBtn" onclick="submitShoutout()">Post the Shout Out</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">From <b>'+esc(me.name)+'</b> · '+esc(me.dept)+
+   ' &nbsp;<a href="#" onclick="editIdentity();return false" style="color:var(--primary-light)">change</a></div>'+
+   '</div>';
+}
+function pickVal(v){readForm();form.value=(form.value===v?'':v);render()}
+function readForm(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  form.to=g('fTo');form.message=g('fMsg');
+}
+async function submitShoutout(){
+  if(busy)return;
+  readForm();
+  if(form.to.trim().length<2){toast('Tell us who you\'re shouting out');return}
+  if(form.message.trim().length<5){toast('Tell us what they did');return}
+  busy=true;
+  var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Posting…';
+  // RPC only, never a direct insert (RLS blocks anon writes by design).
+  var r=await sb.rpc('submit_shoutout',{
+    p_from_name:me.name, p_from_dept:me.dept,
+    p_to_name:form.to.trim(),
+    p_heart_value:form.value||null,
+    p_message:form.message.trim()
+  });
+  busy=false;b.disabled=false;b.textContent='Post the Shout Out';
+  if(r.error||!r.data){toast('Could not post — '+((r.error&&r.error.message)||'please try again'));return}
+  form=blankForm();wallLoaded=false;
+  view='thanks';render();window.scrollTo(0,0);
+}
+function thanksView(){
+  return '<div class="card thanks">'+
+   '<div class="big">🎉</div>'+
+   '<h2>That made someone\'s day!</h2>'+
+   '<p>Your shout out is on the wall and will be shared at huddle. Thanks for noticing the good stuff, '+esc(me.name.split(' ')[0])+'.</p>'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" onclick="go(\'submit\')">Give Another</button>'+
+   '<div style="height:9px"></div>'+
+   '<button class="btn btn-ghost" onclick="go(\'wall\')">See the Wall</button>'+
+   '</div>';
+}
+
+async function loadWall(){
+  var res=await sb.from('shoutouts').select('*').order('created_at',{ascending:false}).limit(100);
+  wall=res.data||[];wallLoaded=true;render();
+}
+function wallView(){
+  if(!wallLoaded)return tabs('wall')+'<div class="load">Loading the wall…</div>';
+  var mStart=new Date();mStart.setDate(1);mStart.setHours(0,0,0,0);
+  var thisMo=wall.filter(function(s){return new Date(s.created_at)>=mStart}).length;
+  var h=tabs('wall');
+  h+='<div class="wall-hdr"><div class="n">'+thisMo+'</div><div class="lbl">Shout outs this month</div></div>';
+  if(!wall.length)h+='<div class="card"><div class="empty">The wall is waiting for its first shout out.<br>Know someone who deserves it?</div></div>';
+  else h+=wall.map(function(s){
+    return '<div class="so"><div class="to">⭐ '+esc(s.to_name)+
+      (s.heart_value?'<span class="val">'+esc(s.heart_value)+'</span>':'')+'</div>'+
+      '<div class="msg">'+esc(s.message)+'</div>'+
+      '<div class="meta">— '+esc(s.from_name)+(s.from_dept?' · '+esc(s.from_dept):'')+' · '+fmtDate(s.created_at)+'</div></div>';
+  }).join('');
+  h+='<div style="text-align:center;margin-top:14px"><button class="btn btn-ghost" onclick="wallLoaded=false;loadWall()">Refresh</button></div>';
+  return h;
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(view==='wall'){el.innerHTML=wallView();return}
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='thanks'){el.innerHTML=thanksView();return}
+  el.innerHTML=submitView();
+}
+if(!sb){document.getElementById('app').innerHTML='<div class="card"><div class="empty">Could not connect. Check your internet and reload.</div></div>';}
+else{ if(location.hash==='#wall')view='wall'; render(); if(view==='wall')loadWall(); }
+</script>
+</body>
+</html>
