@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Equipment Repair</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.header .sub a{color:#9ec5e8;text-decoration:none}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:620px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px}
+label .opt{text-transform:none;letter-spacing:0;font-weight:600;color:#aab3ba}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+textarea{min-height:80px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cat{font-size:13px;font-weight:600;padding:9px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none}
+.cat.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.cat.hazard.on{background:var(--danger);border-color:var(--danger)}
+.tabs{display:flex;gap:6px;background:#e4e8ec;padding:4px;border-radius:11px;margin-bottom:14px}
+.tab{flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.tab.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hint{font-size:12.5px;color:var(--text-light);margin-top:7px;line-height:1.5}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:30px 10px;line-height:1.6}
+.thanks{text-align:center;padding:26px 14px}
+.thanks .big{font-size:52px;line-height:1}
+.thanks h2{color:var(--success);margin:12px 0 8px;font-size:22px}
+.thanks p{color:var(--text-light);font-size:14.5px;line-height:1.6;max-width:390px;margin:0 auto}
+.urgent-row{display:flex;align-items:center;gap:12px;background:#fdf3f2;border:1.5px solid #f0d4d1;border-radius:10px;padding:12px;margin-top:16px;cursor:pointer;user-select:none}
+.urgent-row.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.urgent-row .t{font-size:14px;font-weight:700}
+.urgent-row .d{font-size:12px;opacity:.8}
+.rep{border-left:4px solid var(--warn);padding:12px 14px;background:#fff;border-radius:0 10px 10px 0;margin-bottom:9px;border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.rep.fixed{border-left-color:var(--success);background:#fafdfb}
+.rep.hazard{border-left-color:var(--danger)}
+.rep .txt{font-size:14.5px;line-height:1.5;font-weight:600}
+.rep .meta{font-size:11.5px;color:var(--text-light);margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9px;background:#eef1f4;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}
+.tag.hot{background:#fdecea;color:var(--danger)}
+.tag.done{background:#eafaf1;color:var(--success)}
+.load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>🔧 Equipment Repair</h1>
+    <div class="sub"><a href="../">← All Apps</a> · Morning Star Post Acute</div>
+  </div>
+  <div class="who" id="whoChip" onclick="editIdentity()">Sign in</div>
+</div>
+<div class="page" id="app"><div class="load">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var NOTIFY_URL=SUPABASE_URL+'/functions/v1/repair-notify';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Laundry","Maintenance",
+"Activities","Social Services","Business Office","Medical Records","Admissions","HR / Staffing",
+"Therapy / Rehab","MDS","Staff Education","Administration","Other"];
+
+var ISSUES=[
+ {v:'broken',l:'Broken / not working'},
+ {v:'missing',l:'Missing'},
+ {v:'running_short',l:'Running short'},
+ {v:'safety_hazard',l:'⚠️ Safety hazard'},
+ {v:'other',l:'Other'}
+];
+
+// Same identity keys as the Ideas app — sign in once, recognized everywhere on this site.
+var me={name:localStorage.getItem('ii_name')||'',dept:localStorage.getItem('ii_dept')||''};
+var view='submit', form=blankForm(), busy=false, open=[], openLoaded=false;
+
+function blankForm(){return{item:'',issue:'',location:'',urgent:false,details:''}}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function go(v){view=v;render();window.scrollTo(0,0);if(v==='open'&&!openLoaded)loadOpen()}
+function fmtDate(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})}
+function issueLabel(v){var f=ISSUES.filter(function(i){return i.v===v})[0];return f?f.l.replace('⚠️ ',''):v}
+
+function identityView(){
+  return '<div class="card">'+
+   '<h2 style="font-size:18px;margin-bottom:4px">Who are you?</h2>'+
+   '<div class="hint">So maintenance can find you if they have a question.</div>'+
+   '<label>Your name</label>'+
+   '<input id="iName" value="'+esc(me.name)+'" placeholder="First and last name" autocomplete="name">'+
+   '<label>Where do you work?</label>'+
+   '<select id="iDept">'+opts(WORK_DEPTS,me.dept,'Select your department…')+'</select>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-primary" onclick="saveIdentity()">Continue</button>'+
+   '</div>';
+}
+function opts(list,sel,ph){
+  var h=ph?'<option value="">'+esc(ph)+'</option>':'';
+  list.forEach(function(o){h+='<option value="'+esc(o)+'"'+(String(sel)===String(o)?' selected':'')+'>'+esc(o)+'</option>'});
+  return h;
+}
+function saveIdentity(){
+  var n=document.getElementById('iName').value.trim(), d=document.getElementById('iDept').value;
+  if(n.length<3){toast('Please enter your first and last name');return}
+  if(!d){toast('Please pick your department');return}
+  me.name=n;me.dept=d;
+  localStorage.setItem('ii_name',n);localStorage.setItem('ii_dept',d);
+  view='submit';render();
+}
+
+function tabs(active){
+  return '<div class="tabs">'+
+   '<div class="tab'+(active==='submit'?' on':'')+'" onclick="go(\'submit\')">Report It</div>'+
+   '<div class="tab'+(active==='open'?' on':'')+'" onclick="go(\'open\')">Open Repairs</div>'+
+   '</div>';
+}
+function submitView(){
+  return tabs('submit')+
+   '<div class="card">'+
+   '<div style="font-size:15px;line-height:1.55"><b>Something broken, missing, or unsafe?</b> Report it here — it\'s logged for maintenance right away.</div>'+
+   '<label>What item or equipment?</label>'+
+   '<input id="fItem" value="'+esc(form.item)+'" placeholder="e.g. wheelchair, call light, ice machine, door">'+
+   '<label>What\'s wrong with it?</label>'+
+   '<div class="cats">'+ISSUES.map(function(i){
+     return '<div class="cat'+(i.v==='safety_hazard'?' hazard':'')+(form.issue===i.v?' on':'')+'" onclick="pickIssue(\''+i.v+'\')">'+i.l+'</div>';
+   }).join('')+'</div>'+
+   '<label>Where is it?</label>'+
+   '<input id="fLoc" value="'+esc(form.location)+'" placeholder="e.g. room 12, 200 hall, kitchen">'+
+   '<label>Anything else we should know? <span class="opt">— optional</span></label>'+
+   '<textarea id="fDetails" placeholder="What happened, how long it\'s been like this, a workaround in place…">'+esc(form.details)+'</textarea>'+
+   '<div class="urgent-row'+(form.urgent?' on':'')+'" onclick="toggleUrgent()">'+
+   '<span style="font-size:22px">🚨</span><div><div class="t">This is urgent</div>'+
+   '<div class="d">It affects resident care or safety right now</div></div></div>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-accent" id="subBtn" onclick="submitRepair()">Send to Maintenance</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">Reporting as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+
+   ' &nbsp;<a href="#" onclick="editIdentity();return false" style="color:var(--primary-light)">change</a></div>'+
+   '</div>'+
+   '<div class="card" style="background:#fdf6ec;border-color:#f3e2c7">'+
+   '<div style="font-size:13px;line-height:1.6;color:#8a6a2f">'+
+   '<b>If someone could get hurt right now,</b> don\'t stop at this form — remove the item from use, block off the area, and tell the charge nurse or your supervisor immediately.'+
+   '</div></div>';
+}
+function pickIssue(v){readForm();form.issue=(form.issue===v?'':v);render()}
+function toggleUrgent(){readForm();form.urgent=!form.urgent;render()}
+function readForm(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  form.item=g('fItem');form.location=g('fLoc');form.details=g('fDetails');
+}
+async function submitRepair(){
+  if(busy)return;
+  readForm();
+  if(form.item.trim().length<2){toast('Tell us what item or equipment');return}
+  if(!form.issue){toast('Pick what\'s wrong with it');return}
+  busy=true;
+  var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Sending…';
+  // RPC only, never a direct insert (RLS blocks anon writes by design).
+  var r=await sb.rpc('submit_equipment_repair',{
+    p_name:me.name, p_dept:me.dept,
+    p_item:form.item.trim(),
+    p_issue_type:form.issue,
+    p_location:form.location.trim()||null,
+    p_urgent:form.urgent,
+    p_details:form.details.trim()||null
+  });
+  busy=false;b.disabled=false;b.textContent='Send to Maintenance';
+  if(r.error||!r.data){toast('Could not send — '+((r.error&&r.error.message)||'please try again'));return}
+  fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({repair_id:r.data})}).catch(function(){});
+  form=blankForm();openLoaded=false;
+  view='thanks';render();window.scrollTo(0,0);
+}
+function thanksView(){
+  return '<div class="card thanks">'+
+   '<div class="big">🔧</div>'+
+   '<h2>Got it, '+esc(me.name.split(' ')[0])+'!</h2>'+
+   '<p>Your report is logged for maintenance. You can check the Open Repairs tab any time to see where it stands.</p>'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" onclick="go(\'submit\')">Report Another</button>'+
+   '<div style="height:9px"></div>'+
+   '<button class="btn btn-ghost" onclick="go(\'open\')">See Open Repairs</button>'+
+   '</div>';
+}
+
+async function loadOpen(){
+  var since=new Date(Date.now()-1000*60*60*24*30).toISOString();
+  var res=await sb.from('equipment_repairs').select('*')
+    .or('status.in.(new,in_progress),and(status.eq.fixed,fixed_at.gte.'+since+')')
+    .order('created_at',{ascending:false}).limit(100);
+  open=res.data||[];openLoaded=true;render();
+}
+function openView(){
+  if(!openLoaded)return tabs('open')+'<div class="load">Loading…</div>';
+  var act=open.filter(function(r){return r.status==='new'||r.status==='in_progress'});
+  var done=open.filter(function(r){return r.status==='fixed'});
+  var h=tabs('open');
+  h+='<div class="card">';
+  if(!act.length)h+='<div class="empty">Nothing open right now. 🎉</div>';
+  else h+=act.map(repCard).join('');
+  h+='</div>';
+  if(done.length){
+    h+='<div style="font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 8px">Fixed recently</div>'+
+       '<div class="card">'+done.map(repCard).join('')+'</div>';
+  }
+  h+='<div style="text-align:center;margin-top:14px"><button class="btn btn-ghost" onclick="openLoaded=false;loadOpen()">Refresh</button></div>';
+  return h;
+}
+function repCard(r){
+  var cls=r.status==='fixed'?'fixed':(r.issue_type==='safety_hazard'||r.urgent)?'hazard':'';
+  return '<div class="rep '+cls+'">'+
+   '<div class="txt">'+esc(r.item)+(r.location?' <span style="font-weight:400;color:var(--text-light)">· '+esc(r.location)+'</span>':'')+'</div>'+
+   '<div class="meta">'+
+   (r.status==='fixed'?'<span class="tag done">Fixed '+fmtDate(r.fixed_at)+'</span>':'<span class="tag'+((r.urgent||r.issue_type==='safety_hazard')?' hot':'')+'">'+esc(issueLabel(r.issue_type))+'</span>')+
+   (r.urgent&&r.status!=='fixed'?'<span class="tag hot">Urgent</span>':'')+
+   (r.status==='in_progress'?'<span class="tag">In progress</span>':'')+
+   '<span>· '+esc(r.reporter_name)+'</span><span>· '+fmtDate(r.created_at)+'</span>'+
+   '</div></div>';
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(view==='open'){el.innerHTML=openView();return}
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='thanks'){el.innerHTML=thanksView();return}
+  el.innerHTML=submitView();
+}
+if(!sb){document.getElementById('app').innerHTML='<div class="card"><div class="empty">Could not connect. Check your internet and reload.</div></div>';}
+else render();
+</script>
+</body>
+</html>
