@@ -22,8 +22,8 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 | Supply Order | separate repo `morning-star-supply` | All staff (simple Low/Out mode; `#admin` = full par-walk + CSV) | localStorage only | Live |
 | In-Service Quizzes | separate repo `dining-inservice-quiz` | Dietary / DSD | Resend email | Live |
 | Annual Evaluation Feedback | separate repo `msa-annual-eval` | All staff | — | Live |
-| The Jericho Road (NEO) | separate repo `jericho-road-onboarding` | New hires | — | Live |
-| Employment Application | separate repo `morning-star-apply` | Applicants | Supabase → PDF to HR | Live |
+| The Jericho Road (NEO) | separate repo `jericho-road-onboarding` | New hires (personal links); `admin.html` for Kelsey/Yessi/Stephen behind the hub's HR PIN | Supabase | Live |
+| Employment Application | separate repo `morning-star-apply` | Applicants (hub tile = Refer a Friend share link) | Supabase → PDF to HR | Live |
 
 ## Notes
 
