@@ -309,8 +309,17 @@ function render(){
   if(!me.name||view==='identity'){el.innerHTML=identityView();return}
   if(view==='coverage'){document.getElementById('tabCov').classList.add('active');el.innerHTML=coverageView();return}
   if(view==='followups'){document.getElementById('tabFu').classList.add('active');el.innerHTML=followupsView();return}
-  document.getElementById('tabNew').classList.add('active');el.innerHTML=newView();
+  document.getElementById('tabNew').classList.add('active');el.innerHTML=newView()+logoutRow();
   var sel=document.getElementById('nModule');if(sel)moduleChanged();
+}
+// Shared phone: clear this app's identity and go back to the Staff Apps home screen.
+function logoutRow(){
+  return '<div style="text-align:center;margin-top:18px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
+  '<span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
+}
+function logout(){
+  try{localStorage.removeItem('cv_name');}catch(e){}
+  location.href='../';
 }
 
 function identityView(){
