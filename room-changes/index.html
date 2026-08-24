@@ -188,7 +188,14 @@ function homeView(){
     });
   }
   h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh · updates every 60s</div>';
+  h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
+     '<span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
   return h;
+}
+// Shared phone: clear this app's identity and go back to the Staff Apps home screen.
+function logout(){
+  try{localStorage.removeItem('rc_name');localStorage.removeItem('rc_dept');}catch(e){}
+  location.href='../';
 }
 
 function bedOptions(room){
