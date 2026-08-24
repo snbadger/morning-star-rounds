@@ -32,6 +32,9 @@ textarea{min-height:70px;resize:vertical}
 .outcome-btn.sel-shower{border-color:var(--success);background:#eafaf1;color:var(--success)}
 .outcome-btn.sel-bed_bath{border-color:var(--purple);background:#f5eefa;color:var(--purple)}
 .outcome-btn.sel-refused{border-color:var(--danger);background:#fdedec;color:var(--danger)}
+.outcome-btn.sel-empty_bed{border-color:var(--text-light);background:#eef1f4;color:var(--text)}
+.outcome-row-2{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+.outcome-row-2 .outcome-btn{padding:13px 4px}
 .room-card{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:10px;border:1.5px solid var(--border);background:#fff;margin-bottom:8px;cursor:pointer}
 .room-card:active{transform:scale(.985)}
 .room-num{font-size:22px;font-weight:800;min-width:58px;color:var(--primary)}
@@ -41,6 +44,7 @@ textarea{min-height:70px;resize:vertical}
 .st-shower{border-color:var(--success);background:#f4fcf7}.st-shower .dot{background:var(--success)}.st-shower .room-status{color:var(--success)}
 .st-bed_bath{border-color:var(--purple);background:#faf5fd}.st-bed_bath .dot{background:var(--purple)}.st-bed_bath .room-status{color:var(--purple)}
 .st-refused{border-color:var(--danger);background:#fdf3f2}.st-refused .dot{background:var(--danger)}.st-refused .room-status{color:var(--danger)}
+.st-empty_bed{border-color:#c7cfd6;background:#f4f6f8}.st-empty_bed .dot{background:var(--text-light)}.st-empty_bed .room-status{color:var(--text-light)}
 .flag{font-size:15px}
 .progress-wrap{background:#eef1f4;border-radius:8px;height:10px;margin-top:10px;overflow:hidden}
 .progress-bar{height:100%;background:var(--success);border-radius:8px;transition:width .3s}
@@ -198,8 +202,10 @@ function editIdentity(){view='identity';render()}
 function logout(){localStorage.removeItem('sh_name');me.name='';view='identity';window.scrollTo(0,0);render();toast('Logged out')}
 function setTab(t){tab=t;localStorage.setItem('sh_tab',t);view='home';loadAndRender()}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
-function outLabel(o){return o==='shower'?'Shower':o==='bed_bath'?'Bed bath':'Refused'}
-function outColor(o){return o==='shower'?'var(--success)':o==='bed_bath'?'var(--purple)':'var(--danger)'}
+// Outcomes where care actually happened — these carry task checklists and a skin check.
+function careGiven(o){return o==='shower'||o==='bed_bath'}
+function outLabel(o){return o==='shower'?'Shower':o==='bed_bath'?'Bed bath':o==='empty_bed'?'Empty bed':'Refused'}
+function outColor(o){return o==='shower'?'var(--success)':o==='bed_bath'?'var(--purple)':o==='empty_bed'?'var(--text-light)':'var(--danger)'}
 
 async function loadData(){
   var r=await sb.from('shower_logs').select('*').eq('log_date',selDate).order('room_bed');
@@ -338,8 +344,15 @@ function formView(){
   h+='<label>What happened?</label><div class="outcome-row">'+
      '<div class="outcome-btn '+(f.outcome==='shower'?'sel-shower':'')+'" onclick="setOutcome(\'shower\')">🚿 Shower</div>'+
      '<div class="outcome-btn '+(f.outcome==='bed_bath'?'sel-bed_bath':'')+'" onclick="setOutcome(\'bed_bath\')">🛏️ Bed Bath</div>'+
-     '<div class="outcome-btn '+(f.outcome==='refused'?'sel-refused':'')+'" onclick="setOutcome(\'refused\')">🚫 Refused</div></div>';
+     '<div class="outcome-btn '+(f.outcome==='refused'?'sel-refused':'')+'" onclick="setOutcome(\'refused\')">🚫 Refused</div></div>'+
+     '<div class="outcome-row-2"><div class="outcome-btn '+(f.outcome==='empty_bed'?'sel-empty_bed':'')+
+     '" onclick="setOutcome(\'empty_bed\')">🛌 Empty Bed — nobody in this bed</div></div>';
   h+='</div>';
+
+  if(f.outcome==='empty_bed'){
+    h+='<div class="card"><div class="hint" style="margin:0">No care to document — this bed was empty (discharged, in the hospital, or not yet admitted). '+
+       'Empty beds are not counted against the shower rate.</div></div>';
+  }
 
   if(f.outcome==='bed_bath'){
     h+='<div class="card"><label>Reason for bed bath (not shower)</label><select id="fBBReason">'+
@@ -407,10 +420,10 @@ async function saveForm(){
   saving=true;document.getElementById('saveBtn').disabled=true;
   var row={log_date:selDate,shift:selShift,room_bed:f.room_bed,scheduled:f.scheduled,outcome:f.outcome,
     bed_bath_reason:f.outcome==='bed_bath'?f.bed_bath_reason:null,
-    tasks:f.outcome==='refused'?{}:f.tasks,
-    skin_issues:f.outcome==='refused'?[]:f.skin_issues,
-    skin_locations:(f.outcome==='refused'||!f.skin_issues.length)?[]:f.skin_locations,
-    skin_note:f.skin_issues.length?f.skin_note:null,
+    tasks:careGiven(f.outcome)?f.tasks:{},
+    skin_issues:careGiven(f.outcome)?f.skin_issues:[],
+    skin_locations:(!careGiven(f.outcome)||!f.skin_issues.length)?[]:f.skin_locations,
+    skin_note:(careGiven(f.outcome)&&f.skin_issues.length)?f.skin_note:null,
     notes:f.notes||null,
     refusal_steps:f.outcome==='refused'?f.refusal_steps:null,
     cna_name:me.name,updated_at:new Date().toISOString(),source:'shower-app'};
@@ -443,8 +456,9 @@ function nurseView(){
     if(l.notes)det.push('📝 '+esc(l.notes));
     var tdone=Object.keys(l.tasks||{}).filter(function(k){return l.tasks[k]===true}).length;
     var tref=TASKS.filter(function(t){return l.tasks&&l.tasks[t.key]==='refused'});
-    if(l.outcome!=='refused')det.push('Care tasks: '+tdone+'/'+TASKS.length+' done'+
+    if(careGiven(l.outcome))det.push('Care tasks: '+tdone+'/'+TASKS.length+' done'+
       (tref.length?' · 🚫 refused: '+tref.map(function(t){return t.short}).join(', '):''));
+    if(l.outcome==='empty_bed')det.push('Bed was empty — no care due');
     h+='<div class="nurse-row"><div class="nr-hd"><span class="nr-room">Room '+l.room_bed.replace('P','')+'</span>'+
        '<span class="nr-out" style="color:'+outColor(l.outcome)+'">'+outLabel(l.outcome).toUpperCase()+'</span></div>'+
        '<div class="nr-detail">'+esc(l.cna_name)+' · '+fmtTime(l.updated_at)+(det.length?'<br>'+det.join('<br>'):'')+'</div>'+
