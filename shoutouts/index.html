@@ -179,6 +179,7 @@ function thanksView(){
    '<button class="btn btn-accent" onclick="go(\'submit\')">Give Another</button>'+
    '<div style="height:9px"></div>'+
    '<button class="btn btn-ghost" onclick="go(\'wall\')">See the Wall</button>'+
+   '<div style="height:9px"></div>'+'<button class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="logout()">Done — log out</button>'+
    '</div>';
 }
 
@@ -203,6 +204,12 @@ function wallView(){
   return h;
 }
 
+// Shared phone: hand the app back to the next person. Clears the identity shared by
+// the Ideas / Repairs / Shout Outs / Supply apps and returns to the sign-in screen.
+function logout(){
+  try{localStorage.removeItem('ii_name');localStorage.removeItem('ii_dept');}catch(e){}
+  location.href='../';   // back to the Staff Apps home screen
+}
 function render(){
   whoChip();
   var el=document.getElementById('app');
