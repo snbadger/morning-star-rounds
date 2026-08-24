@@ -199,7 +199,7 @@ function esc(s){var d=document.createElement('div');d.textContent=s==null?'':Str
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2600)}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
 function editIdentity(){view='identity';render()}
-function logout(){localStorage.removeItem('sh_name');me.name='';view='identity';window.scrollTo(0,0);render();toast('Logged out')}
+function logout(){try{localStorage.removeItem('sh_name');}catch(e){}location.href='../';}
 function setTab(t){tab=t;localStorage.setItem('sh_tab',t);view='home';loadAndRender()}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
 // Outcomes where care actually happened — these carry task checklists and a skin check.
