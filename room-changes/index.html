@@ -254,7 +254,8 @@ function detailView(){
   var ts=tasksByChange[c.id]||[];
   var p=changeProgress(c);
   var h='<span class="back" onclick="view=\'home\';refresh()">‹ All room changes</span>';
-  if(c.status==='complete')h+='<div class="banner banner-green">✓ Room change complete</div>';
+  if(c.status==='complete')h+='<div class="banner banner-green">✓ Room change complete</div>'+
+    '<button class="btn btn-ghost" id="pdfBtn" style="margin-bottom:12px" onclick="downloadPdf()">⬇ Download Checklist PDF</button>';
   if(c.status==='cancelled')h+='<div class="banner banner-amber">Cancelled'+(c.cancelled_by?' by '+esc(c.cancelled_by):'')+'</div>';
   h+='<div class="card"><div class="rc-move">'+loc(c.from_room,c.from_bed)+'<span class="arrow">→</span>'+loc(c.to_room,c.to_bed)+'</div>'+
   '<div class="rc-meta">Resident '+esc(resDisp(c))+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?'<br>Reason: '+esc(c.reason):'')+(c.notes?'<br>Note: '+esc(c.notes):'')+'</div>'+
@@ -304,6 +305,30 @@ async function toggleTask(taskId){
     fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_change_id:c.id,event:'complete'})})
       .catch(function(){/* completion email is best-effort */});
   }
+}
+
+// On-demand checklist PDF — same document Medical Records gets by email at completion,
+// rebuilt server-side by the notify function (event:'pdf') since no copy is stored anywhere.
+async function downloadPdf(){
+  var c=changes.find(function(x){return x.id===currentId});
+  if(!c||c.status!=='complete'){toast('PDF is available once the change is complete');return}
+  var btn=document.getElementById('pdfBtn');
+  if(btn){btn.disabled=true;btn.textContent='Building PDF…'}
+  try{
+    var r=await fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_change_id:c.id,event:'pdf'})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var blob=await r.blob();
+    var nameTag=String(resDisp(c)).replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    var fromLoc=c.from_room+(c.from_bed&&c.from_bed!=='Private'?c.from_bed:'');
+    var toLoc=c.to_room+(c.to_bed&&c.to_bed!=='Private'?c.to_bed:'');
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='Room_Change_'+nameTag+'_'+fromLoc+'_to_'+toLoc+'_'+(c.completed_at||c.created_at||'').slice(0,10)+'.pdf';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
+    toast('PDF ready 📄');
+  }catch(e){toast('PDF download failed — try again')}
+  if(btn){btn.disabled=false;btn.textContent='⬇ Download Checklist PDF'}
 }
 
 async function cancelChange(){
