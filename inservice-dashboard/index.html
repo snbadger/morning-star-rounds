@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — In-Service Completion</title>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:50px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap;border:none;color:#fff}
+.tabs{display:flex;gap:6px;max-width:640px;margin:12px auto 0;padding:0 16px}
+.tab{flex:1;padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:center;color:var(--text-light)}
+.tab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.tab .n{display:inline-block;background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px}
+.page{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:15px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.stat-strip{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 6px;text-align:center}
+.stat .v{font-size:23px;font-weight:800;line-height:1.1}
+.stat .l{font-size:10px;color:var(--text-light);font-weight:700;text-transform:uppercase;margin-top:3px;letter-spacing:.3px}
+.bar{height:9px;background:#eef1f4;border-radius:5px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;border-radius:5px;transition:width .4s}
+.g{background:var(--success)}.a{background:var(--warn)}.r{background:var(--danger)}
+.tc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tc-title{font-size:14.5px;font-weight:700;line-height:1.35}
+.tc-meta{font-size:11.5px;color:var(--text-light);margin-top:3px}
+.tc-pct{font-size:20px;font-weight:800;white-space:nowrap}
+.tc-frac{font-size:11px;color:var(--text-light);text-align:right;font-weight:600}
+.linkish{background:none;border:none;color:var(--primary-light);font-size:12.5px;font-weight:700;cursor:pointer;padding:9px 0 0;text-align:left}
+.namelist{margin-top:9px;border-top:1px solid #f0f2f5;padding-top:9px}
+.nl-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;font-size:13.5px;border-bottom:1px solid #f6f7f9}
+.nl-row:last-child{border-bottom:none}
+.nl-role{font-size:11px;color:var(--text-light);white-space:nowrap}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.b-green{background:#eafaf1;color:var(--success)}.b-red{background:#fdedec;color:var(--danger)}.b-amber{background:#fef9e7;color:#a07708}.b-gray{background:#f0f0f0;color:var(--text-light)}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.controls{display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap}
+input,select{padding:11px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);flex:1;min-width:130px}
+input:focus,select:focus{outline:none;border-color:var(--primary-light)}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-row{display:flex;gap:8px;margin-top:10px}
+.btn-row .btn{padding:11px;font-size:13px}
+.sr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f5;cursor:pointer}
+.sr:last-child{border-bottom:none}
+.sr-main{flex:1;min-width:0}
+.sr-name{font-size:14px;font-weight:600}
+.sr-sub{font-size:11.5px;color:var(--text-light);margin-top:2px}
+.sr-pct{font-size:15px;font-weight:800;white-space:nowrap}
+.sr-detail{padding:2px 0 12px;font-size:13px}
+.sr-detail .miss{color:var(--danger);font-weight:600}
+.sr-detail ul{margin:6px 0 0 18px;line-height:1.6}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
+.note{font-size:11.5px;color:var(--text-light);line-height:1.5;margin-top:4px}
+.callout{background:#fdf6ec;border:1px solid #f5d9a8;border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.55;color:#7a5b1e;margin-bottom:12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.footer{max-width:640px;margin:18px auto 0;padding:0 16px;font-size:11.5px;color:var(--text-light);line-height:1.6}
+.footer a{color:var(--primary-light)}
+@media print{.tabs,.header,.btn,.btn-row,.linkish,.controls{display:none!important}.page{max-width:none}.card{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>📊 In-Service Completion</h1><div class="sub">DSD quiz follow-through · Morning Star Post Acute</div></div>
+  <button class="who" onclick="refresh(true)" id="refreshChip">↻ Refresh</button>
+</div>
+<div class="tabs">
+  <div class="tab" id="tabTopics" onclick="go('topics')">By Topic</div>
+  <div class="tab" id="tabStaff" onclick="go('staff')">By Person</div>
+  <div class="tab" id="tabChase" onclick="go('chase')">Chase List<span class="n" id="chaseCount" style="display:none"></span></div>
+</div>
+<div class="page" id="app"><div class="empty">Loading…</div></div>
+<div class="footer" id="footer"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var FN='https://pmnudshutxwidxdtouqj.supabase.co/functions/v1/dining-quiz';
+var DASH_KEY='777f4f714e4653a0387349e5';
+
+var DATA=null, VIEW='topics', OPEN={}, FILTER={role:'',q:''};
+
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function toast(m){var t=el('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2200);}
+function cls(p){return p>=90?'g':(p>=75?'a':'r');}
+function badge(p){return p>=90?'b-green':(p>=75?'b-amber':'b-red');}
+function fmtDate(d){if(!d)return '';var p=String(d).slice(0,10).split('-');return p[1].replace(/^0/,'')+'/'+p[2].replace(/^0/,'');}
+
+function go(v){VIEW=v;render();}
+
+function refresh(manual){
+  if(manual) el('refreshChip').textContent='↻ …';
+  fetch(FN+'?dashboard=1&key='+encodeURIComponent(DASH_KEY))
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      if(!d.ok) throw new Error(d.error||'error');
+      DATA=d; el('refreshChip').textContent='↻ Refresh';
+      if(manual) toast('Updated');
+      render();
+    })
+    .catch(function(e){
+      el('refreshChip').textContent='↻ Refresh';
+      el('app').innerHTML='<div class="card"><div class="empty">Could not load data.<br><span class="note">'+esc(e.message)+'</span></div>'+
+        '<button class="btn btn-primary" onclick="refresh(true)">Try again</button></div>';
+    });
+}
+
+// ---- derived helpers -------------------------------------------------------
+function outstandingFor(moduleId){
+  var roleOf={}; DATA.staff.forEach(function(s){roleOf[s.staff_name]=s.quiz_role;});
+  return DATA.matrix.filter(function(r){return r.m===moduleId && !r.c;})
+    .map(function(r){return {name:r.n, role:roleOf[r.n]||'', attempts:r.a};})
+    .sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+function missingFor(name){
+  var titleOf={}; DATA.topics.forEach(function(t){titleOf[t.module_id]=t.title;});
+  return DATA.matrix.filter(function(r){return r.n===name && !r.c;})
+    .map(function(r){return titleOf[r.m]||('Module '+r.m);});
+}
+function overall(){
+  var a=0,c=0; DATA.topics.forEach(function(t){a+=t.assigned;c+=t.completed;});
+  return {assigned:a, completed:c, pct:a?Math.round(1000*c/a)/10:0};
+}
+
+// ---- views -----------------------------------------------------------------
+function viewTopics(){
+  var o=overall();
+  var h='<div class="stat-strip">'+
+    '<div class="stat"><div class="v '+(o.pct>=90?'':'')+'" style="color:'+(o.pct>=90?'var(--success)':(o.pct>=75?'var(--warn)':'var(--danger)'))+'">'+o.pct+'%</div><div class="l">Overall</div></div>'+
+    '<div class="stat"><div class="v">'+DATA.topics.length+'</div><div class="l">Topics sent</div></div>'+
+    '<div class="stat"><div class="v">'+DATA.staff.length+'</div><div class="l">Staff</div></div>'+
+    '</div>';
+
+  h+='<div class="section-title">Topics sent — newest first</div>';
+  DATA.topics.forEach(function(t){
+    var p=Number(t.pct)||0, miss=t.assigned-t.completed, key='t'+t.module_id;
+    h+='<div class="card">'+
+       '<div class="tc-head"><div style="flex:1;min-width:0">'+
+         '<div class="tc-title">'+esc(t.title)+'</div>'+
+         '<div class="tc-meta">Sent '+fmtDate(t.send_date)+' · module '+t.module_id+' · '+t.signed+' signed</div>'+
+       '</div><div><div class="tc-pct" style="color:'+(p>=90?'var(--success)':(p>=75?'var(--warn)':'var(--danger)'))+'">'+p+'%</div>'+
+       '<div class="tc-frac">'+t.completed+' / '+t.assigned+'</div></div></div>'+
+       '<div class="bar"><i class="'+cls(p)+'" style="width:'+p+'%"></i></div>';
+    if(miss>0){
+      h+='<button class="linkish" onclick="toggle(\''+key+'\')">'+(OPEN[key]?'▾ Hide':'▸ Show')+' '+miss+' outstanding</button>';
+      if(OPEN[key]){
+        h+='<div class="namelist">';
+        outstandingFor(t.module_id).forEach(function(s){
+          h+='<div class="nl-row"><span>'+esc(s.name)+(s.attempts>0?' <span class="badge b-amber">tried '+s.attempts+'×</span>':'')+'</span><span class="nl-role">'+esc(s.role)+'</span></div>';
+        });
+        h+='</div><div class="btn-row"><button class="btn btn-ghost" onclick="copyNames('+t.module_id+')">Copy names</button></div>';
+      }
+    } else {
+      h+='<div class="note" style="margin-top:8px;color:var(--success);font-weight:700">✓ Everyone assigned has completed this topic.</div>';
+    }
+    h+='</div>';
+  });
+
+  if(DATA.upcoming && DATA.upcoming.length){
+    h+='<div class="section-title">Scheduled next</div><div class="card">';
+    DATA.upcoming.forEach(function(u){
+      h+='<div class="nl-row"><span>'+esc(u.title)+'</span><span class="nl-role">'+fmtDate(u.send_date)+'</span></div>';
+    });
+    h+='</div>';
+  }
+  return h;
+}
+
+function viewStaff(){
+  var rows=DATA.staff.slice();
+  if(FILTER.role) rows=rows.filter(function(s){return s.quiz_role===FILTER.role;});
+  if(FILTER.q){var q=FILTER.q.toLowerCase();rows=rows.filter(function(s){return s.staff_name.toLowerCase().indexOf(q)>=0;});}
+  rows.sort(function(a,b){return (Number(a.pct)||0)-(Number(b.pct)||0) || a.staff_name.localeCompare(b.staff_name);});
+
+  var roles=['CNA','Licensed Nurse','Dietary Aide','All Staff'];
+  var h='<div class="controls">'+
+    '<input id="qBox" placeholder="Search name" value="'+esc(FILTER.q)+'" oninput="FILTER.q=this.value;render();setTimeout(function(){var b=document.getElementById(\'qBox\');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0)">'+
+    '<select onchange="FILTER.role=this.value;render()"><option value="">All roles</option>'+
+    roles.map(function(r){return '<option value="'+r+'"'+(FILTER.role===r?' selected':'')+'>'+r+'</option>';}).join('')+
+    '</select></div>';
+
+  h+='<div class="note" style="margin-bottom:10px">Lowest completion first — tap a name to see which topics are missing.</div>';
+  h+='<div class="card">';
+  if(!rows.length) h+='<div class="empty">No staff match.</div>';
+  rows.forEach(function(s){
+    var p=Number(s.pct)||0, key='s'+s.staff_name;
+    h+='<div class="sr" onclick="toggle(\''+key.replace(/'/g,"\\'")+'\')">'+
+       '<div class="sr-main"><div class="sr-name">'+esc(s.staff_name)+'</div>'+
+       '<div class="sr-sub">'+esc(s.quiz_role)+' · '+s.completed+' of '+s.assigned+'</div>'+
+       '<div class="bar"><i class="'+cls(p)+'" style="width:'+p+'%"></i></div></div>'+
+       '<div class="sr-pct" style="color:'+(p>=90?'var(--success)':(p>=75?'var(--warn)':'var(--danger)'))+'">'+p+'%</div></div>';
+    if(OPEN[key]){
+      var m=missingFor(s.staff_name);
+      h+='<div class="sr-detail">'+(m.length?'<span class="miss">Missing '+m.length+':</span><ul><li>'+m.map(esc).join('</li><li>')+'</li></ul>':'<span style="color:var(--success);font-weight:700">✓ Fully caught up</span>')+'</div>';
+    }
+  });
+  h+='</div>';
+  return h;
+}
+
+function viewChase(){
+  var behind=DATA.staff.filter(function(s){return Number(s.pct)<100;})
+    .sort(function(a,b){return (Number(a.pct)||0)-(Number(b.pct)||0) || a.staff_name.localeCompare(b.staff_name);});
+  var never=behind.filter(function(s){return s.completed===0;});
+  var latest=DATA.topics[0];
+  var latestMissing=latest?outstandingFor(latest.module_id):[];
+
+  var h='<div class="stat-strip">'+
+    '<div class="stat"><div class="v" style="color:var(--danger)">'+never.length+'</div><div class="l">Zero done</div></div>'+
+    '<div class="stat"><div class="v" style="color:var(--warn)">'+behind.length+'</div><div class="l">Behind</div></div>'+
+    '<div class="stat"><div class="v" style="color:var(--success)">'+(DATA.staff.length-behind.length)+'</div><div class="l">Caught up</div></div>'+
+    '</div>';
+
+  if(latest){
+    h+='<div class="section-title">Current topic — '+esc(latest.title)+'</div><div class="card">'+
+       '<div class="tc-meta">Sent '+fmtDate(latest.send_date)+' · '+latest.completed+' of '+latest.assigned+' done</div>'+
+       '<div class="bar"><i class="'+cls(Number(latest.pct))+'" style="width:'+(Number(latest.pct)||0)+'%"></i></div>';
+    if(latestMissing.length){
+      h+='<div class="namelist">';
+      latestMissing.forEach(function(s){h+='<div class="nl-row"><span>'+esc(s.name)+'</span><span class="nl-role">'+esc(s.role)+'</span></div>';});
+      h+='</div><div class="btn-row"><button class="btn btn-ghost" onclick="copyNames('+latest.module_id+')">Copy names</button></div>';
+    } else h+='<div class="note" style="color:var(--success);font-weight:700;margin-top:8px">✓ Everyone is done.</div>';
+    h+='</div>';
+  }
+
+  h+='<div class="section-title">Nothing completed at all ('+never.length+')</div><div class="card">';
+  if(!never.length) h+='<div class="empty">Nobody — everyone has done at least one.</div>';
+  never.forEach(function(s){
+    h+='<div class="nl-row"><span>'+esc(s.staff_name)+'</span><span class="nl-role">'+esc(s.quiz_role)+'</span></div>';
+  });
+  h+='</div>';
+
+  h+='<div class="btn-row"><button class="btn btn-ghost" onclick="exportCsv()">Export CSV</button>'+
+     '<button class="btn btn-ghost" onclick="window.print()">Print</button></div>';
+  return h;
+}
+
+function toggle(k){OPEN[k]=!OPEN[k];render();}
+
+function copyNames(moduleId){
+  var txt=outstandingFor(moduleId).map(function(s){return s.name;}).join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toast('Copied');},function(){fallbackCopy(txt);});
+  } else fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+  var t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';
+  document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');toast('Copied');}catch(e){toast('Copy failed');}
+  document.body.removeChild(t);
+}
+
+function exportCsv(){
+  var titleOf={}; DATA.topics.forEach(function(t){titleOf[t.module_id]=t.title;});
+  var mods=DATA.topics.map(function(t){return t.module_id;});
+  var done={}; DATA.matrix.forEach(function(r){done[r.n+'|'+r.m]={c:r.c,d:r.d};});
+  var q=function(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"';};
+  var head=['Staff','Role','Assigned','Completed','Percent'].concat(mods.map(function(m){return titleOf[m];}));
+  var lines=[head.map(q).join(',')];
+  DATA.staff.slice().sort(function(a,b){return a.staff_name.localeCompare(b.staff_name);}).forEach(function(s){
+    var row=[s.staff_name,s.quiz_role,s.assigned,s.completed,s.pct];
+    mods.forEach(function(m){
+      var v=done[s.staff_name+'|'+m];
+      row.push(v?(v.c?(v.d||'Yes'):'No'):'n/a');
+    });
+    lines.push(row.map(q).join(','));
+  });
+  var blob=new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Inservice_Completion_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  toast('CSV downloaded');
+}
+
+function render(){
+  if(!DATA) return;
+  ['topics','staff','chase'].forEach(function(v){
+    el('tab'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',VIEW===v);
+  });
+  var behind=DATA.staff.filter(function(s){return Number(s.pct)<100;}).length;
+  var c=el('chaseCount');
+  if(behind){c.textContent=behind;c.style.display='';}else c.style.display='none';
+
+  el('app').innerHTML = VIEW==='topics'?viewTopics():(VIEW==='staff'?viewStaff():viewChase());
+
+  var off=DATA.offroster?DATA.offroster.length:0;
+  el('footer').innerHTML=
+    '<b>How these numbers are built.</b> Denominator is the active Morning Star roster from Paycom. '+
+    'A topic only counts against someone who was already employed when it went out, so new hires are not '+
+    'marked behind for training that happened before their start date. '+
+    '<b>Online quiz passes only</b> — if a topic was also taught on paper, those sign-in sheets are not counted here. '+
+    (off?('Plus '+off+' passing attempt'+(off===1?'':'s')+' from names no longer on the active roster (terminated staff), excluded from the rates. '):'')+
+    'Updated '+new Date(DATA.generated_at).toLocaleString()+'.'+
+    '<br><br><a href="../">← Staff Apps</a> &nbsp;·&nbsp; <a href="#" onclick="logout();return false;">Done — log out</a>';
+}
+
+function logout(){
+  try{localStorage.removeItem('msHubLeader');}catch(e){}
+  location.href='../';
+}
+
+refresh(false);
+</script>
+</body>
+</html>
