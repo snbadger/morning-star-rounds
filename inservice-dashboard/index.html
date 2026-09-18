@@ -84,7 +84,7 @@ input:focus,select:focus{outline:none;border-color:var(--primary-light)}
 var FN='https://pmnudshutxwidxdtouqj.supabase.co/functions/v1/dining-quiz';
 var DASH_KEY='777f4f714e4653a0387349e5';
 
-var DATA=null, VIEW='topics', OPEN={}, FILTER={role:'',q:''};
+var DATA=null, VIEW='topics', OPEN={}, FILTER={role:'',q:'',dept:''};
 
 function el(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -114,11 +114,24 @@ function refresh(manual){
 
 // ---- derived helpers -------------------------------------------------------
 function outstandingFor(moduleId){
-  var roleOf={}; DATA.staff.forEach(function(s){roleOf[s.staff_name]=s.quiz_role;});
+  var who={}; DATA.staff.forEach(function(s){who[s.staff_name]=s;});
   return DATA.matrix.filter(function(r){return r.m===moduleId && !r.c;})
-    .map(function(r){return {name:r.n, role:roleOf[r.n]||'', attempts:r.a};})
+    .map(function(r){var s=who[r.n]||{};return {name:r.n, role:s.quiz_role||'', dept:s.department||'', attempts:r.a};})
+    .filter(function(s){return !FILTER.dept || s.dept===FILTER.dept;})
     .sort(function(a,b){return a.name.localeCompare(b.name);});
 }
+function deptList(){
+  var n={}; DATA.staff.forEach(function(s){if(s.department)n[s.department]=(n[s.department]||0)+1;});
+  return Object.keys(n).sort(function(a,b){return n[b]-n[a]||a.localeCompare(b);});
+}
+function deptSelect(){
+  return '<div class="controls"><select onchange="FILTER.dept=this.value;render()">'+
+    '<option value="">All departments</option>'+
+    deptList().map(function(d){return '<option value="'+esc(d)+'"'+(FILTER.dept===d?' selected':'')+'>'+esc(d)+'</option>';}).join('')+
+    '</select></div>';
+}
+// Role, plus department when the list isn't already filtered to one.
+function whoLabel(role,dept){return esc(role)+(!FILTER.dept&&dept?' · '+esc(dept):'');}
 function missingFor(name){
   var titleOf={}; DATA.topics.forEach(function(t){titleOf[t.module_id]=t.title;});
   return DATA.matrix.filter(function(r){return r.n===name && !r.c;})
@@ -138,9 +151,9 @@ function viewTopics(){
     '<div class="stat"><div class="v">'+DATA.staff.length+'</div><div class="l">Staff</div></div>'+
     '</div>';
 
-  h+='<div class="section-title">Topics sent — newest first</div>';
+  h+='<div class="section-title">Topics sent — newest first</div>'+deptSelect();
   DATA.topics.forEach(function(t){
-    var p=Number(t.pct)||0, miss=t.assigned-t.completed, key='t'+t.module_id;
+    var p=Number(t.pct)||0, out=outstandingFor(t.module_id), miss=out.length, key='t'+t.module_id;
     h+='<div class="card">'+
        '<div class="tc-head"><div style="flex:1;min-width:0">'+
          '<div class="tc-title">'+esc(t.title)+'</div>'+
@@ -149,16 +162,16 @@ function viewTopics(){
        '<div class="tc-frac">'+t.completed+' / '+t.assigned+'</div></div></div>'+
        '<div class="bar"><i class="'+cls(p)+'" style="width:'+p+'%"></i></div>';
     if(miss>0){
-      h+='<button class="linkish" onclick="toggle(\''+key+'\')">'+(OPEN[key]?'▾ Hide':'▸ Show')+' '+miss+' outstanding</button>';
+      h+='<button class="linkish" onclick="toggle(\''+key+'\')">'+(OPEN[key]?'▾ Hide':'▸ Show')+' '+miss+' outstanding'+(FILTER.dept?' in '+esc(FILTER.dept):'')+'</button>';
       if(OPEN[key]){
         h+='<div class="namelist">';
-        outstandingFor(t.module_id).forEach(function(s){
-          h+='<div class="nl-row"><span>'+esc(s.name)+(s.attempts>0?' <span class="badge b-amber">tried '+s.attempts+'×</span>':'')+'</span><span class="nl-role">'+esc(s.role)+'</span></div>';
+        out.forEach(function(s){
+          h+='<div class="nl-row"><span>'+esc(s.name)+(s.attempts>0?' <span class="badge b-amber">tried '+s.attempts+'×</span>':'')+'</span><span class="nl-role">'+whoLabel(s.role,s.dept)+'</span></div>';
         });
         h+='</div><div class="btn-row"><button class="btn btn-ghost" onclick="copyNames('+t.module_id+')">Copy names</button></div>';
       }
     } else {
-      h+='<div class="note" style="margin-top:8px;color:var(--success);font-weight:700">✓ Everyone assigned has completed this topic.</div>';
+      h+='<div class="note" style="margin-top:8px;color:var(--success);font-weight:700">✓ Everyone assigned'+(FILTER.dept?' in '+esc(FILTER.dept):'')+' has completed this topic.</div>';
     }
     h+='</div>';
   });
@@ -206,16 +219,17 @@ function viewStaff(){
 }
 
 function viewChase(){
-  var behind=DATA.staff.filter(function(s){return Number(s.pct)<100;})
+  var pool=DATA.staff.filter(function(s){return !FILTER.dept || s.department===FILTER.dept;});
+  var behind=pool.filter(function(s){return Number(s.pct)<100;})
     .sort(function(a,b){return (Number(a.pct)||0)-(Number(b.pct)||0) || a.staff_name.localeCompare(b.staff_name);});
   var never=behind.filter(function(s){return s.completed===0;});
   var latest=DATA.topics[0];
   var latestMissing=latest?outstandingFor(latest.module_id):[];
 
-  var h='<div class="stat-strip">'+
+  var h=deptSelect()+'<div class="stat-strip">'+
     '<div class="stat"><div class="v" style="color:var(--danger)">'+never.length+'</div><div class="l">Zero done</div></div>'+
     '<div class="stat"><div class="v" style="color:var(--warn)">'+behind.length+'</div><div class="l">Behind</div></div>'+
-    '<div class="stat"><div class="v" style="color:var(--success)">'+(DATA.staff.length-behind.length)+'</div><div class="l">Caught up</div></div>'+
+    '<div class="stat"><div class="v" style="color:var(--success)">'+(pool.length-behind.length)+'</div><div class="l">Caught up</div></div>'+
     '</div>';
 
   if(latest){
@@ -224,16 +238,16 @@ function viewChase(){
        '<div class="bar"><i class="'+cls(Number(latest.pct))+'" style="width:'+(Number(latest.pct)||0)+'%"></i></div>';
     if(latestMissing.length){
       h+='<div class="namelist">';
-      latestMissing.forEach(function(s){h+='<div class="nl-row"><span>'+esc(s.name)+'</span><span class="nl-role">'+esc(s.role)+'</span></div>';});
+      latestMissing.forEach(function(s){h+='<div class="nl-row"><span>'+esc(s.name)+'</span><span class="nl-role">'+whoLabel(s.role,s.dept)+'</span></div>';});
       h+='</div><div class="btn-row"><button class="btn btn-ghost" onclick="copyNames('+latest.module_id+')">Copy names</button></div>';
-    } else h+='<div class="note" style="color:var(--success);font-weight:700;margin-top:8px">✓ Everyone is done.</div>';
+    } else h+='<div class="note" style="color:var(--success);font-weight:700;margin-top:8px">✓ Everyone'+(FILTER.dept?' in '+esc(FILTER.dept):'')+' is done.</div>';
     h+='</div>';
   }
 
   h+='<div class="section-title">Nothing completed at all ('+never.length+')</div><div class="card">';
   if(!never.length) h+='<div class="empty">Nobody — everyone has done at least one.</div>';
   never.forEach(function(s){
-    h+='<div class="nl-row"><span>'+esc(s.staff_name)+'</span><span class="nl-role">'+esc(s.quiz_role)+'</span></div>';
+    h+='<div class="nl-row"><span>'+esc(s.staff_name)+'</span><span class="nl-role">'+whoLabel(s.quiz_role,s.department)+'</span></div>';
   });
   h+='</div>';
 
