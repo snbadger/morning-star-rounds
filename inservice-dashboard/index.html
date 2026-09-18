@@ -189,6 +189,7 @@ function viewTopics(){
 function viewStaff(){
   var rows=DATA.staff.slice();
   if(FILTER.role) rows=rows.filter(function(s){return s.quiz_role===FILTER.role;});
+  if(FILTER.dept) rows=rows.filter(function(s){return s.department===FILTER.dept;});
   if(FILTER.q){var q=FILTER.q.toLowerCase();rows=rows.filter(function(s){return s.staff_name.toLowerCase().indexOf(q)>=0;});}
   rows.sort(function(a,b){return (Number(a.pct)||0)-(Number(b.pct)||0) || a.staff_name.localeCompare(b.staff_name);});
 
@@ -197,6 +198,9 @@ function viewStaff(){
     '<input id="qBox" placeholder="Search name" value="'+esc(FILTER.q)+'" oninput="FILTER.q=this.value;render();setTimeout(function(){var b=document.getElementById(\'qBox\');if(b){b.focus();b.setSelectionRange(b.value.length,b.value.length);}},0)">'+
     '<select onchange="FILTER.role=this.value;render()"><option value="">All roles</option>'+
     roles.map(function(r){return '<option value="'+r+'"'+(FILTER.role===r?' selected':'')+'>'+r+'</option>';}).join('')+
+    '</select>'+
+    '<select onchange="FILTER.dept=this.value;render()"><option value="">All departments</option>'+
+    deptList().map(function(d){return '<option value="'+esc(d)+'"'+(FILTER.dept===d?' selected':'')+'>'+esc(d)+'</option>';}).join('')+
     '</select></div>';
 
   h+='<div class="note" style="margin-bottom:10px">Lowest completion first — tap a name to see which topics are missing.</div>';
@@ -206,7 +210,7 @@ function viewStaff(){
     var p=Number(s.pct)||0, key='s'+s.staff_name;
     h+='<div class="sr" onclick="toggle(\''+key.replace(/'/g,"\\'")+'\')">'+
        '<div class="sr-main"><div class="sr-name">'+esc(s.staff_name)+'</div>'+
-       '<div class="sr-sub">'+esc(s.quiz_role)+' · '+s.completed+' of '+s.assigned+'</div>'+
+       '<div class="sr-sub">'+whoLabel(s.quiz_role,s.department)+' · '+s.completed+' of '+s.assigned+'</div>'+
        '<div class="bar"><i class="'+cls(p)+'" style="width:'+p+'%"></i></div></div>'+
        '<div class="sr-pct" style="color:'+(p>=90?'var(--success)':(p>=75?'var(--warn)':'var(--danger)'))+'">'+p+'%</div></div>';
     if(OPEN[key]){
