@@ -30,6 +30,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .cats{display:flex;flex-wrap:wrap;gap:8px}
 .cat{font-size:13px;font-weight:600;padding:9px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none}
 .cat.on{background:var(--primary);border-color:var(--primary);color:#fff}
+/* stacked, full-width choice cards with a definition line (used where the difference matters) */
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#fff;border:1.5px solid var(--border);cursor:pointer;user-select:none}
+.choice .ck{width:22px;height:22px;border-radius:50%;border:2px solid #c5ccd3;flex:none;margin-top:1px}
+.choice.on{border-color:var(--primary);background:#eef4fa}
+.choice.on .ck{border-color:var(--primary);background:var(--primary);box-shadow:inset 0 0 0 4px #fff}
+.choice .cl{font-size:15px;font-weight:700;color:var(--text)}
+.choice .cd{font-size:12.5px;color:var(--text-light);line-height:1.45;margin-top:2px}
 .hint{font-size:12.5px;color:var(--text-light);margin-top:7px;line-height:1.5}
 .nophi{font-size:12.5px;line-height:1.5;margin-top:7px;padding:8px 10px;border-radius:8px;background:#eef6fb;border:1px solid #cfe3f1;color:#1f4e79}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
@@ -42,8 +50,26 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .urgent-row.on{background:var(--danger);border-color:var(--danger);color:#fff}
 .urgent-row .t{font-size:14px;font-weight:700}
 .urgent-row .d{font-size:12px;opacity:.8}
+.handoff{display:flex;align-items:center;gap:12px;background:#eef6fb;border:1.5px solid #cfe3f1;border-radius:10px;padding:12px;margin-top:16px;cursor:pointer;user-select:none}
+.handoff .t{font-size:14px;font-weight:700;color:var(--primary)}
+.handoff .d{font-size:12px;color:var(--text-light)}
 .load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
 .empty{text-align:center;color:var(--text-light);font-size:14px;padding:30px 10px;line-height:1.6}
+/* Resident / family self-entry mode: larger type, simpler language */
+body.resident .page{max-width:680px}
+body.resident .card{padding:20px}
+body.resident label{font-size:14px;margin-top:22px}
+body.resident input,body.resident select,body.resident textarea{font-size:19px;padding:14px}
+body.resident textarea{min-height:130px}
+body.resident .cat{font-size:16px;padding:12px 16px}
+body.resident .choice .cl{font-size:17px}
+body.resident .choice .cd{font-size:14px}
+body.resident .btn{font-size:19px;padding:18px}
+body.resident .hint{font-size:14px}
+body.resident .urgent-row .t{font-size:16px}
+body.resident .urgent-row .d{font-size:13.5px}
+.rtitle{font-size:22px;font-weight:800;color:var(--primary);line-height:1.3}
+.rsub{font-size:16px;line-height:1.55;margin-top:6px}
 </style>
 </head>
 <body>
@@ -71,11 +97,28 @@ var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Lau
 var ABOUT_DEPTS=["Nursing care","Dietary / meals","Housekeeping / laundry","Maintenance / building","Activities",
 "Therapy / Rehab","Social Services / discharge","Billing / Business Office","Admissions","Medical / physician","Other / not sure"];
 
+// Staff-facing categories, each with a plain-language definition so the grievance / complaint
+// distinction is made at the point of entry (the TLCG log tracks them separately).
 var CATS=[
- {v:'grievance',l:'Grievance'},
- {v:'complaint',l:'Complaint / concern'},
- {v:'theft',l:'Theft'},
- {v:'loss',l:'Lost item'}
+ {v:'grievance',l:'Grievance',
+  d:'They are not satisfied with their care, treatment, rights, or how staff treated them, and they want it looked into and answered. Gets a formal follow-up and a written response.'},
+ {v:'complaint',l:'Complaint / concern',
+  d:'An everyday problem that can usually be fixed right away — cold food, a TV that doesn\'t work, a late shower. Still logged, still followed up.'},
+ {v:'theft',l:'Theft',
+  d:'They believe something was taken from them.'},
+ {v:'loss',l:'Lost item',
+  d:'Something is missing — glasses, dentures, clothing, hearing aid — but no one thinks it was taken.'}
+];
+// Resident-facing wording for the same four categories.
+var RCATS=[
+ {v:'grievance',l:'A concern about my care or how I\'m treated',
+  d:'I want this looked into and answered — my care, my rights, or the way someone treated me.'},
+ {v:'complaint',l:'A problem that should be fixed',
+  d:'Something everyday — my food, my room, the TV, a service that didn\'t happen.'},
+ {v:'loss',l:'Something of mine is missing',
+  d:'Glasses, dentures, clothing, or another belonging I can\'t find.'},
+ {v:'theft',l:'I believe something was taken from me',
+  d:'A belonging that I think someone took.'}
 ];
 var RAISED=["Resident","Family / visitor","Staff (on a resident's behalf)","Resident Council","Ombudsman","Anonymous"];
 
@@ -84,18 +127,24 @@ function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 var me={name:lsGet('ii_name')||'',dept:lsGet('ii_dept')||''};
 var view='submit', form=blankForm(), busy=false;
+var mode='staff'; // 'staff' = a staff member logs it; 'resident' = device handed to the resident / family member
 
-function blankForm(){return{category:'',raised_by:'',room:'',about:'',description:'',urgent:false}}
+function blankForm(){return{category:'',raised_by:'',room:'',resident_name:'',about:'',description:'',wish:'',urgent:false}}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
-function editIdentity(){view='identity';render()}
+function editIdentity(){if(mode==='resident')return;view='identity';render()}
 function go(v){view=v;render();window.scrollTo(0,0)}
 
 function opts(list,sel,ph){
   var h=ph?'<option value="">'+esc(ph)+'</option>':'';
   list.forEach(function(o){h+='<option value="'+esc(o)+'"'+(String(sel)===String(o)?' selected':'')+'>'+esc(o)+'</option>'});
   return h;
+}
+function choiceList(list,sel,fn){
+  return '<div class="choices">'+list.map(function(c){
+    return '<div class="choice'+(sel===c.v?' on':'')+'" onclick="'+fn+'(\''+c.v+'\')"><div class="ck"></div><div><div class="cl">'+c.l+'</div><div class="cd">'+c.d+'</div></div></div>';
+  }).join('')+'</div>';
 }
 function identityView(){
   return '<div class="card">'+
@@ -118,23 +167,26 @@ function saveIdentity(){
   view='submit';render();
 }
 
+// ---------------- Staff form ----------------
 function submitView(){
   return '<div class="card">'+
    '<div style="font-size:15px;line-height:1.55"><b>Did a resident or family member share a concern with you?</b> '+
-   'Log it here. Social Services and the Administrator are notified right away, and every concern gets a follow-up.</div>'+
+   'Log it here. Social Services gets a task and the Administrator is notified right away — every concern gets a follow-up.</div>'+
+   '<div class="handoff" onclick="startResident()"><span style="font-size:24px">🤝</span><div><div class="t">Let them fill it out themselves</div>'+
+   '<div class="d">Hand this device to the resident or family member — they get a simple, large-print form</div></div></div>'+
    '<label>What kind of concern?</label>'+
-   '<div class="cats">'+CATS.map(function(c){
-     return '<div class="cat'+(form.category===c.v?' on':'')+'" onclick="pickCat(\''+c.v+'\')">'+c.l+'</div>';
-   }).join('')+'</div>'+
+   choiceList(CATS,form.category,'pickCat')+
    '<label>Who raised it?</label>'+
    '<select id="fRaised">'+opts(RAISED,form.raised_by,'Select…')+'</select>'+
-   '<label>Room number <span class="opt">— number only, no names</span></label>'+
-   '<input id="fRoom" value="'+esc(form.room)+'" placeholder="e.g. 12 or 12B" inputmode="text" autocomplete="off">'+
+   '<label>Resident <span class="opt">— last name, first initial</span></label>'+
+   '<input id="fResName" value="'+esc(form.resident_name)+'" placeholder="e.g. Smith, J." autocomplete="off" autocapitalize="words">'+
+   '<label>Room number</label>'+
+   '<input id="fRoom" value="'+esc(form.room)+'" placeholder="e.g. 12 or 12B" autocomplete="off">'+
    '<label>What is it about? <span class="opt">— optional</span></label>'+
    '<select id="fAbout">'+opts(ABOUT_DEPTS,form.about,'Select a department or area…')+'</select>'+
    '<label>What did they tell you?</label>'+
    '<textarea id="fDesc" placeholder="In their words as best you can — what happened, when, and what they would like to see happen.">'+esc(form.description)+'</textarea>'+
-   '<div class="nophi">🔒 <b>Use the room number, not the resident\'s name.</b> Don\'t include diagnoses, medications, or other private health details — Social Services will pull those from the chart.</div>'+
+   '<div class="nophi">🔒 <b>Last name and first initial only.</b> Don\'t include diagnoses, medications, or other private health details — Social Services will pull those from the chart.</div>'+
    '<div class="urgent-row'+(form.urgent?' on':'')+'" onclick="toggleUrgent()">'+
    '<span style="font-size:22px">🚨</span><div><div class="t">This needs attention today</div>'+
    '<div class="d">The resident is upset now, or it affects their care or comfort right now</div></div></div>'+
@@ -148,11 +200,63 @@ function submitView(){
    '<b>Suspected abuse, neglect, or mistreatment is not a grievance.</b> Don\'t wait on this form — tell the charge nurse and the Administrator <b>immediately</b>. Abuse reporting has its own required steps and time limits.'+
    '</div></div>';
 }
+
+// ---------------- Resident / family self-entry form ----------------
+function startResident(){readForm();form=blankForm();form.raised_by='Resident';mode='resident';view='submit';document.body.classList.add('resident');render();window.scrollTo(0,0)}
+function endResident(){form=blankForm();mode='staff';view='submit';document.body.classList.remove('resident');render();window.scrollTo(0,0)}
+function pickRaised(v){readForm();form.raised_by=v;render()}
+function residentView(){
+  var fam=form.raised_by==='Family / visitor';
+  return '<div class="card">'+
+   '<div class="rtitle">We want to hear from you.</div>'+
+   '<div class="rsub">Tell us what\'s wrong and we\'ll follow up with you. Sharing a concern will never affect your care.</div>'+
+   '<label>I am</label>'+
+   '<div class="cats">'+
+   '<div class="cat'+(!fam?' on':'')+'" onclick="pickRaised(\'Resident\')">A resident</div>'+
+   '<div class="cat'+(fam?' on':'')+'" onclick="pickRaised(\'Family / visitor\')">A family member or visitor</div>'+
+   '</div>'+
+   '<label>'+(fam?'The resident\'s name':'Your name')+' <span class="opt">— last name, first initial</span></label>'+
+   '<input id="fResName" value="'+esc(form.resident_name)+'" placeholder="e.g. Smith, J." autocomplete="off" autocapitalize="words">'+
+   '<label>Room number</label>'+
+   '<input id="fRoom" value="'+esc(form.room)+'" placeholder="e.g. 12" autocomplete="off">'+
+   '<label>This is about</label>'+
+   choiceList(RCATS,form.category,'pickCat')+
+   '<label>What happened?</label>'+
+   '<textarea id="fDesc" placeholder="Tell us in your own words — what happened and when.">'+esc(form.description)+'</textarea>'+
+   '<label>What would make it right? <span class="opt">— optional</span></label>'+
+   '<textarea id="fWish" style="min-height:80px" placeholder="What would you like to see happen?">'+esc(form.wish)+'</textarea>'+
+   '<div class="urgent-row'+(form.urgent?' on':'')+'" onclick="toggleUrgent()">'+
+   '<span style="font-size:24px">🚨</span><div><div class="t">I need someone today</div>'+
+   '<div class="d">This is affecting me right now</div></div></div>'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" id="subBtn" onclick="submitGrievance()">Send to Social Services</button>'+
+   '<div class="hint" style="text-align:center;margin-top:12px">Your concern goes to the Social Services Director and the Administrator. '+
+   '<a href="#" onclick="endResident();return false" style="color:var(--primary-light)">Cancel and return to staff</a></div>'+
+   '</div>';
+}
+function residentThanksView(){
+  return '<div class="card thanks">'+
+   '<div class="big">💙</div>'+
+   '<h2>Thank you.</h2>'+
+   '<p style="font-size:17px">Your concern has been sent to our Social Services Director and the Administrator. Someone will follow up with you in person.</p>'+
+   '<p style="margin-top:14px;font-size:15px">You can now hand the device back to the staff member.</p>'+
+   '<div style="height:24px"></div>'+
+   '<button class="btn btn-primary" onclick="endResident()">Done</button>'+
+   '</div>';
+}
+
+// ---------------- Shared handlers ----------------
 function pickCat(v){readForm();form.category=(form.category===v?'':v);render()}
 function toggleUrgent(){readForm();form.urgent=!form.urgent;render()}
 function readForm(){
-  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
-  form.raised_by=g('fRaised');form.room=g('fRoom');form.about=g('fAbout');form.description=g('fDesc');
+  var g=function(id){var e=document.getElementById(id);return e?e.value:null};
+  var v;
+  if((v=g('fRaised'))!==null)form.raised_by=v;
+  if((v=g('fRoom'))!==null)form.room=v;
+  if((v=g('fResName'))!==null)form.resident_name=v;
+  if((v=g('fAbout'))!==null)form.about=v;
+  if((v=g('fDesc'))!==null)form.description=v;
+  if((v=g('fWish'))!==null)form.wish=v;
 }
 function looksLikeName(s){
   // Soft check only: a room field that is mostly letters is probably a name.
@@ -163,10 +267,16 @@ function looksLikeName(s){
 async function submitGrievance(){
   if(busy)return;
   readForm();
-  if(!form.category){toast('Pick what kind of concern this is');return}
+  var res=mode==='resident';
+  if(res&&!form.raised_by)form.raised_by='Resident';
+  if(!form.category){toast(res?'Please pick what this is about':'Pick what kind of concern this is');return}
   if(!form.raised_by){toast('Tell us who raised it');return}
-  if(looksLikeName(form.room)){toast('Room number only, please — no names');return}
-  if(form.description.trim().length<10){toast('Please describe the concern');return}
+  if(looksLikeName(form.room)){toast('Room number only here — the name goes in the name field');return}
+  var needsId=form.raised_by!=='Resident Council'&&form.raised_by!=='Anonymous';
+  if(needsId&&!form.room.trim()&&!form.resident_name.trim()){toast(res?'Please enter your name or room number':'Enter the resident\'s name or room number');return}
+  if(form.description.trim().length<10){toast(res?'Please tell us what happened':'Please describe the concern');return}
+  var desc=form.description.trim();
+  if(form.wish&&form.wish.trim())desc+='\n\nWhat would make it right: '+form.wish.trim();
   busy=true;
   var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Sending…';
   // RPC only, never a direct insert — the grievances table is locked to the service role.
@@ -174,10 +284,12 @@ async function submitGrievance(){
     p_name:me.name, p_dept:me.dept,
     p_category:form.category,
     p_raised_by:form.raised_by,
-    p_description:form.description.trim(),
+    p_description:desc,
     p_room:form.room.trim()||null,
-    p_about_dept:form.about||null,
-    p_urgent:form.urgent
+    p_about_dept:(!res&&form.about)?form.about:null,
+    p_urgent:form.urgent,
+    p_resident_name:form.resident_name.trim()||null,
+    p_entered_by:res?(form.raised_by==='Family / visitor'?'family':'resident'):'staff'
   });
   busy=false;b.disabled=false;b.textContent='Send to Social Services';
   if(r.error||!r.data){toast('Could not send — '+((r.error&&r.error.message)||'please try again'));return}
@@ -190,7 +302,7 @@ function thanksView(){
   return '<div class="card thanks">'+
    '<div class="big">🗣️</div>'+
    '<h2>Thank you, '+esc(me.name.split(' ')[0])+'.</h2>'+
-   '<p>The concern is logged. Social Services and the Administrator have been notified and will follow up with the resident or family.</p>'+
+   '<p>The concern is logged. Social Services has a task for it and the Administrator has been notified. They will follow up with the resident or family.</p>'+
    '<p style="margin-top:12px">If they\'re with you right now, let them know: <b>"Social Services will be following up with you."</b></p>'+
    '<div style="height:22px"></div>'+
    '<button class="btn btn-accent" onclick="go(\'submit\')">Log Another</button>'+
@@ -209,6 +321,7 @@ function render(){
   whoChip();
   var el=document.getElementById('app');
   if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(mode==='resident'){el.innerHTML=(view==='thanks'?residentThanksView():residentView());return}
   if(view==='thanks'){el.innerHTML=thanksView();return}
   el.innerHTML=submitView();
 }
