@@ -12,6 +12,7 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 | Staff Apps Hub | `/` (this repo root) | Everyone | — (static links) | Live |
 | Shower Sheet | `/showers/` | CNAs | Supabase `shower_logs` | Live |
 | Room Changes | `/room-changes/` | All staff | Supabase `room_changes` | Live |
+| Resident Grievance | `/grievances/` | All staff | Supabase `grievances` (room # only) + grievance-notify email to SSD + Admin | Live — added 9/22/26 |
 | Ideas for Improvement | `/ideas/` | All staff | Supabase → Asana | Live |
 | Skill Validation | `/competency/` | Leadership (PIN on hub, moved 8/19/26) | Supabase `competency_validations` | Live |
 | In-Service Completion | `/inservice-dashboard/` | Leadership (PIN on hub) — DSD | Supabase `v_dsd_*` views via `dining-quiz` edge fn | Live — added 9/17/26 |
