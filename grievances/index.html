@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Resident Grievance</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.header .sub a{color:#9ec5e8;text-decoration:none}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:620px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:15px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px}
+label .opt{text-transform:none;letter-spacing:0;font-weight:600;color:#aab3ba}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+textarea{min-height:110px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cat{font-size:13px;font-weight:600;padding:9px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none}
+.cat.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.hint{font-size:12.5px;color:var(--text-light);margin-top:7px;line-height:1.5}
+.nophi{font-size:12.5px;line-height:1.5;margin-top:7px;padding:8px 10px;border-radius:8px;background:#eef6fb;border:1px solid #cfe3f1;color:#1f4e79}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.thanks{text-align:center;padding:26px 14px}
+.thanks .big{font-size:52px;line-height:1}
+.thanks h2{color:var(--success);margin:12px 0 8px;font-size:22px}
+.thanks p{color:var(--text-light);font-size:14.5px;line-height:1.6;max-width:390px;margin:0 auto}
+.urgent-row{display:flex;align-items:center;gap:12px;background:#fdf3f2;border:1.5px solid #f0d4d1;border-radius:10px;padding:12px;margin-top:16px;cursor:pointer;user-select:none}
+.urgent-row.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.urgent-row .t{font-size:14px;font-weight:700}
+.urgent-row .d{font-size:12px;opacity:.8}
+.load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:30px 10px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>🗣️ Resident Grievance</h1>
+    <div class="sub"><a href="../">← All Apps</a> · Morning Star Post Acute</div>
+  </div>
+  <div class="who" id="whoChip" onclick="editIdentity()">Sign in</div>
+</div>
+<div class="page" id="app"><div class="load">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var NOTIFY_URL=SUPABASE_URL+'/functions/v1/grievance-notify';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Laundry","Maintenance",
+"Activities","Social Services","Business Office","Medical Records","Admissions","HR / Staffing",
+"Therapy / Rehab","MDS","Staff Education","Administration","Other"];
+
+// Departments a concern can be ABOUT (what the resident/family is unhappy with).
+var ABOUT_DEPTS=["Nursing care","Dietary / meals","Housekeeping / laundry","Maintenance / building","Activities",
+"Therapy / Rehab","Social Services / discharge","Billing / Business Office","Admissions","Medical / physician","Other / not sure"];
+
+var CATS=[
+ {v:'grievance',l:'Grievance'},
+ {v:'complaint',l:'Complaint / concern'},
+ {v:'theft',l:'Theft'},
+ {v:'loss',l:'Lost item'}
+];
+var RAISED=["Resident","Family / visitor","Staff (on a resident's behalf)","Resident Council","Ombudsman","Anonymous"];
+
+// Same identity keys as the Ideas / Repairs / Shout Outs apps — sign in once, recognized everywhere on this site.
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+var me={name:lsGet('ii_name')||'',dept:lsGet('ii_dept')||''};
+var view='submit', form=blankForm(), busy=false;
+
+function blankForm(){return{category:'',raised_by:'',room:'',about:'',description:'',urgent:false}}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function go(v){view=v;render();window.scrollTo(0,0)}
+
+function opts(list,sel,ph){
+  var h=ph?'<option value="">'+esc(ph)+'</option>':'';
+  list.forEach(function(o){h+='<option value="'+esc(o)+'"'+(String(sel)===String(o)?' selected':'')+'>'+esc(o)+'</option>'});
+  return h;
+}
+function identityView(){
+  return '<div class="card">'+
+   '<h2 style="font-size:18px;margin-bottom:4px">Who are you?</h2>'+
+   '<div class="hint">So Social Services can follow up with you if they have a question.</div>'+
+   '<label>Your name</label>'+
+   '<input id="iName" value="'+esc(me.name)+'" placeholder="First and last name" autocomplete="name">'+
+   '<label>Where do you work?</label>'+
+   '<select id="iDept">'+opts(WORK_DEPTS,me.dept,'Select your department…')+'</select>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-primary" onclick="saveIdentity()">Continue</button>'+
+   '</div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('iName').value.trim(), d=document.getElementById('iDept').value;
+  if(n.length<3){toast('Please enter your first and last name');return}
+  if(!d){toast('Please pick your department');return}
+  me.name=n;me.dept=d;
+  lsSet('ii_name',n);lsSet('ii_dept',d);
+  view='submit';render();
+}
+
+function submitView(){
+  return '<div class="card">'+
+   '<div style="font-size:15px;line-height:1.55"><b>Did a resident or family member share a concern with you?</b> '+
+   'Log it here. Social Services and the Administrator are notified right away, and every concern gets a follow-up.</div>'+
+   '<label>What kind of concern?</label>'+
+   '<div class="cats">'+CATS.map(function(c){
+     return '<div class="cat'+(form.category===c.v?' on':'')+'" onclick="pickCat(\''+c.v+'\')">'+c.l+'</div>';
+   }).join('')+'</div>'+
+   '<label>Who raised it?</label>'+
+   '<select id="fRaised">'+opts(RAISED,form.raised_by,'Select…')+'</select>'+
+   '<label>Room number <span class="opt">— number only, no names</span></label>'+
+   '<input id="fRoom" value="'+esc(form.room)+'" placeholder="e.g. 12 or 12B" inputmode="text" autocomplete="off">'+
+   '<label>What is it about? <span class="opt">— optional</span></label>'+
+   '<select id="fAbout">'+opts(ABOUT_DEPTS,form.about,'Select a department or area…')+'</select>'+
+   '<label>What did they tell you?</label>'+
+   '<textarea id="fDesc" placeholder="In their words as best you can — what happened, when, and what they would like to see happen.">'+esc(form.description)+'</textarea>'+
+   '<div class="nophi">🔒 <b>Use the room number, not the resident\'s name.</b> Don\'t include diagnoses, medications, or other private health details — Social Services will pull those from the chart.</div>'+
+   '<div class="urgent-row'+(form.urgent?' on':'')+'" onclick="toggleUrgent()">'+
+   '<span style="font-size:22px">🚨</span><div><div class="t">This needs attention today</div>'+
+   '<div class="d">The resident is upset now, or it affects their care or comfort right now</div></div></div>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-accent" id="subBtn" onclick="submitGrievance()">Send to Social Services</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">Logging as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+
+   ' &nbsp;<a href="#" onclick="editIdentity();return false" style="color:var(--primary-light)">change</a></div>'+
+   '</div>'+
+   '<div class="card" style="background:#fdecea;border-color:#f5c6c2">'+
+   '<div style="font-size:13px;line-height:1.6;color:#922b21">'+
+   '<b>Suspected abuse, neglect, or mistreatment is not a grievance.</b> Don\'t wait on this form — tell the charge nurse and the Administrator <b>immediately</b>. Abuse reporting has its own required steps and time limits.'+
+   '</div></div>';
+}
+function pickCat(v){readForm();form.category=(form.category===v?'':v);render()}
+function toggleUrgent(){readForm();form.urgent=!form.urgent;render()}
+function readForm(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  form.raised_by=g('fRaised');form.room=g('fRoom');form.about=g('fAbout');form.description=g('fDesc');
+}
+function looksLikeName(s){
+  // Soft check only: a room field that is mostly letters is probably a name.
+  var t=(s||'').trim(); if(!t)return false;
+  var letters=(t.match(/[a-z]/gi)||[]).length;
+  return letters>3 && !/\d/.test(t);
+}
+async function submitGrievance(){
+  if(busy)return;
+  readForm();
+  if(!form.category){toast('Pick what kind of concern this is');return}
+  if(!form.raised_by){toast('Tell us who raised it');return}
+  if(looksLikeName(form.room)){toast('Room number only, please — no names');return}
+  if(form.description.trim().length<10){toast('Please describe the concern');return}
+  busy=true;
+  var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Sending…';
+  // RPC only, never a direct insert — the grievances table is locked to the service role.
+  var r=await sb.rpc('submit_grievance',{
+    p_name:me.name, p_dept:me.dept,
+    p_category:form.category,
+    p_raised_by:form.raised_by,
+    p_description:form.description.trim(),
+    p_room:form.room.trim()||null,
+    p_about_dept:form.about||null,
+    p_urgent:form.urgent
+  });
+  busy=false;b.disabled=false;b.textContent='Send to Social Services';
+  if(r.error||!r.data){toast('Could not send — '+((r.error&&r.error.message)||'please try again'));return}
+  fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({grievance_id:r.data})}).catch(function(){});
+  form=blankForm();
+  view='thanks';render();window.scrollTo(0,0);
+}
+function thanksView(){
+  return '<div class="card thanks">'+
+   '<div class="big">🗣️</div>'+
+   '<h2>Thank you, '+esc(me.name.split(' ')[0])+'.</h2>'+
+   '<p>The concern is logged. Social Services and the Administrator have been notified and will follow up with the resident or family.</p>'+
+   '<p style="margin-top:12px">If they\'re with you right now, let them know: <b>"Social Services will be following up with you."</b></p>'+
+   '<div style="height:22px"></div>'+
+   '<button class="btn btn-accent" onclick="go(\'submit\')">Log Another</button>'+
+   '<div style="height:9px"></div>'+
+   '<button class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="logout()">Done — log out</button>'+
+   '</div>';
+}
+
+// Shared phone: hand the app back to the next person. Clears the identity shared by
+// the Ideas / Repairs / Shout Outs / Supply apps and returns to the Staff Apps home screen.
+function logout(){
+  try{localStorage.removeItem('ii_name');localStorage.removeItem('ii_dept');}catch(e){}
+  location.href='../';
+}
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='thanks'){el.innerHTML=thanksView();return}
+  el.innerHTML=submitView();
+}
+if(!sb){document.getElementById('app').innerHTML='<div class="card"><div class="empty">Could not connect. Check your internet and reload.</div></div>';}
+else render();
+</script>
+</body>
+</html>
