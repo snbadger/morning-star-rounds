@@ -160,7 +160,7 @@
   .assignment-table tr.float-row .group-num { background: var(--gold); }
 
   /* === PENDING DIAGNOSTICS === */
-  .pending-box { border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; }
+  .pending-box { border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-top: 12px; }
   .pending-hdr { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
   .pending-hdr h3 { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
   .pending-hdr span { font-size: 10px; color: var(--gray-700); }
@@ -285,7 +285,7 @@
     .instruction-bar { margin-bottom: 8px; }
     .header-fields { margin-bottom: 8px; }
     .pending-table input::placeholder { color: transparent; }
-    .pending-box { margin-bottom: 8px; padding: 6px 10px; }
+    .pending-box { margin-top: 6px; padding: 6px 10px; }
     .sheet { border: none; margin: 0; padding: 10px; max-width: none; box-shadow: none; }
     .sheet-header { padding-bottom: 6px; margin-bottom: 8px; }
     .assignment-table .cna-name-cell input { border-bottom: 1px solid #999; }
@@ -313,7 +313,7 @@
   </div>
   <div class="control-group">
     <label>CNAs:</label>
-    <select id="cnaCountSelect">
+    <select id="cnaCountSelect" onchange="generate()">
       <option value="7">7</option>
       <option value="6" selected>6</option>
       <option value="5">5</option>
@@ -323,7 +323,7 @@
   </div>
   <button class="btn-generate" onclick="generate()">Generate Sheet</button>
   <div class="balance-toggle">
-    <input type="checkbox" id="autoBalance" checked>
+    <input type="checkbox" id="autoBalance" checked onchange="generate()">
     <label for="autoBalance">Auto-Balance</label>
   </div>
   <button class="btn-print" onclick="window.print()">Print</button>
@@ -791,6 +791,7 @@ function initEmptyRoomGrid() {
         emptyRooms.add(room);
         btn.classList.add('empty');
       }
+      generate();   // update the sheet immediately
     };
     grid.appendChild(btn);
   });
@@ -799,118 +800,103 @@ function initEmptyRoomGrid() {
 // Rooms that must NEVER be split across CNAs (large multi-bed wards)
 const LOCKED_ROOMS = new Set(['11', '12', '14']);
 
-// Auto-balance: redistribute occupied beds evenly across groups.
-// RULE: Rooms 11, 12, and 14 are kept as whole blocks (one CNA per room).
-//       All other rooms (privates, semi-privates) can split freely for better balance.
-// Uses optimal linear partition (binary search) on "chunks" — where a chunk is either
-// a locked room block or a single bed from a non-locked room.
-function balanceGroups(baseGroups, emptySet) {
-  const numGroups = baseGroups.length;
-
-  // Step 1: Build distributable chunks in geographic order
-  // Locked rooms → one chunk with all their occupied beds
-  // Everything else → one chunk per individual bed
+// Auto-balance: even out occupied beds across groups, starting from the normal grouping for this CNA count
+// so each group keeps its usual hallway. Rooms 11, 12 and 14 are never split (one CNA per room).
+// Each step moves one bed from the heaviest group toward the lightest, hopping through neighboring
+// groups (G4→G3→G2…) and always handing over the donor's bed closest to the receiving group.
+// Room-order split (locked rooms kept whole) with the smallest possible largest group, then the most even sizes.
+function linearSplit(emptySet, numGroups) {
   const chunks = [];
-  let currentLockedRoom = null;
-  let currentLockedChunk = null;
-
   for (const bed of ALL_ROOMS) {
     if (emptySet.has(bed)) continue;
-    const roomNum = bed.match(/^(\d+)/)[1];
-
-    if (LOCKED_ROOMS.has(roomNum)) {
-      // Accumulate into a locked room block
-      if (roomNum !== currentLockedRoom) {
-        if (currentLockedChunk) chunks.push(currentLockedChunk);
-        currentLockedRoom = roomNum;
-        currentLockedChunk = { room: roomNum, beds: [bed], locked: true };
-      } else {
-        currentLockedChunk.beds.push(bed);
-      }
-    } else {
-      // Flush any pending locked block first
-      if (currentLockedChunk) {
-        chunks.push(currentLockedChunk);
-        currentLockedChunk = null;
-        currentLockedRoom = null;
-      }
-      // Individual bed = its own chunk
-      chunks.push({ room: roomNum, beds: [bed], locked: false });
-    }
+    const room = bed.match(/^(\d+)/)[1];
+    const last = chunks[chunks.length - 1];
+    if (LOCKED_ROOMS.has(room) && last && last.room === room) last.beds.push(bed);
+    else chunks.push({ room, beds: [bed] });
   }
-  if (currentLockedChunk) chunks.push(currentLockedChunk);
-
-  const totalOccupied = chunks.reduce((s, c) => s + c.beds.length, 0);
-  if (totalOccupied === 0) {
-    return baseGroups.map(g => ({ ...g, rooms: [], rebalancedRooms: new Set() }));
+  const sizes = chunks.map(c => c.beds.length), total = sizes.reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  const fits = M => { let g = 1, cur = 0; for (const z of sizes) { if (z > M) return false; if (cur + z > M) { g++; cur = z; } else cur += z; } return g <= numGroups; };
+  let lo = Math.max(...sizes), hi = total;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (fits(m)) hi = m; else lo = m + 1; }
+  const n = chunks.length, avg = total / numGroups, pre = [0];
+  sizes.forEach(v => pre.push(pre[pre.length - 1] + v));
+  const cost = Array.from({ length: numGroups + 1 }, () => new Array(n + 1).fill(Infinity));
+  const cut = Array.from({ length: numGroups + 1 }, () => new Array(n + 1).fill(-1));
+  cost[0][0] = 0;
+  for (let k = 1; k <= numGroups; k++) for (let i = 0; i <= n; i++) for (let j = i; j >= 0; j--) {
+    const z = pre[i] - pre[j]; if (z > lo) break; if (cost[k - 1][j] === Infinity) continue;
+    const c = cost[k - 1][j] + (z - avg) ** 2; if (c < cost[k][i]) { cost[k][i] = c; cut[k][i] = j; }
   }
+  const out = Array.from({ length: numGroups }, () => []);
+  for (let k = numGroups, i = n; k >= 1; k--) { const j = cut[k][i]; for (let c = j; c < i; c++) out[k - 1].push(...chunks[c].beds); i = j; }
+  return out;
+}
 
-  const sizes = chunks.map(c => c.beds.length);
+function balanceGroups(baseGroups, emptySet) {
+  const roomOf = bed => bed.match(/^(\d+)/)[1];
+  const movable = bed => !LOCKED_ROOMS.has(roomOf(bed));
+  const pos = Object.fromEntries(ALL_ROOMS.map((b, i) => [b, i]));
+  const groups = baseGroups.map(g => ({ group: g.group, beds: g.rooms.filter(r => !emptySet.has(r)) }));
+  const n = groups.length;
+  // Note: the 4-CNA base layout (April template) splits room 12 (12A–F / 12G–H). Beds in 11/12/14 are
+  // never moved, so that template split is kept as-is rather than stacking two locked rooms on one CNA.
 
-  // Step 2: Binary search for the optimal max-group-size
-  function canPartition(maxSize) {
-    let groupsUsed = 1;
-    let currentSum = 0;
-    for (const sz of sizes) {
-      if (sz > maxSize) return false;
-      if (currentSum + sz > maxSize) {
-        groupsUsed++;
-        currentSum = sz;
-        if (groupsUsed > numGroups) return false;
-      } else {
-        currentSum += sz;
-      }
+  // bed in `from` nearest (by room order) to any bed in `to`; ties → the bed farther from from's own middle
+  function nearestBed(from, to) {
+    const cands = from.beds.filter(movable);
+    if (!cands.length) return null;
+    const targets = to.beds.length ? to.beds : baseGroups[groups.indexOf(to)].rooms;
+    let best = null, bestD = Infinity;
+    for (const b of cands) {
+      const d = Math.min(...targets.map(t => Math.abs(pos[t] - pos[b])));
+      if (d < bestD) { bestD = d; best = b; }
     }
+    return best;
+  }
+  function move(fromIdx, toIdx) {
+    const bed = nearestBed(groups[fromIdx], groups[toIdx]);
+    if (!bed) return false;
+    groups[fromIdx].beds.splice(groups[fromIdx].beds.indexOf(bed), 1);
+    groups[toIdx].beds.push(bed);
     return true;
   }
 
-  let lo = Math.max(...sizes);
-  let hi = totalOccupied;
-  while (lo < hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    if (canPartition(mid)) hi = mid;
-    else lo = mid + 1;
-  }
-  const optimalMax = lo;
-
-  // Step 3: Assign chunks to groups using the optimal max
-  const assigned = Array.from({ length: numGroups }, () => []);
-  const counts = new Array(numGroups).fill(0);
-
-  let gi = 0;
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-
-    // Add chunk to current group
-    assigned[gi].push(...chunk.beds);
-    counts[gi] += chunk.beds.length;
-
-    // Decide whether to advance
-    if (gi < numGroups - 1 && i < chunks.length - 1) {
-      const nextSize = sizes[i + 1];
-      const wouldExceed = counts[gi] + nextSize > optimalMax;
-      const remainingBeds = sizes.slice(i + 1).reduce((s, v) => s + v, 0);
-      const remainingGroups = numGroups - gi - 1;
-      const targetAvg = totalOccupied / numGroups;
-      const currentAboveAvg = counts[gi] >= targetAvg;
-      const restCanFill = remainingGroups > 0 && (remainingBeds / remainingGroups) >= targetAvg * 0.75;
-
-      if (wouldExceed || (currentAboveAvg && restCanFill)) {
-        gi++;
-      }
+  for (let guard = 0; guard < 200; guard++) {
+    const sizes = groups.map(g => g.beds.length);
+    const maxS = Math.max(...sizes), minS = Math.min(...sizes);
+    if (maxS - minS <= 1) break;
+    // try heaviest→lightest pairs, nearest pairs first
+    const pairs = [];
+    sizes.forEach((sf, f) => sizes.forEach((st, t) => { if (sf - st >= 2) pairs.push([f, t, sf - st, Math.abs(f - t)]); }));
+    pairs.sort((x, y) => y[2] - x[2] || x[3] - y[3]);
+    let moved = false;
+    for (const [f, t] of pairs) {
+      // chain f → … → t through neighbors; each hop hands one bed along, so only the ends change size
+      const step = t > f ? 1 : -1;
+      const snapshot = groups.map(g => g.beds.slice());
+      let ok = true;
+      for (let i = f; i !== t; i += step) if (!move(i, i + step)) { ok = false; break; }
+      if (ok) { moved = true; break; }
+      snapshot.forEach((b, i) => { groups[i].beds = b; });            // undo partial chain
+      if (groups[f].beds.some(movable) && move(f, t)) { moved = true; break; } // direct fallback
     }
+    if (!moved) break;
   }
 
-  // Step 4: Build output with rebalanced tracking
-  return assigned.map((beds, i) => {
-    const originalRooms = new Set(baseGroups[i].rooms);
-    const rebalancedRooms = new Set(beds.filter(r => !originalRooms.has(r)));
+  // Fallback: if a straight room-order split gives a smaller largest group, use that instead
+  const chainMax = Math.max(...groups.map(g => g.beds.length));
+  const linear = linearSplit(emptySet, n);
+  if (linear && Math.max(...linear.map(b => b.length)) < chainMax) linear.forEach((b, i) => { groups[i].beds = b; });
 
+  return groups.map((g, i) => {
+    const beds = g.beds.slice().sort((x, y) => pos[x] - pos[y]);
+    const original = new Set(baseGroups[i].rooms);
     return {
-      group: baseGroups[i].group,
+      group: g.group,
       rooms: beds,
       allRooms: beds,
-      rebalancedRooms,
+      rebalancedRooms: new Set(beds.filter(r => !original.has(r))),
       occupiedCount: beds.length,
     };
   });
@@ -971,7 +957,7 @@ function generate() {
       <span class="stat">${cnaCount}</span> CNAs =
       <span class="stat">${newCounts.join(', ')}</span> residents each
       (spread: ${maxBal - minBal}).
-      <span style="opacity:0.7;">Rooms 11, 12 &amp; 14 stay with one CNA. Green-highlighted beds were moved.</span>
+      <span style="opacity:0.7;">Beds in rooms 11, 12 &amp; 14 are never moved. Green-highlighted beds were moved.</span>
       <br><span style="font-size:11px;opacity:0.8;margin-top:2px;display:inline-block;">${roomSummary}</span>`;
     balanceInfoEl.classList.add('visible');
   } else {
@@ -1091,24 +1077,6 @@ function generate() {
 
   html += '</tbody></table>';
 
-  // Pending diagnostics & activity precautions (SWI Task 5 flag; Task 8 CNA hard stop)
-  const PD_COLS = [['room', 'Rm/Bed', 'e.g. 12B', 60], ['study', 'Study pending', 'e.g. L hip X-ray', 150],
-    ['precaution', 'Activity precaution (plain language)', 'e.g. NO transfer out of bed', 0],
-    ['ordered', 'Ordered', 'date/shift', 80], ['cna', 'CNA told face-to-face', 'CNA initials', 110], ['rn', 'Nurse', 'initials', 60]];
-  html += `<div class="pending-box">
-    <div class="pending-hdr"><h3>Pending Diagnostics &amp; Activity Precautions</h3>
-      <span>Charge nurse: carry forward every shift until closed &bull; room/bed only — no names</span></div>
-    <div class="pending-stop"><strong>CNAs — before you move anyone who fell, check this box.</strong>
-      Not sure if a study is pending? <strong>ASK THE NURSE BEFORE YOU TRANSFER.</strong>
-      New pain during a transfer: STOP, make them safe, tell the nurse now.</div>
-    <table class="pending-table"><thead><tr>${PD_COLS.map(c => `<th${c[3] ? ` style="width:${c[3]}px"` : ''}>${c[1]}</th>`).join('')}</tr></thead><tbody>
-    ${pendingRows.map((r, i) => `<tr>${PD_COLS.map(c => `<td><input type="text" maxlength="80" data-pd="${i}" data-k="${c[0]}"
-        value="${esc(r[c[0]] || '')}" placeholder="${c[2]}" oninput="pendingRows[this.dataset.pd][this.dataset.k]=this.value"></td>`).join('')}</tr>`).join('')}
-    </tbody></table>
-    <div class="pending-foot"><button class="mini no-print" onclick="pendingRows.push({});generate()">+ Add row</button>
-      Only the licensed nurse lifts a precaution, with a provider order (result reviewed &rarr; provider notified &rarr; CNAs told &rarr; care plan updated).</div>
-  </div>`;
-
   // Two-column lower section
   html += '<div class="two-col">';
 
@@ -1156,6 +1124,24 @@ function generate() {
   </div>`;
   html += `<div class="footer-brand">
     "We Enrich Lives in Happy, Helpful, and Heartfelt Ways." &bull; Morning Star Post Acute
+  </div>`;
+
+  // Pending diagnostics & activity precautions (SWI Task 5 flag; Task 8 CNA hard stop)
+  const PD_COLS = [['room', 'Rm/Bed', 'e.g. 12B', 60], ['study', 'Study pending', 'e.g. L hip X-ray', 150],
+    ['precaution', 'Activity precaution (plain language)', 'e.g. NO transfer out of bed', 0],
+    ['ordered', 'Ordered', 'date/shift', 80], ['cna', 'CNA told face-to-face', 'CNA initials', 110], ['rn', 'Nurse', 'initials', 60]];
+  html += `<div class="pending-box">
+    <div class="pending-hdr"><h3>Pending Diagnostics &amp; Activity Precautions</h3>
+      <span>Charge nurse: carry forward every shift until closed &bull; room/bed only — no names</span></div>
+    <div class="pending-stop"><strong>CNAs — before you move anyone who fell, check this box.</strong>
+      Not sure if a study is pending? <strong>ASK THE NURSE BEFORE YOU TRANSFER.</strong>
+      New pain during a transfer: STOP, make them safe, tell the nurse now.</div>
+    <table class="pending-table"><thead><tr>${PD_COLS.map(c => `<th${c[3] ? ` style="width:${c[3]}px"` : ''}>${c[1]}</th>`).join('')}</tr></thead><tbody>
+    ${pendingRows.map((r, i) => `<tr>${PD_COLS.map(c => `<td><input type="text" maxlength="80" data-pd="${i}" data-k="${c[0]}"
+        value="${esc(r[c[0]] || '')}" placeholder="${c[2]}" oninput="pendingRows[this.dataset.pd][this.dataset.k]=this.value"></td>`).join('')}</tr>`).join('')}
+    </tbody></table>
+    <div class="pending-foot"><button class="mini no-print" onclick="pendingRows.push({});generate()">+ Add row</button>
+      Only the licensed nurse lifts a precaution, with a provider order (result reviewed &rarr; provider notified &rarr; CNAs told &rarr; care plan updated).</div>
   </div>`;
 
   document.getElementById('sheet').innerHTML = html;
