@@ -11,6 +11,7 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 |-----|-----|----------|------|--------|
 | Staff Apps Hub | `/` (this repo root) | Everyone | — (static links) | Live |
 | Shower Sheet | `/showers/` | CNAs | Supabase `shower_logs` | Live |
+| CNA Assignment Sheet | `/assignments/` | Charge nurses (roster edit = leadership PIN) | Supabase `cna_roster` (RPCs `get_cna_roster`, `save_cna_roster`); showers mirror `/showers/` SCHEDULE | Live |
 | Room Changes | `/room-changes/` | All staff | Supabase `room_changes` | Live |
 | Resident Grievance | `/grievances/` | All staff; resident/family self-entry mode (hand over the device) | Supabase `grievances` (resident Last, F. + room #) → Asana task for SSD + email to SSD/Admin via grievance-notify | Live — added 9/22/26 |
 | Ideas for Improvement | `/ideas/` | All staff | Supabase → Asana | Live |
