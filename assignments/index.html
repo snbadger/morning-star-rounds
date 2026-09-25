@@ -575,12 +575,19 @@ const OPEN = 'OPEN';
 const TYPE_IN = '__type__';
 
 // <select> for a sheet row. Options: this shift's staff first, then PRN, then other shifts.
+function rosterTag(r) {
+  return r.group ? ` (G${r.group})` : r.float_groups ? ` (Float ${r.float_groups.replace('-', '–')})` : '';
+}
+function floatPairFor(g) { return g <= 2 ? '1-2' : g <= 4 ? '3-4' : g <= 6 ? '5-6' : '7'; }
 function staffSelect(rowKey, role, current) {
   const shift = selectedShift();
   const seen = new Set();
+  // For group rows: that group's permanent, then its float, then everyone else on the shift
+  const g = rowKey[0] === 'g' ? parseInt(rowKey.slice(1), 10) : null;
+  const rank = r => g == null ? 0 : r.group === g ? 0 : r.float_groups === floatPairFor(g) ? 1 : !r.group ? 2 : 3;
   const group = (label, list) => {
-    const opts = list.filter(r => !seen.has(r.name)).map(r => { seen.add(r.name);
-      return `<option value="${esc(r.name)}"${r.name === current ? ' selected' : ''}>${esc(r.name)}${r.group ? ' (G' + r.group + ')' : ''}</option>`; }).join('');
+    const opts = [...list].sort((a, b) => rank(a) - rank(b)).filter(r => !seen.has(r.name)).map(r => { seen.add(r.name);
+      return `<option value="${esc(r.name)}"${r.name === current ? ' selected' : ''}>${esc(r.name)}${rosterTag(r)}</option>`; }).join('');
     return opts ? `<optgroup label="${esc(label)}">${opts}</optgroup>` : '';
   };
   const other = role === 'RNA'
@@ -684,11 +691,13 @@ function renderRoster() {
   const list = [...roster].sort((a, b) =>
     (shiftOrder[a.shift] ?? 2) - (shiftOrder[b.shift] ?? 2) || a.shift.localeCompare(b.shift)
     || a.role.localeCompare(b.role) || (a.group || 99) - (b.group || 99) || a.name.localeCompare(b.name));
-  const gOpts = cur => ['', 1, 2, 3, 4, 5, 6, 7].map(n =>
-    `<option value="${n}"${String(cur ?? '') === String(n) ? ' selected' : ''}>${n === '' ? 'Float' : 'Group ' + n}</option>`).join('');
+  const ASSIGN = [['', 'Float (any)'], ['f:1-2', 'Float 1–2'], ['f:3-4', 'Float 3–4'], ['f:5-6', 'Float 5–6'], ['f:7', 'Float 7'],
+    ...[1, 2, 3, 4, 5, 6, 7].map(n => ['g:' + n, 'Group ' + n])];
+  const assignVal = r => r.group ? 'g:' + r.group : r.float_groups ? 'f:' + r.float_groups : '';
+  const gOpts = cur => ASSIGN.map(([v, l]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${l}</option>`).join('');
   const edit = canEditRoster();
   const grp = (r, i) => r.role !== 'CNA' || r.shift === 'PRN' ? '—'
-    : edit ? `<select data-i="${i}" onchange="rosterGroup(this)">${gOpts(r.group)}</select>` : (r.group ? 'Group ' + r.group : 'Float');
+    : edit ? `<select data-i="${i}" onchange="rosterGroup(this)">${gOpts(assignVal(r))}</select>` : (r.group ? 'Group ' + r.group : r.float_groups ? 'Float ' + r.float_groups.replace('-', '–') : 'Float');
   const rows = list.map((r, i) => `<tr class="${r.shift === shift ? 'this-shift' : ''}">
       <td>${esc(r.name)}</td><td>${r.shift}</td><td>${r.role}</td><td>${grp(r, i)}</td>
       <td>${edit ? `<button class="mini" data-i="${i}" onclick="rosterRemove(this)">Remove</button>` : ''}</td></tr>`).join('');
@@ -707,14 +716,19 @@ function renderRoster() {
       <select id="addGroup">${gOpts('')}</select>
       <button class="mini primary" onclick="rosterAdd()">Add</button>
     </div>
-    <div class="roster-note">A home-group CNA is pre-selected for that group whenever that many groups are running. Giving someone a group moves the previous holder to Float. Changes are saved for everyone.</div>`;
+    <div class="roster-note">A home-group CNA is pre-selected for that group whenever that many groups are running; the group's float is listed right under them in the dropdown. Giving someone a group moves the previous holder to Float. Changes are saved for everyone.</div>`;
 }
 async function saveRoster(r, active = true) {
-  await rpc('save_cna_roster', { p_name: r.name, p_shift: r.shift, p_role: r.role, p_group: r.group ?? null, p_active: active });
+  await rpc('save_cna_roster', { p_name: r.name, p_shift: r.shift, p_role: r.role, p_group: r.group ?? null,
+    p_active: active, p_float_groups: r.float_groups ?? null });
+}
+function parseAssign(v) {
+  return v.startsWith('g:') ? { group: parseInt(v.slice(2), 10), float_groups: null }
+       : v.startsWith('f:') ? { group: null, float_groups: v.slice(2) } : { group: null, float_groups: null };
 }
 async function rosterGroup(sel) {
   const r = rosterView[sel.dataset.i];
-  try { await saveRoster({ ...r, group: sel.value === '' ? null : parseInt(sel.value, 10) }); picks = {}; await loadRoster(); }
+  try { await saveRoster({ ...r, ...parseAssign(sel.value) }); picks = {}; await loadRoster(); }
   catch (e) { alert('Could not save: ' + e.message); }
 }
 async function rosterRemove(btn) {
@@ -727,7 +741,8 @@ async function rosterAdd() {
   if (!name) return;
   const role = document.getElementById('addRole').value, shift = document.getElementById('addShift').value;
   const g = document.getElementById('addGroup').value;
-  try { await saveRoster({ name, shift, role, group: g === '' || role === 'RNA' || shift === 'PRN' ? null : parseInt(g, 10) }); await loadRoster(); }
+  const a = role === 'RNA' || shift === 'PRN' ? { group: null, float_groups: null } : parseAssign(g);
+  try { await saveRoster({ name, shift, role, ...a }); await loadRoster(); }
   catch (e) { alert('Could not add: ' + e.message); }
 }
 
