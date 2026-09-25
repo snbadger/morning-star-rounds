@@ -159,6 +159,21 @@
   .assignment-table tr.float-row { background: #fffff0; }
   .assignment-table tr.float-row .group-num { background: var(--gold); }
 
+  /* === SPECIAL ASSIGNMENTS === */
+  .override-panel { max-width: 1050px; margin: 0 auto 8px; background: white; border: 1px solid var(--gray-200);
+    padding: 10px 24px; border-radius: 6px; font-size: 12px; }
+  .override-panel h3 { font-size: 13px; font-weight: 700; color: var(--gray-700); margin-bottom: 6px; }
+  .override-panel.flash { box-shadow: 0 0 0 3px #b794f4; }
+  .ov-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ov-row select { font-size: 12px; padding: 3px 5px; font-family: inherit; border: 1px solid var(--gray-300); border-radius: 4px; }
+  .ov-item { display: inline-flex; align-items: center; gap: 6px; background: #faf5ff; border: 1px solid #d6bcfa;
+    color: #553c9a; border-radius: 12px; padding: 2px 4px 2px 10px; margin: 6px 6px 0 0; font-weight: 600; }
+  .ov-item button { border: none; background: none; cursor: pointer; color: #553c9a; font-size: 14px; line-height: 1; }
+  .assignment-table .rooms-cell .room-tag.pinned { background: #faf5ff; border: 1px solid #b794f4; color: #553c9a; font-weight: 700; }
+  .assignment-table .shower-cell .shower-tag.swapped { background: #faf5ff; color: #553c9a; border: 1px dashed #b794f4; }
+  @media screen { .assignment-table .rooms-cell .room-tag { cursor: pointer; } }
+  .override-legend { font-size: 10px; color: #553c9a; margin: -8px 0 10px; }
+
   /* === PENDING DIAGNOSTICS === */
   .pending-box { border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-top: 12px; }
   .pending-hdr { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
@@ -273,10 +288,10 @@
   /* === PRINT STYLES === */
   @media print {
     body { background: white; }
-    .control-panel, .empty-room-panel, .btn-print, .no-print, .roster-panel, .src-tag, .staff-select { display: none !important; }
+    .control-panel, .empty-room-panel, .override-panel, .balance-info, .btn-print, .no-print, .roster-panel, .src-tag, .staff-select { display: none !important; }
     .print-name { display: block; font-weight: 600; border-bottom: 1px solid #999; min-height: 16px; }
     /* keep it to one landscape page (AM with 7 groups + RNA + Float is the tallest case) */
-    html { zoom: 0.8; }
+    html { zoom: 0.76; }
     .assignment-table { margin-bottom: 8px; }
     .assignment-table td { padding: 3px 6px; }
     .two-col { margin-bottom: 6px; gap: 10px; }
@@ -339,6 +354,21 @@
 <div class="empty-room-panel" id="emptyRoomPanel">
   <h3>Click rooms to mark as empty (unoccupied) — they'll appear crossed out on the assignment sheet</h3>
   <div class="empty-room-grid" id="emptyRoomGrid"></div>
+</div>
+
+<div class="override-panel" id="overridePanel">
+  <h3>Special assignments — resident caregiver preference, shower swaps</h3>
+  <div class="ov-row">
+    Bed <select id="ovBed"></select>
+    <select id="ovType">
+      <option value="bed">goes to (bed + its shower)</option>
+      <option value="shower">— shower only — goes to</option>
+    </select>
+    <select id="ovGroup"></select>
+    <button class="mini primary" onclick="addOverride()">Add</button>
+  </div>
+  <div id="ovList"></div>
+  <div class="roster-note">Tip: click any bed on the sheet to start. A specially assigned bed stays with that CNA when the sheet auto-balances; the other beds even out around it. Clears when you change the date or shift.</div>
 </div>
 
 <div class="sheet" id="sheet">
@@ -434,7 +464,10 @@ let rosterView = [];
 let picks = {};
 // Pending diagnostics (SWI-Nursing-Pending-Diagnostic-Communication, Task 5). Room/bed only — typed on
 // screen for printing, never saved (the page is public; the paper sheet is the record).
-let pendingRows = [{}, {}, {}];         // rowKey (g1..g7, rna, float) → chosen name for this sheet
+let pendingRows = [{}, {}, {}];
+// Special assignments for this sheet: bed → group (bed + its shower), and shower-only swaps (bed → group)
+let bedPins = {};
+let showerPins = {};         // rowKey (g1..g7, rna, float) → chosen name for this sheet
 
 // Break schedules
 const BREAKS = {
@@ -595,7 +628,7 @@ async function loadRoster() {
 }
 
 // New date/shift = new sheet: clear picks so home-group defaults apply
-function onDateShiftChange() { picks = {}; renderRoster(); generate(); }
+function onDateShiftChange() { picks = {}; bedPins = {}; showerPins = {}; renderRoster(); generate(); }
 
 function byRole(role, shift) {
   return roster.filter(r => r.role === role && (!shift || r.shift === shift));
@@ -660,6 +693,42 @@ function duplicatePicks(rowKeys) {
   const count = {};
   rowKeys.forEach(k => { const v = currentPick(k); if (v && v !== OPEN) count[v] = (count[v] || 0) + 1; });
   return new Set(Object.keys(count).filter(n => count[n] > 1));
+}
+
+// ---------- Special assignments ----------
+function renderOverrides(cnaCount, showers) {
+  const bedSel = document.getElementById('ovBed'), grpSel = document.getElementById('ovGroup');
+  const keepBed = bedSel.value, keepGrp = grpSel.value;
+  bedSel.innerHTML = ALL_ROOMS.filter(r => !emptyRooms.has(r))
+    .map(r => `<option value="${r}">${r}${showers.includes(r) ? ' 🚿' : ''}</option>`).join('');
+  grpSel.innerHTML = Array.from({ length: cnaCount }, (_, i) => `<option value="${i + 1}">Group ${i + 1}</option>`).join('');
+  if (keepBed) bedSel.value = keepBed;
+  if (keepGrp && keepGrp <= cnaCount) grpSel.value = keepGrp;
+  const items = [
+    ...Object.entries(bedPins).map(([b, g]) => ({ b, g, kind: 'bed', off: g > cnaCount || emptyRooms.has(b) })),
+    ...Object.entries(showerPins).map(([b, g]) => ({ b, g, kind: 'shower', off: g > cnaCount || !showers.includes(b) || emptyRooms.has(b) })),
+  ];
+  document.getElementById('ovList').innerHTML = items.map(it => `<span class="ov-item"${it.off ? ' style="opacity:.5" title="Not applied today (group not running, bed empty, or no shower scheduled)"' : ''}>
+      ${it.kind === 'bed' ? '📌 ' + it.b + ' → Group ' + it.g : '🚿 ' + it.b + ' shower → Group ' + it.g}
+      <button onclick="removeOverride('${it.kind}','${it.b}')" title="Remove">×</button></span>`).join('');
+}
+function addOverride() {
+  const b = document.getElementById('ovBed').value, g = parseInt(document.getElementById('ovGroup').value, 10);
+  if (!b || !g) return;
+  if (document.getElementById('ovType').value === 'shower') showerPins[b] = g;
+  else { bedPins[b] = g; delete showerPins[b]; }   // the bed's shower follows the bed
+  generate();
+}
+function removeOverride(kind, b) {
+  if (kind === 'bed') delete bedPins[b]; else delete showerPins[b];
+  generate();
+}
+function openOverride(bed) {
+  const panel = document.getElementById('overridePanel');
+  document.getElementById('ovBed').value = bed;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  panel.classList.add('flash'); setTimeout(() => panel.classList.remove('flash'), 1200);
+  document.getElementById('ovGroup').focus();
 }
 
 // ---------- Roster manager (editing behind the hub's Leadership PIN) ----------
@@ -833,9 +902,9 @@ function linearSplit(emptySet, numGroups) {
   return out;
 }
 
-function balanceGroups(baseGroups, emptySet) {
+function balanceGroups(baseGroups, emptySet, pinned = new Set()) {
   const roomOf = bed => bed.match(/^(\d+)/)[1];
-  const movable = bed => !LOCKED_ROOMS.has(roomOf(bed));
+  const movable = bed => !LOCKED_ROOMS.has(roomOf(bed)) && !pinned.has(bed);
   const pos = Object.fromEntries(ALL_ROOMS.map((b, i) => [b, i]));
   const groups = baseGroups.map(g => ({ group: g.group, beds: g.rooms.filter(r => !emptySet.has(r)) }));
   const n = groups.length;
@@ -887,7 +956,7 @@ function balanceGroups(baseGroups, emptySet) {
   // Fallback: if a straight room-order split gives a smaller largest group, use that instead
   const chainMax = Math.max(...groups.map(g => g.beds.length));
   const linear = linearSplit(emptySet, n);
-  if (linear && Math.max(...linear.map(b => b.length)) < chainMax) linear.forEach((b, i) => { groups[i].beds = b; });
+  if (!pinned.size && linear && Math.max(...linear.map(b => b.length)) < chainMax) linear.forEach((b, i) => { groups[i].beds = b; });
 
   return groups.map((g, i) => {
     const beds = g.beds.slice().sort((x, y) => pos[x] - pos[y]);
@@ -920,25 +989,38 @@ function generate() {
   };
   const breaks = BREAKS[shift] || [];
 
-  // Determine if balancing is needed
-  const occupiedCounts = baseGroups.map(g => g.rooms.filter(r => !emptyRooms.has(r)).length);
+  // Special assignments: pinned beds move to their chosen group before balancing and never move after
+  const pinned = new Set(Object.keys(bedPins).filter(b => bedPins[b] <= cnaCount && !emptyRooms.has(b)));
+  const bedOrder = Object.fromEntries(ALL_ROOMS.map((b, i) => [b, i]));
+  const startGroups = baseGroups.map(g => ({ group: g.group, rooms: g.rooms.filter(r => !pinned.has(r)) }));
+  pinned.forEach(b => startGroups[bedPins[b] - 1].rooms.push(b));
+  startGroups.forEach(g => g.rooms.sort((a, b) => bedOrder[a] - bedOrder[b]));
+
+  // Follow the template, then even it out: balance whenever groups differ by more than one resident
+  const occupiedCounts = startGroups.map(g => g.rooms.filter(r => !emptyRooms.has(r)).length);
   const maxOcc = Math.max(...occupiedCounts);
   const minOcc = Math.min(...occupiedCounts);
   const imbalance = maxOcc - minOcc;
-  const shouldBalance = autoBalance && emptyRooms.size > 0 && imbalance > 1;
+  const shouldBalance = autoBalance && imbalance > 1;
 
-  // Get final groups (balanced or original)
+  // Get final groups (balanced or template + pins)
   let groups;
   if (shouldBalance) {
-    groups = balanceGroups(baseGroups, emptyRooms);
+    groups = balanceGroups(startGroups, emptyRooms, pinned);
   } else {
-    groups = baseGroups.map(g => ({
+    groups = startGroups.map(g => ({
       ...g,
       allRooms: g.rooms,
       rebalancedRooms: new Set(),
       occupiedCount: g.rooms.filter(r => !emptyRooms.has(r)).length
     }));
   }
+  const baseOf = {};
+  baseGroups.forEach(g => g.rooms.forEach(r => { baseOf[r] = g.group; }));
+  // Shower-only swaps (ignore swaps for empty beds, unscheduled showers, or groups not running)
+  const swaps = Object.fromEntries(Object.entries(showerPins).filter(([b, g]) =>
+    g <= cnaCount && showers.includes(b) && !emptyRooms.has(b)));
+  renderOverrides(cnaCount, showers);
 
   // Show/hide balance info bar
   const balanceInfoEl = document.getElementById('balanceInfo');
@@ -962,7 +1044,7 @@ function generate() {
     balanceInfoEl.classList.add('visible');
   } else {
     balanceInfoEl.classList.remove('visible');
-    if (autoBalance && emptyRooms.size > 0 && imbalance <= 1) {
+    if (autoBalance && (emptyRooms.size > 0 || pinned.size) && imbalance <= 1) {
       balanceInfoEl.innerHTML = `<strong>Balanced:</strong> Workload is already even (max difference: ${imbalance} resident). No redistribution needed.`;
       balanceInfoEl.classList.add('visible');
     }
@@ -1016,8 +1098,11 @@ function generate() {
 
   groups.forEach((g, idx) => {
 
-    // Find showers that belong to this group's rooms
-    const groupShowers = showers.filter(s => g.rooms.includes(s));
+    // Showers for this group's occupied beds, minus any swapped away, plus any swapped in
+    const occupied = g.rooms.filter(r => !emptyRooms.has(r));
+    const groupShowers = showers.filter(s => occupied.includes(s) && !(s in swaps))
+      .map(s => ({ bed: s, swapped: false }))
+      .concat(Object.keys(swaps).filter(b => swaps[b] === g.group).map(b => ({ bed: b, swapped: true })));
 
     // Build room tags
     let roomTags = '';
@@ -1025,20 +1110,24 @@ function generate() {
       // Balanced mode: show only occupied rooms, highlight moved ones
       g.rooms.forEach(r => {
         const isMoved = g.rebalancedRooms.has(r);
-        roomTags += `<span class="room-tag${isMoved ? ' rebalanced' : ''}">${r}</span>`;
+        const isPinned = pinned.has(r);
+        roomTags += `<span class="room-tag${isPinned ? ' pinned' : isMoved ? ' rebalanced' : ''}" onclick="openOverride('${r}')" title="Special assignment for ${r}">${isPinned ? '📌' : ''}${r}</span>`;
       });
     } else {
       // Standard mode: show all rooms, strike through empties
       g.allRooms.forEach(r => {
         const isEmpty = emptyRooms.has(r);
-        roomTags += `<span class="room-tag${isEmpty ? ' empty' : ''}">${r}</span>`;
+        const isPinned = pinned.has(r);
+        roomTags += `<span class="room-tag${isEmpty ? ' empty' : isPinned ? ' pinned' : ''}" onclick="openOverride('${r}')" title="Special assignment for ${r}">${isPinned ? '📌' : ''}${r}</span>`;
       });
     }
     const occCount = shouldBalance ? g.rooms.length : g.allRooms.filter(r => !emptyRooms.has(r)).length;
     roomTags += `<span class="room-count">${occCount} residents</span>`;
 
     // Build shower tags
-    let showerTags = groupShowers.map(s => `<span class="shower-tag">${s}</span>`).join('');
+    let showerTags = groupShowers.map(s => s.swapped
+      ? `<span class="shower-tag swapped" title="Shower reassigned from Group ${baseOf[s.bed] ?? ''}">${s.bed} (swap)</span>`
+      : `<span class="shower-tag">${s.bed}</span>`).join('');
     if (!showerTags && day !== 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">—</span>';
     if (day === 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">PRN</span>';
 
@@ -1076,6 +1165,9 @@ function generate() {
   </tr>`;
 
   html += '</tbody></table>';
+  if (pinned.size || Object.keys(swaps).length) {
+    html += `<div class="override-legend">📌 = bed specially assigned to this CNA &bull; (swap) = shower given to another CNA — both set by the charge nurse</div>`;
+  }
 
   // Two-column lower section
   html += '<div class="two-col">';
