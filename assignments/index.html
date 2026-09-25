@@ -1024,7 +1024,8 @@ function generate() {
     if (!showerTags && day !== 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">—</span>';
     if (day === 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">PRN</span>';
 
-    const breakNum = idx < breaks.length ? breaks[idx].num : '';
+    // Cycle break blocks so every group has one (#1, #2, #3, #1, …) — two CNAs per block, never the same float pair
+    const breakNum = breaks.length ? breaks[idx % breaks.length].num : '';
 
     html += `<tr>
       <td class="group-num">${g.group}</td>
@@ -1036,8 +1037,8 @@ function generate() {
     </tr>`;
   });
 
-  // RNA row — restorative program; own break block
-  html += `<tr class="rna-row">
+  // RNA row — restorative program, AM only; own break block
+  if (shift === 'am') html += `<tr class="rna-row">
     <td class="group-num" style="font-size:11px;">RNA</td>
     ${nameCell('rna', 'RNA')}
     <td class="rooms-cell" style="font-size:11px;">Restorative program &bull; In Dining Room by 11:20</td>
@@ -1092,8 +1093,8 @@ function generate() {
   });
   html += '</tbody></table>';
 
-  // RNA/Float special break
-  html += `<div style="font-size:11px;margin-top:6px;color:var(--gray-700);">
+  // RNA special break (AM only)
+  if (shift === 'am') html += `<div style="font-size:11px;margin-top:6px;color:var(--gray-700);">
     <strong>RNA:</strong> 9:10 B &bull; 10:30–11:00 L &bull; 1:10 B — In DR by 11:20
   </div>`;
 
