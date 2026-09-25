@@ -260,6 +260,13 @@
     body { background: white; }
     .control-panel, .empty-room-panel, .btn-print, .no-print, .roster-panel, .src-tag, .staff-select { display: none !important; }
     .print-name { display: block; font-weight: 600; border-bottom: 1px solid #999; min-height: 16px; }
+    /* keep it to one landscape page (AM with 7 groups + RNA + Float is the tallest case) */
+    html { zoom: 0.9; }
+    .two-col { margin-bottom: 6px; gap: 10px; }
+    .section-box { padding: 6px 10px; }
+    .footer-note { margin-top: 4px; padding: 4px 0; }
+    .instruction-bar { margin-bottom: 8px; }
+    .header-fields { margin-bottom: 8px; }
     .sheet { border: none; margin: 0; padding: 10px; max-width: none; box-shadow: none; }
     .sheet-header { padding-bottom: 6px; margin-bottom: 8px; }
     .assignment-table .cna-name-cell input { border-bottom: 1px solid #999; }
