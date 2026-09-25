@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNA Assignment Sheet — Morning Star Post Acute</title>
+<style>
+  :root {
+    --primary: #1a365d;
+    --primary-light: #2c5282;
+    --accent: #e53e3e;
+    --green: #276749;
+    --gray-50: #f7fafc;
+    --gray-100: #edf2f7;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e0;
+    --gray-500: #718096;
+    --gray-700: #4a5568;
+    --gray-800: #2d3748;
+    --gold: #d69e2e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--gray-50); color: var(--gray-800); }
+
+  /* === CONTROL PANEL (screen only) === */
+  .control-panel {
+    background: var(--primary);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .control-panel h1 { font-size: 18px; font-weight: 700; margin-right: 12px; }
+  .control-group { display: flex; align-items: center; gap: 6px; }
+  .control-group label { font-size: 13px; font-weight: 600; opacity: 0.85; }
+  .control-group select {
+    padding: 6px 10px; border-radius: 6px; border: none;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    background: white; color: var(--primary);
+  }
+  .btn-generate {
+    background: var(--accent); color: white; border: none;
+    padding: 8px 20px; border-radius: 6px; font-size: 14px;
+    font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+  }
+  .btn-generate:hover { background: #c53030; }
+  .btn-print {
+    background: transparent; color: white; border: 2px solid rgba(255,255,255,0.5);
+    padding: 6px 16px; border-radius: 6px; font-size: 13px;
+    font-weight: 600; cursor: pointer; margin-left: auto;
+  }
+  .btn-print:hover { border-color: white; }
+  .balance-toggle {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 6px;
+  }
+  .balance-toggle label { font-size: 12px; font-weight: 600; opacity: 0.9; cursor: pointer; }
+  .balance-toggle input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; accent-color: #48bb78; }
+  .balance-badge {
+    display: inline-block; background: #48bb78; color: white;
+    border-radius: 10px; padding: 0 8px; font-size: 10px; font-weight: 700;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .balance-badge.off { background: var(--gray-500); }
+  .balance-info {
+    max-width: 1050px; margin: 0 auto 4px; padding: 8px 24px;
+    background: #f0fff4; border: 1px solid #c6f6d5; border-radius: 6px;
+    font-size: 12px; color: var(--green); display: none;
+  }
+  .balance-info.visible { display: block; }
+  .balance-info .stat { font-weight: 700; }
+  .balance-info .moved-tag {
+    display: inline-block; background: #c6f6d5; padding: 1px 5px;
+    border-radius: 3px; font-size: 11px; font-weight: 600; margin: 0 2px;
+  }
+  .assignment-table .rooms-cell .room-tag.rebalanced {
+    background: #f0fff4; border: 1px solid #9ae6b4; color: var(--green);
+    font-weight: 600;
+  }
+
+  /* === PRINTABLE SHEET === */
+  .sheet {
+    max-width: 1050px; margin: 16px auto; background: white;
+    border: 1px solid var(--gray-200); padding: 20px 24px;
+  }
+  .sheet-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 3px solid var(--primary); padding-bottom: 10px; margin-bottom: 12px;
+  }
+  .sheet-header h2 { font-size: 20px; color: var(--primary); }
+  .sheet-header .meta { text-align: right; font-size: 13px; color: var(--gray-700); }
+  .sheet-header .meta strong { color: var(--primary); }
+  .header-fields {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px 24px; margin-bottom: 14px; font-size: 13px;
+  }
+  .header-fields .field { display: flex; align-items: center; gap: 4px; }
+  .header-fields .field label { font-weight: 600; color: var(--gray-700); white-space: nowrap; }
+  .header-fields .field input {
+    flex: 1; border: none; border-bottom: 1px solid var(--gray-300);
+    padding: 2px 4px; font-size: 13px; font-family: inherit;
+    background: transparent;
+  }
+  .header-fields .field input:focus { outline: none; border-bottom-color: var(--primary); }
+  .instruction-bar {
+    background: var(--gray-100); padding: 6px 12px; font-size: 11px;
+    color: var(--gray-700); border-radius: 4px; margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  /* === ASSIGNMENT TABLE === */
+  .assignment-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
+  .assignment-table th {
+    background: var(--primary); color: white; padding: 6px 8px;
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+  }
+  .assignment-table td { padding: 5px 8px; border: 1px solid var(--gray-200); vertical-align: middle; }
+  .assignment-table .group-num {
+    background: var(--primary-light); color: white; text-align: center;
+    font-weight: 700; font-size: 16px; width: 40px;
+  }
+  .assignment-table .cna-name-cell { width: 180px; }
+  .assignment-table .cna-name-cell input {
+    width: 100%; border: none; border-bottom: 1px dashed var(--gray-300);
+    padding: 2px 0; font-size: 12px; font-family: inherit; background: transparent;
+  }
+  .assignment-table .cna-name-cell input:focus { outline: none; border-bottom-color: var(--primary); }
+  .assignment-table .rooms-cell { font-size: 12px; font-weight: 500; min-width: 200px; }
+  .assignment-table .rooms-cell .room-tag {
+    display: inline-block; padding: 1px 4px; margin: 1px;
+    background: var(--gray-100); border-radius: 3px; font-size: 11px;
+  }
+  .assignment-table .rooms-cell .room-tag.empty {
+    background: #fff5f5; color: #c53030; text-decoration: line-through; opacity: 0.5;
+  }
+  .assignment-table .rooms-cell .room-count {
+    display: inline-block; background: var(--primary); color: white;
+    border-radius: 10px; padding: 0 6px; font-size: 10px; font-weight: 700;
+    margin-left: 4px;
+  }
+  .assignment-table .shower-cell { min-width: 120px; }
+  .assignment-table .shower-cell .shower-tag {
+    display: inline-block; padding: 1px 5px; margin: 1px;
+    background: #ebf8ff; color: #2b6cb0; border-radius: 3px;
+    font-size: 11px; font-weight: 600;
+  }
+  .assignment-table .break-cell { font-size: 11px; color: var(--gray-700); width: 100px; text-align: center; }
+  .assignment-table .tardy-cell { width: 50px; text-align: center; }
+  .assignment-table .tardy-cell input {
+    width: 40px; border: 1px solid var(--gray-200); border-radius: 3px;
+    padding: 2px; text-align: center; font-size: 11px;
+  }
+  .assignment-table tr.float-row { background: #fffff0; }
+  .assignment-table tr.float-row .group-num { background: var(--gold); }
+
+  /* === LOWER SECTIONS === */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .section-box {
+    border: 1px solid var(--gray-200); border-radius: 6px; padding: 10px 12px;
+  }
+  .section-box h3 {
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    border-bottom: 2px solid var(--primary); padding-bottom: 4px;
+  }
+  .section-box ul { list-style: none; font-size: 12px; }
+  .section-box ul li { padding: 2px 0; display: flex; justify-content: space-between; }
+  .section-box ul li .task-label { flex: 1; }
+  .section-box ul li .task-assign {
+    font-weight: 600; color: var(--primary); min-width: 80px; text-align: right;
+  }
+  .times-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 12px; }
+  .times-grid .time-item { display: flex; justify-content: space-between; }
+  .times-grid .time-item .time-val { font-weight: 700; color: var(--accent); }
+
+  /* Break schedule section */
+  .break-schedule { margin-bottom: 10px; }
+  .break-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .break-table th {
+    background: var(--gray-100); padding: 4px 8px; text-align: left;
+    font-weight: 700; font-size: 10px; color: var(--gray-700);
+    border: 1px solid var(--gray-200);
+  }
+  .break-table td { padding: 3px 8px; border: 1px solid var(--gray-200); }
+  .break-table .shift-label { font-weight: 700; color: var(--primary); }
+
+  .footer-note {
+    font-size: 11px; color: var(--gray-500); text-align: center;
+    padding: 8px 0; border-top: 1px solid var(--gray-200);
+    margin-top: 10px; font-style: italic;
+  }
+  .footer-brand {
+    font-size: 10px; color: var(--primary); text-align: center;
+    padding-top: 4px; font-weight: 600;
+  }
+
+  /* === EMPTY ROOM MANAGER (screen only) === */
+  .empty-room-panel {
+    max-width: 1050px; margin: 0 auto 8px; background: white;
+    border: 1px solid var(--gray-200); padding: 12px 24px; border-radius: 6px;
+  }
+  .empty-room-panel h3 {
+    font-size: 13px; font-weight: 700; color: var(--gray-700);
+    margin-bottom: 8px;
+  }
+  .empty-room-grid {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .empty-room-grid .room-btn {
+    padding: 4px 8px; border: 1px solid var(--gray-300); border-radius: 4px;
+    font-size: 11px; cursor: pointer; background: white; font-family: inherit;
+    font-weight: 500; transition: all 0.15s;
+  }
+  .empty-room-grid .room-btn:hover { border-color: var(--primary); }
+  .empty-room-grid .room-btn.empty {
+    background: #fff5f5; color: #c53030; border-color: #feb2b2;
+    text-decoration: line-through;
+  }
+
+  /* === ROSTER + STAFF PICKERS (screen only) === */
+  .control-group input[type="date"] {
+    padding: 5px 8px; border-radius: 6px; border: none; font-size: 14px;
+    font-weight: 600; color: var(--primary); font-family: inherit;
+  }
+  .roster-panel {
+    max-width: 1050px; margin: 0 auto 8px; background: white; border: 1px solid var(--gray-200);
+    border-radius: 6px; padding: 8px 24px; font-size: 12px;
+  }
+  .roster-panel summary { cursor: pointer; font-weight: 700; color: var(--gray-700); font-size: 13px; }
+  .roster-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .roster-table th { text-align: left; font-size: 11px; color: var(--gray-500); padding: 3px 6px; border-bottom: 2px solid var(--gray-200); }
+  .roster-table td { padding: 3px 6px; border-bottom: 1px solid var(--gray-100); }
+  .roster-table tr.this-shift td:first-child { font-weight: 700; }
+  .roster-table select, .roster-add select, .roster-add input { font-size: 12px; padding: 3px 5px; font-family: inherit;
+    border: 1px solid var(--gray-300); border-radius: 4px; }
+  .roster-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .roster-add input { flex: 1; min-width: 150px; }
+  .mini { font-size: 11px; padding: 3px 9px; border: 1px solid var(--gray-300); background: white;
+    border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .mini.primary { background: var(--primary); color: white; border-color: var(--primary); font-weight: 700; }
+  .roster-note { color: var(--gray-500); margin-top: 6px; font-size: 11px; }
+  .staff-select { width: 100%; font-size: 12px; font-weight: 600; font-family: inherit; padding: 3px 4px;
+    border: 1px solid var(--gray-300); border-radius: 4px; background: white; color: var(--gray-800); }
+  .staff-select.open-shift { color: #c53030; border-color: #feb2b2; background: #fff5f5; }
+  .cna-name-cell.dupe .staff-select { border-color: var(--gold); background: #fffff0; }
+  .print-name { display: none; }
+  .assignment-table td.cna-name-cell { min-width: 160px; }
+  @media screen { .sheet { overflow-x: auto; } }
+  .src-tag { font-size: 9px; color: #975a16; display: block; }
+  .assignment-table tr.rna-row { background: #f0fff4; }
+  .assignment-table tr.rna-row .group-num { background: var(--green); }
+
+  /* === PRINT STYLES === */
+  @media print {
+    body { background: white; }
+    .control-panel, .empty-room-panel, .btn-print, .no-print, .roster-panel, .src-tag, .staff-select { display: none !important; }
+    .print-name { display: block; font-weight: 600; border-bottom: 1px solid #999; min-height: 16px; }
+    .sheet { border: none; margin: 0; padding: 10px; max-width: none; box-shadow: none; }
+    .sheet-header { padding-bottom: 6px; margin-bottom: 8px; }
+    .assignment-table .cna-name-cell input { border-bottom: 1px solid #999; }
+    .header-fields .field input { border-bottom: 1px solid #999; }
+    .tardy-cell input { border: 1px solid #999; }
+    @page { margin: 0.4in; size: landscape; }
+  }
+</style>
+</head>
+<body>
+
+<div class="control-panel">
+  <h1>CNA Assignment Tool</h1>
+  <div class="control-group">
+    <label>Date:</label>
+    <input type="date" id="dateSelect" onchange="onDateShiftChange()">
+  </div>
+  <div class="control-group">
+    <label>Shift:</label>
+    <select id="shiftSelect" onchange="onDateShiftChange()">
+      <option value="am">AM</option>
+      <option value="pm">PM</option>
+      <option value="noc">NOC</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>CNAs:</label>
+    <select id="cnaCountSelect">
+      <option value="7">7</option>
+      <option value="6" selected>6</option>
+      <option value="5">5</option>
+      <option value="4">4</option>
+      <option value="3">3</option>
+    </select>
+  </div>
+  <button class="btn-generate" onclick="generate()">Generate Sheet</button>
+  <div class="balance-toggle">
+    <input type="checkbox" id="autoBalance" checked>
+    <label for="autoBalance">Auto-Balance</label>
+  </div>
+  <button class="btn-print" onclick="window.print()">Print</button>
+</div>
+
+<details class="roster-panel" id="rosterPanel">
+  <summary>CNA / RNA roster &amp; home groups</summary>
+  <div id="rosterBody"></div>
+</details>
+
+<div class="balance-info" id="balanceInfo"></div>
+
+<div class="empty-room-panel" id="emptyRoomPanel">
+  <h3>Click rooms to mark as empty (unoccupied) — they'll appear crossed out on the assignment sheet</h3>
+  <div class="empty-room-grid" id="emptyRoomGrid"></div>
+</div>
+
+<div class="sheet" id="sheet">
+  <p style="text-align:center;color:var(--gray-500);padding:40px 0;">Select options above and click <strong>Generate Sheet</strong></p>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+// All rooms in assignment order (matches Excel row order)
+const ALL_ROOMS = [
+  '1P','2P','3P','4P','5A','5B','5C','5D','6A','6B','6C',
+  '7A','7B','7C','8A','8B','8C','9A','9B','9C','10A','10B','10C',
+  '18A','18B',
+  '11A','11B','11C','11D','11E','11F','11G','11H',
+  '12A','12B','12C','12D','12E','12F','12G','12H',
+  '14A','14B','14C','14D','14E','14F','14G','14H',
+  '15A','15B','15C','15D','16A','16B','16C','16D'
+];
+
+// Room-to-group mapping: groupings[cnaCount] = array of {group, rooms}
+// Each entry maps rooms (by index into ALL_ROOMS) to a group number
+const GROUPINGS = {
+  7: [
+    { group: 1, start: 0, end: 7 },   // 1P-5D
+    { group: 2, start: 8, end: 16 },   // 6A-8C
+    { group: 3, start: 17, end: 24 },  // 9A-18B
+    { group: 4, start: 25, end: 32 },  // 11A-11H
+    { group: 5, start: 33, end: 40 },  // 12A-12H
+    { group: 6, start: 41, end: 48 },  // 14A-14H
+    { group: 7, start: 49, end: 56 },  // 15A-16D
+  ],
+  6: [
+    { group: 1, start: 0, end: 8 },    // 1P-6A
+    { group: 2, start: 9, end: 17 },   // 6B-9A
+    { group: 3, indices: [18,19,20,21,22,23,24, 55,56] }, // 9B-18B + 16C,16D
+    { group: 4, indices: [25,26,27,28,29,30,31,32, 49,50] }, // 11A-11H + 15A,15B
+    { group: 5, indices: [33,34,35,36,37,38,39,40, 51,52] }, // 12A-12H + 15C,15D
+    { group: 6, indices: [41,42,43,44,45,46,47,48, 53,54] }, // 14A-14H + 16A,16B
+  ],
+  5: [
+    { group: 1, start: 0, end: 10 },   // 1P-6C
+    { group: 2, start: 11, end: 21 },  // 7A-10B
+    { group: 3, indices: [22,23,24, 25,26,27,28,29,30,31,32] }, // 10C,18A,18B + 11A-11H
+    { group: 4, indices: [33,34,35,36,37,38,39,40, 49,50,51,52] }, // 12A-12H + 15A-15D
+    { group: 5, indices: [41,42,43,44,45,46,47,48, 53,54,55,56] }, // 14A-14H + 16A-16D
+  ],
+  4: [
+    { group: 1, start: 0, end: 13 },   // 1P-7C
+    { group: 2, indices: [14,15,16,17,18,19,20,21,22,23,24, 53,54,55,56] }, // 8A-18B + 16A-16D
+    { group: 3, start: 25, end: 38 },  // 11A-12F
+    { group: 4, start: 39, end: 52 },  // 12G-15D
+  ],
+  3: [
+    { group: 1, start: 0, end: 19 },   // 1P-9C
+    { group: 2, indices: [20,21,22, 25,26,27,28,29,30,31,32, 33,34,35,36,37,38,39,40] }, // 10A-10C + 11A-12H
+    { group: 3, indices: [23,24, 41,42,43,44,45,46,47,48, 49,50,51,52, 53,54,55,56] }, // 18A,18B + 14A-16D
+  ]
+};
+
+// Shower schedule — mirror of the Shower Sheet app (morning-star-rounds/showers/index.html SCHEDULE).
+// That app is the source of truth; if its schedule changes, update this block to match.
+const SHOWERS = {
+  'mon/thu': {
+    am: ['5A','6C','8A','10C','11G','12B','14A','15C','16B'],
+    pm: ['4P','5B','9B','9C','11A','11F','12A','12D','14C','14E']
+  },
+  'tue/fri': {
+    am: ['2P','6B','8B','10B','11H','12E','14H','15D','16C'],
+    pm: ['3P','7A','9A','10A','11D','11E','12H','12G','14D','18A']
+  },
+  'wed/sat': {
+    am: ['5C','7B','7C','8C','11B','12C','14B','15A','16A','16D'],
+    pm: ['1P','5D','6A','11C','12F','14F','14G','15B','18B']
+  }
+};
+
+// Map day to shower pattern
+const DAY_TO_PATTERN = {
+  mon: 'mon/thu', tue: 'tue/fri', wed: 'wed/sat',
+  thu: 'mon/thu', fri: 'tue/fri', sat: 'wed/sat',
+  sun: null  // No scheduled showers on Sunday (Extra showers Q Sunday & PRN)
+};
+
+// Staff roster (CNA/RNA by shift, home groups) lives in Supabase cna_roster.
+const SB_URL = 'https://pmnudshutxwidxdtouqj.supabase.co';
+const SB_KEY = 'sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+let roster = [];        // [{ name, shift, role, group }]
+let rosterError = '';
+let rosterView = [];
+let picks = {};         // rowKey (g1..g7, rna, float) → chosen name for this sheet
+
+// Break schedules
+const BREAKS = {
+  am: [
+    { num: '#1', times: '8:30–8:40 B &bull; 10:00–10:30 L &bull; 12:30–12:40 B' },
+    { num: '#2', times: '8:40–8:50 B &bull; 10:15–10:45 L &bull; 12:40–12:50 B' },
+    { num: '#3', times: '8:50–9:00 B &bull; 10:30–11:00 L &bull; 12:50–1:00 B' },
+  ],
+  pm: [
+    { num: '#1', times: '4:00–4:10 B &bull; 6:00–6:30 L &bull; 8:30–8:40 B' },
+    { num: '#2', times: '4:10–4:20 B &bull; 6:15–6:45 L &bull; 8:40–8:50 B' },
+    { num: '#3', times: '4:20–4:30 B &bull; 6:45–7:15 L &bull; 8:50–9:00 B' },
+  ],
+  noc: [
+    { num: '#1', times: '12:15–12:25 B &bull; 2:00–2:30 L &bull; 4:30–4:40 B' },
+    { num: '#2', times: '12:25–12:35 B &bull; 2:15–2:45 L &bull; 4:40–4:50 B' },
+    { num: '#3', times: '12:35–12:45 B &bull; 2:30–3:00 L &bull; 4:50–5:00 B' },
+  ]
+};
+
+// Additional assignments
+const ADDITIONAL_ASSIGNMENTS = [
+  { task: 'Dining Room', assign: 'RNA or Group 1' },
+  { task: 'Water/Ice', assign: '' },
+  { task: 'Floor Tray #1', assign: '' },
+  { task: 'Floor Tray #2', assign: '' },
+  { task: 'Appt/HD Transport', assign: '' },
+];
+
+const DAILY_TASKS = [
+  'ADL Care (Oral, Nail, Hair, Shave)',
+  'ADL/Meals Charting AS YOU GO (100%)',
+  'Vital Signs — Due no later than 2.5 hrs into shift',
+  'Review Falling Star binder — Care plans',
+  'Monitor Doors and Greet everyone!',
+  'Extra Showers, Bags & Nails: Q Sunday & PRN',
+];
+
+const TIMES_DUE = [
+  { task: 'AM Snacks', time: '10:00 AM' },
+  { task: 'Meal Alternates', time: '10:00 AM' },
+  { task: 'PM Snacks', time: '3:00 PM' },
+  { task: 'Diabetic Snacks', time: '9:00 PM' },
+  { task: 'Make All Beds', time: '11:00 AM' },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let emptyRooms = new Set();
+
+// ============================================================
+// FUNCTIONS
+// ============================================================
+
+function getGroupRooms(cnaCount) {
+  const config = GROUPINGS[cnaCount];
+  if (!config) return [];
+  return config.map(g => {
+    let rooms;
+    if (g.indices) {
+      rooms = g.indices.map(i => ALL_ROOMS[i]);
+    } else {
+      rooms = ALL_ROOMS.slice(g.start, g.end + 1);
+    }
+    return { group: g.group, rooms };
+  });
+}
+
+function getShowers(day, shift) {
+  const pattern = DAY_TO_PATTERN[day];
+  if (!pattern) return []; // Sunday
+  const shiftShowers = SHOWERS[pattern];
+  if (!shiftShowers) return [];
+  return shiftShowers[shift] || [];
+}
+
+function formatRoomRange(rooms) {
+  // Try to create compact range strings like "11A–11H"
+  // Group by room number first
+  const byRoom = {};
+  rooms.forEach(r => {
+    const match = r.match(/^(\d+)([A-Z]?)$/);
+    if (match) {
+      const num = match[1];
+      const bed = match[2] || '';
+      if (!byRoom[num]) byRoom[num] = [];
+      byRoom[num].push(bed);
+    }
+  });
+
+  const parts = [];
+  const roomNums = Object.keys(byRoom).sort((a, b) => {
+    // Sort: privates (single digit with P) first, then numerically
+    return parseInt(a) - parseInt(b);
+  });
+
+  for (const num of roomNums) {
+    const beds = byRoom[num].sort();
+    if (beds.length === 1 && beds[0] === '') {
+      parts.push(num);
+    } else if (beds.length === 1) {
+      parts.push(num + beds[0]);
+    } else {
+      // Check if it's a complete A-H or A-D range
+      const allBeds = 'ABCDEFGH'.split('');
+      if (beds[0] === 'P') {
+        parts.push(num + 'P');
+      } else if (beds.length >= 3 && beds[0] === 'A') {
+        parts.push(`${num}${beds[0]}–${num}${beds[beds.length-1]}`);
+      } else {
+        beds.forEach(b => parts.push(num + b));
+      }
+    }
+  }
+  return parts.join(', ');
+}
+
+function getDayName(day) {
+  const names = { mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday', sat:'Saturday', sun:'Sunday' };
+  return names[day] || day;
+}
+
+function getShiftName(shift) {
+  return shift.toUpperCase();
+}
+
+// ============================================================
+// ROSTER — CNAs/RNAs by shift (Supabase cna_roster), picked from dropdowns
+// ============================================================
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function localISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function selectedDate() { return document.getElementById('dateSelect').value; }
+function selectedShift() { return document.getElementById('shiftSelect').value.toUpperCase(); }
+function dayFromDate(iso) {
+  return ['sun','mon','tue','wed','thu','fri','sat'][new Date(iso + 'T12:00:00').getDay()];
+}
+async function rpc(fn, args) {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args || {})
+  });
+  if (!r.ok) throw new Error(`${fn}: ${r.status} ${await r.text()}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+async function loadRoster() {
+  try { roster = await rpc('get_cna_roster'); rosterError = ''; }
+  catch (e) { roster = []; rosterError = e.message; }
+  renderRoster();
+  generate();
+}
+
+// New date/shift = new sheet: clear picks so home-group defaults apply
+function onDateShiftChange() { picks = {}; renderRoster(); generate(); }
+
+function byRole(role, shift) {
+  return roster.filter(r => r.role === role && (!shift || r.shift === shift));
+}
+const OPEN = 'OPEN';
+const TYPE_IN = '__type__';
+
+// <select> for a sheet row. Options: this shift's staff first, then PRN, then other shifts.
+function staffSelect(rowKey, role, current) {
+  const shift = selectedShift();
+  const seen = new Set();
+  const group = (label, list) => {
+    const opts = list.filter(r => !seen.has(r.name)).map(r => { seen.add(r.name);
+      return `<option value="${esc(r.name)}"${r.name === current ? ' selected' : ''}>${esc(r.name)}${r.group ? ' (G' + r.group + ')' : ''}</option>`; }).join('');
+    return opts ? `<optgroup label="${esc(label)}">${opts}</optgroup>` : '';
+  };
+  const other = role === 'RNA'
+    ? roster.filter(r => r.role === 'RNA' && r.shift !== shift)
+    : roster.filter(r => r.role === 'CNA' && r.shift !== shift && r.shift !== 'PRN');
+  let html = `<option value=""${!current ? ' selected' : ''}>— select —</option>`
+    + group(`${shift} ${role}s`, byRole(role, shift))
+    + (role === 'CNA' ? group('PRN / on-call', byRole('CNA', 'PRN')) : '')
+    + group(role === 'RNA' ? 'Other RNAs' : 'Other shifts', other);
+  const known = current && (current === OPEN || roster.some(r => r.name === current));
+  if (current && !known) html += `<option value="${esc(current)}" selected>${esc(current)}</option>`;
+  html += `<option value="${OPEN}"${current === OPEN ? ' selected' : ''}>OPEN — no one assigned</option>`
+    + `<option value="${TYPE_IN}">✎ Type a name (registry / not listed)…</option>`;
+  return `<select class="staff-select${current === OPEN ? ' open-shift' : ''}" data-row="${rowKey}" onchange="pickStaff(this)">${html}</select>`;
+}
+
+function pickStaff(sel) {
+  let v = sel.value;
+  if (v === TYPE_IN) {
+    v = (prompt('Name (e.g., registry CNA — add agency):') || '').trim();
+    if (!v) { sel.value = picks[sel.dataset.row] || ''; return; }
+  }
+  picks[sel.dataset.row] = v;
+  generate();
+}
+
+// Default picks: each group's home-group CNA for this shift; RNA row = the shift's RNA (AM only has RNAs)
+function defaultPick(rowKey) {
+  const shift = selectedShift();
+  if (rowKey === 'rna') { const r = byRole('RNA', shift); return r.length === 1 ? r[0].name : ''; }
+  if (rowKey === 'float') return '';
+  const g = parseInt(rowKey.slice(1), 10);
+  const h = roster.find(r => r.role === 'CNA' && r.shift === shift && r.group === g);
+  return h ? h.name : '';
+}
+function currentPick(rowKey) { return rowKey in picks ? picks[rowKey] : defaultPick(rowKey); }
+
+// Names picked on more than one row (flag, don't block — a CNA can legitimately cover two)
+function duplicatePicks(rowKeys) {
+  const count = {};
+  rowKeys.forEach(k => { const v = currentPick(k); if (v && v !== OPEN) count[v] = (count[v] || 0) + 1; });
+  return new Set(Object.keys(count).filter(n => count[n] > 1));
+}
+
+// ---------- Roster manager (editing behind the hub's Leadership PIN) ----------
+const LEADER_HASH = 'cdc86d5bacca35b49d4c518e1a604f8ee3df1cf4e7ac5723a4962a73055bfbe7'; // same as hub GATES.leader
+function sha256(ascii){
+  function rightRotate(v,a){return(v>>>a)|(v<<(32-a));}
+  var mathPow=Math.pow,maxWord=mathPow(2,32),result='',words=[],asciiBitLength=ascii.length*8;
+  var hash=sha256.h=sha256.h||[],k=sha256.k=sha256.k||[],primeCounter=k.length,isComposite={};
+  for(var candidate=2;primeCounter<64;candidate++){
+    if(!isComposite[candidate]){
+      for(var i=0;i<313;i+=candidate)isComposite[i]=candidate;
+      hash[primeCounter]=(mathPow(candidate,.5)*maxWord)|0;
+      k[primeCounter++]=(mathPow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56)ascii+='\x00';
+  for(i=0;i<ascii.length;i++){
+    var j=ascii.charCodeAt(i);
+    if(j>>8)return;
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=(asciiBitLength/maxWord)|0;
+  words[words.length]=asciiBitLength;
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oldHash=hash;
+    hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2];
+      var a=hash[0],e=hash[4];
+      var temp1=hash[7]+(rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=(i<16)?w[i]:(w[i-16]+(rightRotate(w15,7)^rightRotate(w15,18)^(w15>>>3))+w[i-7]+(rightRotate(w2,17)^rightRotate(w2,19)^(w2>>>10)))|0);
+      var temp2=(rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(temp1+temp2)|0].concat(hash);
+      hash[4]=(hash[4]+temp1)|0;
+    }
+    for(i=0;i<8;i++)hash[i]=(hash[i]+oldHash[i])|0;
+  }
+  for(i=0;i<8;i++){
+    for(j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b<16)?0:'')+b.toString(16);
+    }
+  }
+  return result;
+}
+function canEditRoster() { try { return localStorage.getItem('msHubLeader') === '1'; } catch (e) { return false; } }
+function unlockRoster() {
+  const v = (prompt('Leadership PIN to edit the roster:') || '').trim();
+  if (!v) return;
+  if (sha256(v) === LEADER_HASH) { try { localStorage.setItem('msHubLeader', '1'); } catch (e) {} renderRoster(); }
+  else alert('Incorrect PIN');
+}
+
+function renderRoster() {
+  const body = document.getElementById('rosterBody');
+  if (rosterError) { body.innerHTML = `<div class="roster-note" style="color:#c53030">Couldn't load the roster (${esc(rosterError)}).</div>`; return; }
+  const shift = selectedShift();
+  const shiftOrder = { [shift]: 0, PRN: 1 };
+  const list = [...roster].sort((a, b) =>
+    (shiftOrder[a.shift] ?? 2) - (shiftOrder[b.shift] ?? 2) || a.shift.localeCompare(b.shift)
+    || a.role.localeCompare(b.role) || (a.group || 99) - (b.group || 99) || a.name.localeCompare(b.name));
+  const gOpts = cur => ['', 1, 2, 3, 4, 5, 6, 7].map(n =>
+    `<option value="${n}"${String(cur ?? '') === String(n) ? ' selected' : ''}>${n === '' ? 'Float' : 'Group ' + n}</option>`).join('');
+  const edit = canEditRoster();
+  const grp = (r, i) => r.role !== 'CNA' || r.shift === 'PRN' ? '—'
+    : edit ? `<select data-i="${i}" onchange="rosterGroup(this)">${gOpts(r.group)}</select>` : (r.group ? 'Group ' + r.group : 'Float');
+  const rows = list.map((r, i) => `<tr class="${r.shift === shift ? 'this-shift' : ''}">
+      <td>${esc(r.name)}</td><td>${r.shift}</td><td>${r.role}</td><td>${grp(r, i)}</td>
+      <td>${edit ? `<button class="mini" data-i="${i}" onclick="rosterRemove(this)">Remove</button>` : ''}</td></tr>`).join('');
+  rosterView = list;
+  const table = `<table class="roster-table"><thead><tr><th>Name</th><th>Shift</th><th>Role</th><th>Home group</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  if (!edit) {
+    body.innerHTML = table + `<div class="roster-add"><button class="mini primary" onclick="unlockRoster()">🔒 Edit roster (leadership PIN)</button></div>
+      <div class="roster-note">Not listed? Pick "✎ Type a name" on the sheet. Ask the DSD/ADON to add regular staff to the roster.</div>`;
+    return;
+  }
+  body.innerHTML = table + `
+    <div class="roster-add">
+      <input id="addName" placeholder="First Last" maxlength="60">
+      <select id="addShift"><option>AM</option><option>PM</option><option>NOC</option><option>PRN</option></select>
+      <select id="addRole"><option>CNA</option><option>RNA</option></select>
+      <select id="addGroup">${gOpts('')}</select>
+      <button class="mini primary" onclick="rosterAdd()">Add</button>
+    </div>
+    <div class="roster-note">A home-group CNA is pre-selected for that group whenever that many groups are running. Giving someone a group moves the previous holder to Float. Changes are saved for everyone.</div>`;
+}
+async function saveRoster(r, active = true) {
+  await rpc('save_cna_roster', { p_name: r.name, p_shift: r.shift, p_role: r.role, p_group: r.group ?? null, p_active: active });
+}
+async function rosterGroup(sel) {
+  const r = rosterView[sel.dataset.i];
+  try { await saveRoster({ ...r, group: sel.value === '' ? null : parseInt(sel.value, 10) }); picks = {}; await loadRoster(); }
+  catch (e) { alert('Could not save: ' + e.message); }
+}
+async function rosterRemove(btn) {
+  const r = rosterView[btn.dataset.i];
+  if (!confirm(`Remove ${r.name} (${r.shift} ${r.role}) from the roster?`)) return;
+  try { await saveRoster(r, false); await loadRoster(); } catch (e) { alert('Could not remove: ' + e.message); }
+}
+async function rosterAdd() {
+  const name = document.getElementById('addName').value.replace(/\s+/g, ' ').trim();
+  if (!name) return;
+  const role = document.getElementById('addRole').value, shift = document.getElementById('addShift').value;
+  const g = document.getElementById('addGroup').value;
+  try { await saveRoster({ name, shift, role, group: g === '' || role === 'RNA' || shift === 'PRN' ? null : parseInt(g, 10) }); await loadRoster(); }
+  catch (e) { alert('Could not add: ' + e.message); }
+}
+
+function initEmptyRoomGrid() {
+  const grid = document.getElementById('emptyRoomGrid');
+  grid.innerHTML = '';
+  ALL_ROOMS.forEach(room => {
+    const btn = document.createElement('button');
+    btn.className = 'room-btn' + (emptyRooms.has(room) ? ' empty' : '');
+    btn.textContent = room;
+    btn.onclick = () => {
+      if (emptyRooms.has(room)) {
+        emptyRooms.delete(room);
+        btn.classList.remove('empty');
+      } else {
+        emptyRooms.add(room);
+        btn.classList.add('empty');
+      }
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// Rooms that must NEVER be split across CNAs (large multi-bed wards)
+const LOCKED_ROOMS = new Set(['11', '12', '14']);
+
+// Auto-balance: redistribute occupied beds evenly across groups.
+// RULE: Rooms 11, 12, and 14 are kept as whole blocks (one CNA per room).
+//       All other rooms (privates, semi-privates) can split freely for better balance.
+// Uses optimal linear partition (binary search) on "chunks" — where a chunk is either
+// a locked room block or a single bed from a non-locked room.
+function balanceGroups(baseGroups, emptySet) {
+  const numGroups = baseGroups.length;
+
+  // Step 1: Build distributable chunks in geographic order
+  // Locked rooms → one chunk with all their occupied beds
+  // Everything else → one chunk per individual bed
+  const chunks = [];
+  let currentLockedRoom = null;
+  let currentLockedChunk = null;
+
+  for (const bed of ALL_ROOMS) {
+    if (emptySet.has(bed)) continue;
+    const roomNum = bed.match(/^(\d+)/)[1];
+
+    if (LOCKED_ROOMS.has(roomNum)) {
+      // Accumulate into a locked room block
+      if (roomNum !== currentLockedRoom) {
+        if (currentLockedChunk) chunks.push(currentLockedChunk);
+        currentLockedRoom = roomNum;
+        currentLockedChunk = { room: roomNum, beds: [bed], locked: true };
+      } else {
+        currentLockedChunk.beds.push(bed);
+      }
+    } else {
+      // Flush any pending locked block first
+      if (currentLockedChunk) {
+        chunks.push(currentLockedChunk);
+        currentLockedChunk = null;
+        currentLockedRoom = null;
+      }
+      // Individual bed = its own chunk
+      chunks.push({ room: roomNum, beds: [bed], locked: false });
+    }
+  }
+  if (currentLockedChunk) chunks.push(currentLockedChunk);
+
+  const totalOccupied = chunks.reduce((s, c) => s + c.beds.length, 0);
+  if (totalOccupied === 0) {
+    return baseGroups.map(g => ({ ...g, rooms: [], rebalancedRooms: new Set() }));
+  }
+
+  const sizes = chunks.map(c => c.beds.length);
+
+  // Step 2: Binary search for the optimal max-group-size
+  function canPartition(maxSize) {
+    let groupsUsed = 1;
+    let currentSum = 0;
+    for (const sz of sizes) {
+      if (sz > maxSize) return false;
+      if (currentSum + sz > maxSize) {
+        groupsUsed++;
+        currentSum = sz;
+        if (groupsUsed > numGroups) return false;
+      } else {
+        currentSum += sz;
+      }
+    }
+    return true;
+  }
+
+  let lo = Math.max(...sizes);
+  let hi = totalOccupied;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (canPartition(mid)) hi = mid;
+    else lo = mid + 1;
+  }
+  const optimalMax = lo;
+
+  // Step 3: Assign chunks to groups using the optimal max
+  const assigned = Array.from({ length: numGroups }, () => []);
+  const counts = new Array(numGroups).fill(0);
+
+  let gi = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+
+    // Add chunk to current group
+    assigned[gi].push(...chunk.beds);
+    counts[gi] += chunk.beds.length;
+
+    // Decide whether to advance
+    if (gi < numGroups - 1 && i < chunks.length - 1) {
+      const nextSize = sizes[i + 1];
+      const wouldExceed = counts[gi] + nextSize > optimalMax;
+      const remainingBeds = sizes.slice(i + 1).reduce((s, v) => s + v, 0);
+      const remainingGroups = numGroups - gi - 1;
+      const targetAvg = totalOccupied / numGroups;
+      const currentAboveAvg = counts[gi] >= targetAvg;
+      const restCanFill = remainingGroups > 0 && (remainingBeds / remainingGroups) >= targetAvg * 0.75;
+
+      if (wouldExceed || (currentAboveAvg && restCanFill)) {
+        gi++;
+      }
+    }
+  }
+
+  // Step 4: Build output with rebalanced tracking
+  return assigned.map((beds, i) => {
+    const originalRooms = new Set(baseGroups[i].rooms);
+    const rebalancedRooms = new Set(beds.filter(r => !originalRooms.has(r)));
+
+    return {
+      group: baseGroups[i].group,
+      rooms: beds,
+      allRooms: beds,
+      rebalancedRooms,
+      occupiedCount: beds.length,
+    };
+  });
+}
+
+function generate() {
+  const day = dayFromDate(selectedDate());
+  const shift = document.getElementById('shiftSelect').value;
+  const cnaCount = parseInt(document.getElementById('cnaCountSelect').value);
+  const autoBalance = document.getElementById('autoBalance').checked;
+
+  const baseGroups = getGroupRooms(cnaCount);
+  const showers = getShowers(day, shift);
+  const rowKeys = [...getGroupRooms(cnaCount).map(g => 'g' + g.group), 'rna', 'float'];
+  const dupes = duplicatePicks(rowKeys);
+  const nameCell = (key, role) => {
+    const v = currentPick(key);
+    return `<td class="cna-name-cell${dupes.has(v) ? ' dupe' : ''}">${staffSelect(key, role, v)}<span class="print-name">${v === OPEN ? 'OPEN' : esc(v)}</span>${dupes.has(v) ? '<span class="src-tag">on 2+ rows</span>' : ''}</td>`;
+  };
+  const breaks = BREAKS[shift] || [];
+
+  // Determine if balancing is needed
+  const occupiedCounts = baseGroups.map(g => g.rooms.filter(r => !emptyRooms.has(r)).length);
+  const maxOcc = Math.max(...occupiedCounts);
+  const minOcc = Math.min(...occupiedCounts);
+  const imbalance = maxOcc - minOcc;
+  const shouldBalance = autoBalance && emptyRooms.size > 0 && imbalance > 1;
+
+  // Get final groups (balanced or original)
+  let groups;
+  if (shouldBalance) {
+    groups = balanceGroups(baseGroups, emptyRooms);
+  } else {
+    groups = baseGroups.map(g => ({
+      ...g,
+      allRooms: g.rooms,
+      rebalancedRooms: new Set(),
+      occupiedCount: g.rooms.filter(r => !emptyRooms.has(r)).length
+    }));
+  }
+
+  // Show/hide balance info bar
+  const balanceInfoEl = document.getElementById('balanceInfo');
+  if (shouldBalance) {
+    const totalOccupied = ALL_ROOMS.filter(r => !emptyRooms.has(r)).length;
+    const newCounts = groups.map(g => g.rooms.length);
+    const maxBal = Math.max(...newCounts);
+    const minBal = Math.min(...newCounts);
+    // Count unique room numbers per group to show room-level summary
+    const roomSummary = groups.map(g => {
+      const roomNums = [...new Set(g.rooms.map(r => r.match(/^(\d+)/)[1]))];
+      return `Grp ${g.group}: Rms ${roomNums.join(',')} (${g.rooms.length} res.)`;
+    }).join(' &bull; ');
+    balanceInfoEl.innerHTML = `<strong>Auto-Balanced:</strong>
+      <span class="stat">${totalOccupied}</span> residents across
+      <span class="stat">${cnaCount}</span> CNAs =
+      <span class="stat">${newCounts.join(', ')}</span> residents each
+      (spread: ${maxBal - minBal}).
+      <span style="opacity:0.7;">Rooms 11, 12 &amp; 14 stay with one CNA. Green-highlighted beds were moved.</span>
+      <br><span style="font-size:11px;opacity:0.8;margin-top:2px;display:inline-block;">${roomSummary}</span>`;
+    balanceInfoEl.classList.add('visible');
+  } else {
+    balanceInfoEl.classList.remove('visible');
+    if (autoBalance && emptyRooms.size > 0 && imbalance <= 1) {
+      balanceInfoEl.innerHTML = `<strong>Balanced:</strong> Workload is already even (max difference: ${imbalance} resident). No redistribution needed.`;
+      balanceInfoEl.classList.add('visible');
+    }
+  }
+
+  const dateStr = new Date(selectedDate() + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+
+  let html = '';
+
+  // Header
+  const balanceBadge = shouldBalance
+    ? '<span class="balance-badge">BALANCED</span>'
+    : (autoBalance && emptyRooms.size > 0 ? '<span class="balance-badge" style="background:#2b6cb0">EVEN</span>' : '');
+  html += `<div class="sheet-header">
+    <div>
+      <h2>CNA ASSIGNMENT SHEET ${balanceBadge}</h2>
+      <div style="font-size:13px;color:var(--gray-700);margin-top:2px;">
+        ${getShiftName(shift)} Shift &bull; ${getDayName(day)} &bull; ${cnaCount} CNAs
+        ${emptyRooms.size > 0 ? ` &bull; <strong>${ALL_ROOMS.length - emptyRooms.size}</strong> of ${ALL_ROOMS.length} beds occupied` : ''}
+      </div>
+    </div>
+    <div class="meta">
+      <div><strong>Morning Star Post Acute</strong></div>
+      <div>111 Barstow Ave, Clovis CA</div>
+    </div>
+  </div>`;
+
+  // Editable header fields
+  html += `<div class="header-fields">
+    <div class="field"><label>Date:</label><input type="text" value="${dateStr}"></div>
+    <div class="field"><label>Desk Nurse:</label><input type="text"></div>
+    <div class="field"><label>Nurse (Side 1):</label><input type="text"></div>
+    <div class="field"><label>Nurse (Side 2):</label><input type="text"></div>
+  </div>`;
+
+  // Instruction
+  html += `<div class="instruction-bar">
+    30 min prior to the oncoming shift: Nurse (Side 1) writes schedule on white board &bull; Nurse (Side 2) does assignment sheet
+  </div>`;
+
+  // Assignment table
+  html += `<table class="assignment-table">
+    <thead><tr>
+      <th style="width:40px">Group</th>
+      <th style="width:180px">CNA Name</th>
+      <th>Room Assignments</th>
+      <th style="width:130px">Shower Assignments</th>
+      <th style="width:55px">Break #</th>
+      <th style="width:50px">Tardy?</th>
+    </tr></thead><tbody>`;
+
+  groups.forEach((g, idx) => {
+
+    // Find showers that belong to this group's rooms
+    const groupShowers = showers.filter(s => g.rooms.includes(s));
+
+    // Build room tags
+    let roomTags = '';
+    if (shouldBalance) {
+      // Balanced mode: show only occupied rooms, highlight moved ones
+      g.rooms.forEach(r => {
+        const isMoved = g.rebalancedRooms.has(r);
+        roomTags += `<span class="room-tag${isMoved ? ' rebalanced' : ''}">${r}</span>`;
+      });
+    } else {
+      // Standard mode: show all rooms, strike through empties
+      g.allRooms.forEach(r => {
+        const isEmpty = emptyRooms.has(r);
+        roomTags += `<span class="room-tag${isEmpty ? ' empty' : ''}">${r}</span>`;
+      });
+    }
+    const occCount = shouldBalance ? g.rooms.length : g.allRooms.filter(r => !emptyRooms.has(r)).length;
+    roomTags += `<span class="room-count">${occCount} residents</span>`;
+
+    // Build shower tags
+    let showerTags = groupShowers.map(s => `<span class="shower-tag">${s}</span>`).join('');
+    if (!showerTags && day !== 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">—</span>';
+    if (day === 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">PRN</span>';
+
+    const breakNum = idx < breaks.length ? breaks[idx].num : '';
+
+    html += `<tr>
+      <td class="group-num">${g.group}</td>
+      ${nameCell('g' + g.group, 'CNA')}
+      <td class="rooms-cell">${roomTags}</td>
+      <td class="shower-cell">${showerTags}</td>
+      <td class="break-cell">${breakNum}</td>
+      <td class="tardy-cell"><input type="text" maxlength="5"></td>
+    </tr>`;
+  });
+
+  // RNA row — restorative program; own break block
+  html += `<tr class="rna-row">
+    <td class="group-num" style="font-size:11px;">RNA</td>
+    ${nameCell('rna', 'RNA')}
+    <td class="rooms-cell" style="font-size:11px;">Restorative program &bull; In Dining Room by 11:20</td>
+    <td class="shower-cell"><span style="color:var(--gray-500);font-size:11px;">—</span></td>
+    <td class="break-cell" style="font-size:10px;">RNA</td>
+    <td class="tardy-cell"><input type="text" maxlength="5"></td>
+  </tr>`;
+
+  // Float row — extra CNA covering as needed
+  html += `<tr class="float-row">
+    <td class="group-num" style="font-size:11px;">Float</td>
+    ${nameCell('float', 'CNA')}
+    <td class="rooms-cell" style="font-size:11px;color:var(--gray-500);">Covers as needed</td>
+    <td class="shower-cell"><span style="color:var(--gray-500);font-size:11px;">PRN</span></td>
+    <td class="break-cell" style="font-size:10px;">As assigned</td>
+    <td class="tardy-cell"><input type="text" maxlength="5"></td>
+  </tr>`;
+
+  html += '</tbody></table>';
+
+  // Two-column lower section
+  html += '<div class="two-col">';
+
+  // Left: Additional assignments + daily tasks
+  html += '<div class="section-box"><h3>Additional Assignments</h3><ul>';
+  ADDITIONAL_ASSIGNMENTS.forEach((a, i) => {
+    html += `<li><span class="task-label">${i+1}) ${a.task}</span><span class="task-assign">${a.assign}</span></li>`;
+  });
+  html += '</ul><h3 style="margin-top:10px;">Daily Tasks — ALL CNAs</h3><ul>';
+  DAILY_TASKS.forEach((t, i) => {
+    html += `<li><span class="task-label">${i+1}) ${t}</span></li>`;
+  });
+  html += '</ul></div>';
+
+  // Right: Times due + break schedule
+  html += '<div class="section-box"><h3>Times Due</h3><div class="times-grid">';
+  TIMES_DUE.forEach(t => {
+    html += `<div class="time-item"><span>${t.task}</span><span class="time-val">${t.time}</span></div>`;
+  });
+  html += '</div>';
+
+  html += `<h3 style="margin-top:10px;">Break & Lunch Schedule (${getShiftName(shift)})</h3>`;
+  html += '<table class="break-table"><thead><tr><th>Block</th><th>Break 1</th><th>Lunch</th><th>Break 2</th></tr></thead><tbody>';
+
+  const currentBreaks = BREAKS[shift] || [];
+  currentBreaks.forEach(b => {
+    // Parse the times string to split into 3 columns
+    const parts = b.times.split(' &bull; ');
+    html += `<tr><td class="shift-label">${b.num}</td>`;
+    parts.forEach(p => { html += `<td>${p}</td>`; });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  // RNA/Float special break
+  html += `<div style="font-size:11px;margin-top:6px;color:var(--gray-700);">
+    <strong>RNA:</strong> 9:10 B &bull; 10:30–11:00 L &bull; 1:10 B — In DR by 11:20
+  </div>`;
+
+  html += '</div></div>'; // end two-col
+
+  // Footer
+  html += `<div class="footer-note">
+    Lunches and breaks are to be taken in the breakroom or off the floor — not in resident care areas. Log "OUT TIMES" on white board.
+  </div>`;
+  html += `<div class="footer-brand">
+    "We Enrich Lives in Happy, Helpful, and Heartfelt Ways." &bull; Morning Star Post Acute
+  </div>`;
+
+  document.getElementById('sheet').innerHTML = html;
+}
+
+// Default to the oncoming shift: sheet is built ~30 min before shift change
+// (AM 6a–2p, PM 2p–10p, NOC 10p–6a). A NOC sheet is dated by the evening it starts.
+function setDefaults() {
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  let shift = 'am', d = new Date(now);
+  if (mins >= 5 * 60 + 30 && mins < 13 * 60 + 30) shift = 'am';
+  else if (mins >= 13 * 60 + 30 && mins < 21 * 60 + 30) shift = 'pm';
+  else shift = 'noc';
+  if (mins < 5 * 60 + 30) { shift = 'noc'; d.setDate(d.getDate() - 1); } // NOC that started last night
+  document.getElementById('shiftSelect').value = shift;
+  document.getElementById('dateSelect').value = localISO(d);
+}
+
+// Init
+setDefaults();
+initEmptyRoomGrid();
+generate();
+loadRoster();
+</script>
+</body>
+</html>
