@@ -107,6 +107,7 @@
     background: transparent;
   }
   .header-fields .field input:focus { outline: none; border-bottom-color: var(--primary); }
+  .header-fields .nurse-pick { flex: 1; }
   .instruction-bar {
     background: var(--gray-100); padding: 6px 12px; font-size: 11px;
     color: var(--gray-700); border-radius: 4px; margin-bottom: 12px;
@@ -157,6 +158,20 @@
   }
   .assignment-table tr.float-row { background: #fffff0; }
   .assignment-table tr.float-row .group-num { background: var(--gold); }
+
+  /* === PENDING DIAGNOSTICS === */
+  .pending-box { border: 2px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; }
+  .pending-hdr { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+  .pending-hdr h3 { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pending-hdr span { font-size: 10px; color: var(--gray-700); }
+  .pending-stop { background: #fff5f5; color: #9b2c2c; font-size: 11px; padding: 4px 8px; border-radius: 4px; margin: 6px 0; }
+  .pending-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .pending-table th { text-align: left; font-size: 10px; color: var(--gray-700); background: var(--gray-100);
+    padding: 3px 6px; border: 1px solid var(--gray-200); }
+  .pending-table td { border: 1px solid var(--gray-200); padding: 0; height: 22px; }
+  .pending-table input { width: 100%; border: none; padding: 3px 6px; font-size: 11px; font-family: inherit; background: transparent; }
+  .pending-table input:focus { outline: 2px solid var(--primary-light); }
+  .pending-foot { font-size: 10px; color: var(--gray-500); margin-top: 4px; display: flex; gap: 10px; align-items: center; }
 
   /* === LOWER SECTIONS === */
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
@@ -261,12 +276,16 @@
     .control-panel, .empty-room-panel, .btn-print, .no-print, .roster-panel, .src-tag, .staff-select { display: none !important; }
     .print-name { display: block; font-weight: 600; border-bottom: 1px solid #999; min-height: 16px; }
     /* keep it to one landscape page (AM with 7 groups + RNA + Float is the tallest case) */
-    html { zoom: 0.9; }
+    html { zoom: 0.8; }
+    .assignment-table { margin-bottom: 8px; }
+    .assignment-table td { padding: 3px 6px; }
     .two-col { margin-bottom: 6px; gap: 10px; }
     .section-box { padding: 6px 10px; }
     .footer-note { margin-top: 4px; padding: 4px 0; }
     .instruction-bar { margin-bottom: 8px; }
     .header-fields { margin-bottom: 8px; }
+    .pending-table input::placeholder { color: transparent; }
+    .pending-box { margin-bottom: 8px; padding: 6px 10px; }
     .sheet { border: none; margin: 0; padding: 10px; max-width: none; box-shadow: none; }
     .sheet-header { padding-bottom: 6px; margin-bottom: 8px; }
     .assignment-table .cna-name-cell input { border-bottom: 1px solid #999; }
@@ -412,7 +431,10 @@ const SB_KEY = 'sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 let roster = [];        // [{ name, shift, role, group }]
 let rosterError = '';
 let rosterView = [];
-let picks = {};         // rowKey (g1..g7, rna, float) → chosen name for this sheet
+let picks = {};
+// Pending diagnostics (SWI-Nursing-Pending-Diagnostic-Communication, Task 5). Room/bed only — typed on
+// screen for printing, never saved (the page is public; the paper sheet is the record).
+let pendingRows = [{}, {}, {}];         // rowKey (g1..g7, rna, float) → chosen name for this sheet
 
 // Break schedules
 const BREAKS = {
@@ -597,13 +619,14 @@ function staffSelect(rowKey, role, current) {
       return `<option value="${esc(r.name)}"${r.name === current ? ' selected' : ''}>${esc(r.name)}${rosterTag(r)}</option>`; }).join('');
     return opts ? `<optgroup label="${esc(label)}">${opts}</optgroup>` : '';
   };
-  const other = role === 'RNA'
-    ? roster.filter(r => r.role === 'RNA' && r.shift !== shift)
-    : roster.filter(r => r.role === 'CNA' && r.shift !== shift && r.shift !== 'PRN');
+  const other = role === 'CNA'
+    ? roster.filter(r => r.role === 'CNA' && r.shift !== shift && r.shift !== 'PRN')
+    : roster.filter(r => r.role === role && r.shift !== shift);
+  const label = { CNA: 'CNAs', RNA: 'RNAs', NURSE: 'Nurses' }[role];
   let html = `<option value=""${!current ? ' selected' : ''}>— select —</option>`
-    + group(`${shift} ${role}s`, byRole(role, shift))
+    + group(`${shift} ${label}`, byRole(role, shift))
     + (role === 'CNA' ? group('PRN / on-call', byRole('CNA', 'PRN')) : '')
-    + group(role === 'RNA' ? 'Other RNAs' : 'Other shifts', other);
+    + group(role === 'CNA' ? 'Other shifts' : `Other ${label}`, other);
   const known = current && (current === OPEN || roster.some(r => r.name === current));
   if (current && !known) html += `<option value="${esc(current)}" selected>${esc(current)}</option>`;
   html += `<option value="${OPEN}"${current === OPEN ? ' selected' : ''}>OPEN — no one assigned</option>`
@@ -614,7 +637,7 @@ function staffSelect(rowKey, role, current) {
 function pickStaff(sel) {
   let v = sel.value;
   if (v === TYPE_IN) {
-    v = (prompt('Name (e.g., registry CNA — add agency):') || '').trim();
+    v = (prompt('Name (registry staff — add the agency, e.g. "Jane Doe (Nursa)"):') || '').trim();
     if (!v) { sel.value = picks[sel.dataset.row] || ''; return; }
   }
   picks[sel.dataset.row] = v;
@@ -625,7 +648,7 @@ function pickStaff(sel) {
 function defaultPick(rowKey) {
   const shift = selectedShift();
   if (rowKey === 'rna') { const r = byRole('RNA', shift); return r.length === 1 ? r[0].name : ''; }
-  if (rowKey === 'float') return '';
+  if (rowKey === 'float' || rowKey[0] !== 'g') return '';   // float + nurse fields start blank
   const g = parseInt(rowKey.slice(1), 10);
   const h = roster.find(r => r.role === 'CNA' && r.shift === shift && r.group === g);
   return h ? h.name : '';
@@ -719,7 +742,7 @@ function renderRoster() {
     <div class="roster-add">
       <input id="addName" placeholder="First Last" maxlength="60">
       <select id="addShift"><option>AM</option><option>PM</option><option>NOC</option><option>PRN</option></select>
-      <select id="addRole"><option>CNA</option><option>RNA</option></select>
+      <select id="addRole"><option>CNA</option><option>RNA</option><option value="NURSE">Nurse</option></select>
       <select id="addGroup">${gOpts('')}</select>
       <button class="mini primary" onclick="rosterAdd()">Add</button>
     </div>
@@ -903,6 +926,8 @@ function generate() {
   const showers = getShowers(day, shift);
   const rowKeys = [...getGroupRooms(cnaCount).map(g => 'g' + g.group), 'rna', 'float'];
   const dupes = duplicatePicks(rowKeys);
+  const nurseField = key => { const v = currentPick(key);
+    return `<span class="nurse-pick">${staffSelect(key, 'NURSE', v)}<span class="print-name">${v === OPEN ? 'OPEN' : esc(v)}</span></span>`; };
   const nameCell = (key, role) => {
     const v = currentPick(key);
     return `<td class="cna-name-cell${dupes.has(v) ? ' dupe' : ''}">${staffSelect(key, role, v)}<span class="print-name">${v === OPEN ? 'OPEN' : esc(v)}</span>${dupes.has(v) ? '<span class="src-tag">on 2+ rows</span>' : ''}</td>`;
@@ -982,9 +1007,9 @@ function generate() {
   // Editable header fields
   html += `<div class="header-fields">
     <div class="field"><label>Date:</label><input type="text" value="${dateStr}"></div>
-    <div class="field"><label>Desk Nurse:</label><input type="text"></div>
-    <div class="field"><label>Nurse (Side 1):</label><input type="text"></div>
-    <div class="field"><label>Nurse (Side 2):</label><input type="text"></div>
+    <div class="field"><label>Desk Nurse:</label>${nurseField('desk')}</div>
+    <div class="field"><label>Nurse (Side 1):</label>${nurseField('side1')}</div>
+    <div class="field"><label>Nurse (Side 2):</label>${nurseField('side2')}</div>
   </div>`;
 
   // Instruction
@@ -1065,6 +1090,24 @@ function generate() {
   </tr>`;
 
   html += '</tbody></table>';
+
+  // Pending diagnostics & activity precautions (SWI Task 5 flag; Task 8 CNA hard stop)
+  const PD_COLS = [['room', 'Rm/Bed', 'e.g. 12B', 60], ['study', 'Study pending', 'e.g. L hip X-ray', 150],
+    ['precaution', 'Activity precaution (plain language)', 'e.g. NO transfer out of bed', 0],
+    ['ordered', 'Ordered', 'date/shift', 80], ['cna', 'CNA told face-to-face', 'CNA initials', 110], ['rn', 'Nurse', 'initials', 60]];
+  html += `<div class="pending-box">
+    <div class="pending-hdr"><h3>Pending Diagnostics &amp; Activity Precautions</h3>
+      <span>Charge nurse: carry forward every shift until closed &bull; room/bed only — no names</span></div>
+    <div class="pending-stop"><strong>CNAs — before you move anyone who fell, check this box.</strong>
+      Not sure if a study is pending? <strong>ASK THE NURSE BEFORE YOU TRANSFER.</strong>
+      New pain during a transfer: STOP, make them safe, tell the nurse now.</div>
+    <table class="pending-table"><thead><tr>${PD_COLS.map(c => `<th${c[3] ? ` style="width:${c[3]}px"` : ''}>${c[1]}</th>`).join('')}</tr></thead><tbody>
+    ${pendingRows.map((r, i) => `<tr>${PD_COLS.map(c => `<td><input type="text" maxlength="80" data-pd="${i}" data-k="${c[0]}"
+        value="${esc(r[c[0]] || '')}" placeholder="${c[2]}" oninput="pendingRows[this.dataset.pd][this.dataset.k]=this.value"></td>`).join('')}</tr>`).join('')}
+    </tbody></table>
+    <div class="pending-foot"><button class="mini no-print" onclick="pendingRows.push({});generate()">+ Add row</button>
+      Only the licensed nurse lifts a precaution, with a provider order (result reviewed &rarr; provider notified &rarr; CNAs told &rarr; care plan updated).</div>
+  </div>`;
 
   // Two-column lower section
   html += '<div class="two-col">';
