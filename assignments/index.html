@@ -1131,8 +1131,9 @@ function generate() {
     if (!showerTags && day !== 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">—</span>';
     if (day === 'sun') showerTags = '<span style="color:var(--gray-500);font-size:11px;">PRN</span>';
 
-    // Cycle break blocks so every group has one (#1, #2, #3, #1, …) — two CNAs per block, never the same float pair
-    const breakNum = breaks.length ? breaks[idx % breaks.length].num : '';
+    // Break blocks rotate #1, #3, #2 (G1 #1, G2 #3, G3 #2, G4 #1, …) so a whole side is never on break at once
+    const BREAK_ORDER = [0, 2, 1];
+    const breakNum = breaks.length ? breaks[BREAK_ORDER[idx % 3] % breaks.length].num : '';
 
     html += `<tr>
       <td class="group-num">${g.group}</td>
