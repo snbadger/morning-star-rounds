@@ -19,7 +19,7 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 | In-Service Completion | `/inservice-dashboard/` | Leadership (PIN on hub) — DSD | Supabase `v_dsd_*` views via `dining-quiz` edge fn | Live — added 9/17/26 |
 | Equipment Repair | `/repairs/` | All staff | Supabase `equipment_repairs` + repair-notify email | Live |
 | Shout Outs | `/shoutouts/` | All staff | Supabase `shoutouts` | Live |
-| Room Rounds & Daily Board | `/rounds/` | Leadership (PIN on hub) | Supabase `rounding_observations`, `action_items` | Live — moved from root 8/19/26 |
+| Room Rounds & Daily Board | `/rounds/` | Leadership (PIN on hub) | Supabase `rounding_observations`, `action_items`; LAL mattress setting miss → same-day Nursing action item + DON email via `lal-notify` | Live — moved from root 8/19/26; LAL check added 10/1/26 |
 | Staffing Form Signatures (612) | `/form-signing/?t={token}` | Donna / Amandeep | Supabase | Live — personal links only, not on hub |
 | Team Building Prep | `/teambuilding/` | Dept heads | — | One-time (July 2026), not on hub |
 | Supply Order | separate repo `morning-star-supply` | All staff search & add; `#admin` = ordering view (mark off + CSV) | Supabase `supply_requests` | Live |
