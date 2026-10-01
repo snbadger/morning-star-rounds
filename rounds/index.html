@@ -261,6 +261,11 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 var today=function(){return new Date().toISOString().split('T')[0]};
 var fmtDate=function(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})};
 var dayOfWeek=function(){return new Date().toLocaleDateString('en-US',{weekday:'long'})};
+// Client-side uuid so an action_items row can be referenced without .select() after insert
+var newUuid=function(){
+ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&3|8)).toString(16)});
+};
 // -- DATA STORE --
 var store={rounds:[]};
 var supabaseLoaded=false;
@@ -620,6 +625,8 @@ var ROOM_GROUPS=[
 var ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
 var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked'];
 var O2_DATING_ITEM='O2 tubing dated within 7 days';
+var LAL_SETTING_ITEM='LAL mattress pump setting matches posted weight card';
+var LAL_NOTIFY_URL=SUPABASE_URL+'/functions/v1/lal-notify';
 var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
 var CHK_MARK='\u2713';
 function resetForm(keepName){
@@ -649,7 +656,7 @@ function getSelectedBeds(f){
 function initBedData(f){
  var beds=getSelectedBeds(f);
  beds.forEach(function(b){
- if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:''};
+ if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',lalInUse:'',lalOk:'',lalIssue:''};
  if(!f.residents[b])f.residents[b]={spoke:'',noReason:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  });
 }
@@ -788,7 +795,7 @@ function renderRoundsForm(){
  var beds=getSelectedBeds(f);
  initBedData(f);
  var activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
- var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:''};
+ var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',lalInUse:'',lalOk:'',lalIssue:''};
  var rd=f.residents[activeBed]||{spoke:'',noReason:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  var singleBed=beds.length<=1;
  // Bed tabs (combined completion = env done + resident done)
@@ -809,13 +816,14 @@ function renderRoundsForm(){
  var cardLabel=activeBed==='Private'?'Resident Area':'Bed '+activeBed;
  // -- Bed environment section --
  var calcAllOk=function(bd){
- return bd.items.every(function(x){return x==='yes'})&&(bd.o2InUse!=='yes'||bd.o2Dated==='yes');
+ return bd.items.every(function(x){return x==='yes'})&&(bd.o2InUse!=='yes'||bd.o2Dated==='yes')&&(bd.lalInUse!=='yes'||bd.lalOk==='yes');
  };
  var allOkHandler=function(){
  var bd=f.envBeds[activeBed];var newVal=!bd.allOk;
  bd.allOk=newVal;bd.items=bd.items.map(function(){return newVal?'yes':''});
  if(newVal)bd.issues=bd.issues.map(function(){return ''});
  if(bd.o2InUse==='yes'){bd.o2Dated=newVal?'yes':'';if(newVal)bd.o2Issue=''}
+ if(bd.lalInUse==='yes'){bd.lalOk=newVal?'yes':'';if(newVal)bd.lalIssue=''}
  };
  var itemHandler=function(idx,v){
  var bd=f.envBeds[activeBed];bd.items[idx]=v;
@@ -832,6 +840,16 @@ function renderRoundsForm(){
  if(v==='yes')bd.o2Issue='';
  bd.allOk=calcAllOk(bd);
  };
+ var lalInUseHandler=function(v){
+ var bd=f.envBeds[activeBed];bd.lalInUse=v;
+ if(v!=='yes'){bd.lalOk='';bd.lalIssue=''}
+ bd.allOk=calcAllOk(bd);
+ };
+ var lalOkHandler=function(v){
+ var bd=f.envBeds[activeBed];bd.lalOk=v;
+ if(v==='yes')bd.lalIssue='';
+ bd.allOk=calcAllOk(bd);
+ };
  var envSection=h('div',{className:'env-block env-block-bed'},
  h('div',{className:'env-block-label'},'Bed Environment'),
  chk(bedData.allOk,'All items OK',allOkHandler,'all-good-btn'),
@@ -840,6 +858,15 @@ function renderRoundsForm(){
  h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Is this resident on O2?'),
  mt(bedData.o2InUse,o2InUseHandler),
  bedData.o2InUse==='yes'?h('div',{style:{marginTop:'8px'}},ynRow(bedData.o2Dated,O2_DATING_ITEM,o2DatedHandler,bedData.o2Issue,function(e){f.envBeds[activeBed].o2Issue=e.target.value})):null
+ ),
+ h('div',{style:{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid var(--navy-200)'}},
+ h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Is this resident on a low air loss (LAL) mattress?'),
+ mt(bedData.lalInUse,lalInUseHandler),
+ bedData.lalInUse==='yes'?h('div',{style:{marginTop:'8px'}},
+ h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginBottom:'6px'}},'Compare the weight setting on the pump to the weight card posted on the pump or headboard. No card posted, pump off, or setting does not match = No.'),
+ ynRow(bedData.lalOk,LAL_SETTING_ITEM,lalOkHandler,bedData.lalIssue,function(e){f.envBeds[activeBed].lalIssue=e.target.value}),
+ bedData.lalOk==='no'?h('div',{style:{fontSize:'12px',color:'#c0392b',marginTop:'4px'}},'Note the pump setting and the card weight (e.g., "pump 150 / card 220" or "no card"). Nursing gets a same-day action item and the DON is emailed on submit.'):null
+ ):null
  ),
  h('div',{style:{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid var(--navy-200)'}},
  h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Other issue with this bed area?'),
@@ -996,19 +1023,22 @@ async function submitRound(){
  environment:{
  roomChecks:ROOM_ENV_ITEMS.reduce(function(o,item,i){o[item]=f.envRoom[i];return o},{}),
  perBed:Object.fromEntries(beds.map(function(b){
- var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return ''}),allOk:false,o2InUse:'',o2Dated:''};
+ var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return ''}),allOk:false,o2InUse:'',o2Dated:'',lalInUse:'',lalOk:''};
  var checks=BED_ENV_ITEMS.reduce(function(o,item,i){o[item]=bd.items[i];return o},{});
  if(bd.o2InUse==='yes')checks[O2_DATING_ITEM]=bd.o2Dated;
+ if(bd.lalInUse==='yes')checks[LAL_SETTING_ITEM]=bd.lalOk;
  return[b,checks];
  })),
  perBedIssues:Object.fromEntries(beds.map(function(b){
  var bd=f.envBeds[b]||{};
  var iss=BED_ENV_ITEMS.reduce(function(o,item,i){if((bd.issues||[])[i])o[item]=bd.issues[i];return o},{});
  if(bd.o2InUse==='yes'&&bd.o2Issue)iss[O2_DATING_ITEM]=bd.o2Issue;
+ if(bd.lalInUse==='yes'&&bd.lalIssue)iss[LAL_SETTING_ITEM]=bd.lalIssue;
  return[b,iss];
  })),
  perBedOther:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).other||'']})),
  o2Status:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).o2InUse||'']})),
+ lalStatus:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).lalInUse||'']})),
  notes:f.envNotes
  },
  residents:Object.fromEntries(beds.map(function(b){
@@ -1057,6 +1087,7 @@ async function submitRound(){
  var observations=[];
  // === Environment observation ===
  var envIssues=[];
+ var lalFails=[];
  ROOM_ENV_ITEMS.forEach(function(item,i){if(!f.envRoom[i])envIssues.push(item+' - NO')});
  beds.forEach(function(b){
  var bd=f.envBeds[b]||{items:[],issues:[]};
@@ -1065,6 +1096,10 @@ async function submitRound(){
  if(bd.items[i]==='no')envIssues.push(bl+item+' - NO'+((bd.issues||[])[i]?' ('+bd.issues[i]+')':''));
  });
  if(bd.o2InUse==='yes'&&bd.o2Dated==='no')envIssues.push(bl+O2_DATING_ITEM+' - NO'+(bd.o2Issue?' ('+bd.o2Issue+')':''));
+ if(bd.lalInUse==='yes'&&bd.lalOk==='no'){
+ envIssues.push(bl+LAL_SETTING_ITEM+' - NO'+(bd.lalIssue?' ('+bd.lalIssue+')':''));
+ lalFails.push({bed:b,issue:bd.lalIssue||''});
+ }
  if(bd.other)envIssues.push(bl+'Other issue: '+bd.other);
  });
  var envNotesParts=envIssues.slice();
@@ -1077,8 +1112,9 @@ async function submitRound(){
  location:'Room '+entry.roomNumber,
  category:envIssues.length?'safety':'quality',
  observation:envNotesParts.length?envNotesParts.join('; '):'Room '+entry.roomNumber+' - environment all clear',
- severity:envIssues.length>2?'concern':envIssues.length?'info':'info',
- action_needed:false,
+ severity:(lalFails.length||envIssues.length>2)?'concern':envIssues.length?'info':'info',
+ action_needed:lalFails.length>0,
+ action_description:lalFails.length?('LAL mattress setting off - '+lalFails.map(function(x){return(x.bed!=='Private'?'Bed '+x.bed:'Private room')+(x.issue?' ('+x.issue+')':'')}).join('; ')):null,
  source:'web_app'
  });
  // === Per-bed resident observations ===
@@ -1160,6 +1196,29 @@ async function submitRound(){
  }});
  var aiResult=await sb.from('action_items').insert(aiRows);
  if(aiResult.error)console.error('Supabase action_items error:',aiResult.error);
+ }
+ // === LAL mattress setting failures: same-day Nursing action item + DON email ===
+ // (CDPH 9/1/26 visit cited LAL weight settings; every miss on rounds escalates immediately.)
+ if(lalFails.length>0&&obsData&&obsData.length>0){
+ var lalRows=lalFails.map(function(x){
+ var where='Room '+entry.roomNumber+(x.bed!=='Private'?', Bed '+x.bed:'');
+ return{
+ id:newUuid(),
+ title:'LAL mattress setting off - '+where,
+ description:where+': LAL pump setting does not match the posted weight card'+(x.issue?' ('+x.issue+')':'')+'. Verify the setting against the resident\'s current weight and care plan and correct today. Found on leadership rounds by '+entry.rounderName+' on '+fmtDate(entry.roundDate)+'.',
+ category:'safety',
+ source_type:'rounding',
+ source_id:obsData[0].id,
+ assigned_to:'Nursing',
+ due_date:entry.roundDate,
+ status:'open',
+ priority:'high'
+ }});
+ var lalResult=await sb.from('action_items').insert(lalRows);
+ if(lalResult.error)console.error('Supabase LAL action_items error:',lalResult.error);
+ else lalRows.forEach(function(r){
+ fetch(LAL_NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action_item_id:r.id})}).catch(function(){});
+ });
  }
  }catch(e){console.error('Supabase submit error:',e)}
  }
