@@ -1088,6 +1088,7 @@ async function submitRound(){
  // === Environment observation ===
  var envIssues=[];
  var lalFails=[];
+ var lalPass=[];
  ROOM_ENV_ITEMS.forEach(function(item,i){if(!f.envRoom[i])envIssues.push(item+' - NO')});
  beds.forEach(function(b){
  var bd=f.envBeds[b]||{items:[],issues:[]};
@@ -1100,6 +1101,8 @@ async function submitRound(){
  envIssues.push(bl+LAL_SETTING_ITEM+' - NO'+(bd.lalIssue?' ('+bd.lalIssue+')':''));
  lalFails.push({bed:b,issue:bd.lalIssue||''});
  }
+ // Passes are logged too (not as issues) so v_lal_rounding_tally has a denominator
+ if(bd.lalInUse==='yes'&&bd.lalOk==='yes')lalPass.push(bl+'LAL setting verified OK');
  if(bd.other)envIssues.push(bl+'Other issue: '+bd.other);
  });
  var envNotesParts=envIssues.slice();
@@ -1111,7 +1114,7 @@ async function submitRound(){
  department:role,
  location:'Room '+entry.roomNumber,
  category:envIssues.length?'safety':'quality',
- observation:envNotesParts.length?envNotesParts.join('; '):'Room '+entry.roomNumber+' - environment all clear',
+ observation:(envNotesParts.length?envNotesParts.join('; '):'Room '+entry.roomNumber+' - environment all clear')+(lalPass.length?'; '+lalPass.join('; '):''),
  severity:(lalFails.length||envIssues.length>2)?'concern':envIssues.length?'info':'info',
  action_needed:lalFails.length>0,
  action_description:lalFails.length?('LAL mattress setting off - '+lalFails.map(function(x){return(x.bed!=='Private'?'Bed '+x.bed:'Private room')+(x.issue?' ('+x.issue+')':'')}).join('; ')):null,
