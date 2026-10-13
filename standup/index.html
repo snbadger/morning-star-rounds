@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Standup Log</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#1f8a5b;--success-bg:#e7f5ee;--danger:#b3261e;--danger-bg:#fdeceb;--warn:#b57b00;--warn-bg:#fdf3e0;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#6b7785;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:48px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.8;margin-top:2px}
+.header .sub a{color:#9ec5e8;text-decoration:none}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap;border:0;color:#fff;font-family:inherit}
+.page{max-width:720px;margin:0 auto;padding:14px}
+.card{background:var(--card);border-radius:var(--radius);padding:15px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-quiet{background:#eef1f4;color:var(--text)}
+.btn-sm{display:inline-block;width:auto;padding:7px 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
+label .req{color:var(--danger)}
+input,select,textarea{width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+textarea{min-height:84px;resize:vertical;line-height:1.45}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:13.5px;font-weight:600;padding:8px 12px;border-radius:20px;background:#fff;border:1.5px solid var(--border);color:var(--text-light);cursor:pointer;user-select:none;font-family:inherit}
+.chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.seg{display:flex;background:#e3e8ee;border-radius:10px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:9px 6px;font-size:13.5px;font-weight:700;color:var(--text-light);border-radius:8px;cursor:pointer;font-family:inherit}
+.seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.trow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--border);cursor:pointer}
+.trow:first-child{border-top:0}
+.trow .nm{flex:1;min-width:0}
+.trow .nm b{font-size:14.5px;display:block}
+.trow .nm span{font-size:12px;color:var(--text-light)}
+.trow .go{color:#b0b8c1;font-size:20px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.p-ok{background:var(--success-bg);color:var(--success)} .p-no{background:#eef1f4;color:var(--text-light)}
+.p-todo{background:var(--warn-bg);color:var(--warn)} .p-red{background:var(--danger-bg);color:var(--danger)}
+.p-auto{background:#e8f0f8;color:#2d5d8a}
+.star{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:var(--primary);color:#fff;margin-left:5px;vertical-align:1px}
+.h2{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-light);margin:18px 2px 8px}
+.tabhead .num{font-size:12px;color:var(--text-light);font-weight:700}
+.tabhead h2{font-size:20px;color:var(--primary);margin:2px 0 4px}
+.tabhead p{font-size:13.5px;color:var(--text-light);line-height:1.5}
+.item{border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-top:9px;background:#fbfcfd}
+.item .t{font-size:14.5px;font-weight:700}
+.item .d{font-size:13px;color:var(--text);margin-top:3px;line-height:1.45}
+.item .m{font-size:11.5px;color:var(--text-light);margin-top:5px}
+.item .acts{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.nophi{font-size:12.5px;line-height:1.5;margin-top:10px;padding:8px 10px;border-radius:8px;background:#eef6fb;border:1px solid #cfe3f1;color:#1f4e79}
+.prog{height:8px;background:#e3e8ee;border-radius:5px;overflow:hidden;margin-top:8px}
+.prog span{display:block;height:100%;background:var(--success)}
+.big{font-size:26px;font-weight:800;color:var(--primary)}
+.muted{color:var(--text-light);font-size:13px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+.roster{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.roster button{padding:12px 10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;text-align:left;cursor:pointer;font-family:inherit}
+.roster button b{display:block;font-size:14.5px;color:var(--text)}
+.roster button span{font-size:12px;color:var(--text-light)}
+.brd h3{font-size:14px;color:var(--primary);margin-bottom:2px}
+.brd .ln{font-size:13px;line-height:1.5;padding:5px 0;border-top:1px dashed var(--border)}
+.brd .ln:first-of-type{border-top:0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);border-bottom:2px solid var(--border);padding:5px 6px}
+td{padding:6px;border-bottom:1px solid var(--border);vertical-align:top}
+@media (max-width:420px){.roster{grid-template-columns:1fr}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>📋 Standup Log</h1>
+    <div class="sub"><a href="../">← All Apps</a> · Morning Star Post Acute</div>
+  </div>
+  <button class="who" id="whoChip" onclick="switchUser()">Sign in</button>
+</div>
+<div class="page" id="app"><div class="load">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+// Roster = Room Rounds app ROSTER (source of truth), mapped to standup owner roles.
+var ROSTER=[
+ {name:'Donna Rogers',role:'don'},{name:'Savanna McCormick',role:'adon'},{name:'Amandeep Brar',role:'mds'},
+ {name:'Yessi Flores',role:'dsd'},{name:'Randy Bago',role:'adm'},{name:'Belem Gonzalez',role:'bom'},
+ {name:'Valerie Estrada',role:'ssd'},{name:'Michael Miller',role:'act'},{name:'Lucy Malcolm',role:'act'},
+ {name:'Kim Beatrez',role:'diet'},{name:'Annie Vang',role:'mr'},{name:'Kelsey Kennington',role:'hr'},
+ {name:'Sebastian Lopez',role:'mnt'},{name:'Joe Fronteras',role:'rehab'},{name:'Stephen Badger',role:'admin'}
+];
+var ROLES={don:'Director of Nursing',adon:'ADON',mds:'MDS',dsd:'DSD / Infection Prevention',adm:'Admissions',
+ bom:'Business Office',ssd:'Social Services',act:'Activities',diet:'Dietary',mr:'Medical Records',hr:'HR / AP / Payroll',
+ mnt:'Maintenance / EVS',rehab:'Rehab',admin:'Administrator'};
+var ROLE_ORDER=['don','adon','mds','dsd','adm','bom','ssd','act','diet','mr','hr','mnt','rehab','admin'];
+var ROOMS=['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','18'];
+var BEDS=['A','B','C','D','E','F','G','H'];
+var DEPTS=['Nursing','Dietary','Maintenance/EVS','Housekeeping/Laundry','Activities','Social Services','Admissions','HR','Business Office','Rehab','MDS','DSD/IP','Medical Records','Respiratory'];
+var FORM_KINDS=['log','count','list','falls'];
+var KIND_HINT={log:'Add a row for each item today.',count:'One set of numbers per day. Saving again today updates it.',list:'A standing list. Items stay open until you close them.',falls:'Writes to the incident log.'};
+
+var S={pin:null,name:null,role:null,tabs:[],byKey:{},today:null,data:null,view:'mine',tab:null,editing:null,busy:false};
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},2600)}
+function md(d){if(!d)return '';var p=String(d).slice(0,10).split('-');return (+p[1])+'/'+(+p[2])}
+function app(){return document.getElementById('app')}
+function setWho(){document.getElementById('whoChip').textContent=S.name?S.name.split(' ')[0]+' · switch':'Sign in'}
+
+async function rpc(fn,args){
+  if(!sb)throw new Error('offline');
+  var r=await sb.rpc(fn,args);
+  if(r.error){
+    if(String(r.error.message).indexOf('bad_pin')>=0){ls('su_pin',null);S.pin=null;showPin('That PIN did not work.');throw new Error('bad_pin')}
+    throw new Error(r.error.message);
+  }
+  return r.data;
+}
+
+// ---------- start ----------
+async function start(){
+  S.pin=ls('su_pin');S.name=ls('su_name');
+  var p=ROSTER.filter(function(x){return x.name===S.name})[0];S.role=p?p.role:null;
+  setWho();
+  if(!S.pin)return showPin();
+  try{await boot()}catch(e){if(e.message!=='bad_pin')app().innerHTML='<div class="card load">Could not load. Check the connection and refresh.<br><span class="muted">'+esc(e.message)+'</span></div>'}
+}
+async function boot(){
+  var b=await rpc('standup_bootstrap',{p_pin:S.pin});
+  S.tabs=b.tabs;S.today=b.today;S.byKey={};S.tabs.forEach(function(t){S.byKey[t.tab_key]=t});
+  if(!S.role)return showWho();
+  await refresh();route();
+}
+async function refresh(){S.data=await rpc('standup_today',{p_pin:S.pin,p_date:null});}
+
+function showPin(msg){
+  app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Leadership PIN</div><p class="muted" style="margin-top:6px">Same PIN as the leadership tools on the hub.</p>'+
+    (msg?'<p style="color:var(--danger);font-weight:700;margin-top:8px">'+esc(msg)+'</p>':'')+
+    '<input id="pinIn" type="tel" inputmode="numeric" maxlength="8" autocomplete="off" style="margin-top:12px;font-size:22px;letter-spacing:4px;text-align:center" placeholder="PIN">'+
+    '<button class="btn btn-primary" style="margin-top:12px" onclick="submitPin()">Continue</button></div>';
+  var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
+}
+async function submitPin(){
+  var v=(document.getElementById('pinIn').value||'').trim();if(!v)return;
+  S.pin=v;
+  try{await rpc('standup_bootstrap',{p_pin:v});ls('su_pin',v);await boot()}catch(e){if(e.message!=='bad_pin')toast('Could not connect: '+e.message)}
+}
+function showWho(){
+  app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Who is entering?</div><p class="muted" style="margin-top:4px">Your tabs are picked from your department.</p><div class="roster" style="margin-top:12px">'+
+    ROSTER.map(function(p,i){return '<button onclick="pickWho('+i+')"><b>'+esc(p.name)+'</b><span>'+esc(ROLES[p.role])+'</span></button>'}).join('')+'</div></div>';
+}
+async function pickWho(i){S.name=ROSTER[i].name;S.role=ROSTER[i].role;ls('su_name',S.name);setWho();S.view='mine';await refresh();route()}
+function switchUser(){if(!S.pin)return;S.name=null;S.role=null;ls('su_name',null);setWho();showWho()}
+function logOut(){ls('su_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+
+// ---------- coverage helpers ----------
+function cov(k){return (S.data&&S.data.coverage&&S.data.coverage[k])||{}}
+function covPill(t){
+  if(FORM_KINDS.indexOf(t.kind)<0)return '<span class="pill p-auto">'+(t.kind==='auto'?'Fills itself':t.kind==='keep'?'Stays in PCC':'Reference')+'</span>';
+  var c=cov(t.tab_key);
+  if(c.status==='entered')return '<span class="pill p-ok">✓ Updated'+(t.cadence!=='daily'&&c.check_date&&c.check_date!==S.today?' '+md(c.check_date):'')+'</span>';
+  if(c.status==='nothing')return '<span class="pill p-no">Nothing new</span>';
+  if(t.cadence==='as_needed')return '<span class="pill p-no">As needed</span>';
+  return '<span class="pill p-todo">Not yet</span>';
+}
+function isCovered(t){var c=cov(t.tab_key);return c.status==='entered'||c.status==='nothing'||t.cadence==='as_needed'}
+function myTabs(role){return S.tabs.filter(function(t){return t.owner_role===role||(t.partners||[]).indexOf(role)>=0})}
+function entriesFor(k){return ((S.data&&S.data.entries)||[]).filter(function(e){return e.tab_key===k})}
+
+// ---------- home ----------
+function route(){if(S.tab)return renderTab();renderHome()}
+function seg(){
+  var o=[['mine','My tabs'],['all','All tabs'],['board','Today\'s board']];
+  return '<div class="seg">'+o.map(function(x){return '<button class="'+(S.view===x[0]?'on':'')+'" onclick="S.view=\''+x[0]+'\';renderHome()">'+x[1]+'</button>'}).join('')+'</div>';
+}
+function tabRow(t,showOwner){
+  var c=cov(t.tab_key),extra=[];
+  if(t.kind==='list'&&c.open)extra.push(c.open+' open');
+  if((t.kind==='log'||t.kind==='count')&&c.today_entries)extra.push(c.today_entries+' today');
+  if(showOwner)extra.push(ROLES[t.owner_role]);
+  if(t.owner_role!==S.role&&!showOwner)extra.push('shared with '+ROLES[t.owner_role]);
+  var clickable=FORM_KINDS.indexOf(t.kind)>=0;
+  return '<div class="trow" '+(clickable?'onclick="openTab(\''+t.tab_key+'\')"':'style="cursor:default"')+'><div class="nm"><b>'+esc(t.label)+(t.headline?'<span class="star">Mitchell priority</span>':'')+'</b><span>#'+t.tab_no+(extra.length?' · '+esc(extra.join(' · ')):'')+'</span></div>'+covPill(t)+(clickable?'<span class="go">›</span>':'')+'</div>';
+}
+function renderHome(){
+  S.tab=null;
+  var h=seg();
+  if(S.view==='mine'){
+    var mine=myTabs(S.role),form=mine.filter(function(t){return FORM_KINDS.indexOf(t.kind)>=0}),auto=mine.filter(function(t){return FORM_KINDS.indexOf(t.kind)<0});
+    var done=form.filter(isCovered).length;
+    form.sort(function(a,b){return (isCovered(a)-isCovered(b))||((b.headline?1:0)-(a.headline?1:0))||a.tab_no-b.tab_no});
+    h+='<div class="card"><div class="muted">'+esc(S.name)+' · '+esc(ROLES[S.role])+' · '+md(S.today)+'</div>'+
+       '<div class="big">'+done+' of '+form.length+'</div><div class="muted">of your tabs are covered for today\'s standup</div>'+
+       '<div class="prog"><span style="width:'+(form.length?100*done/form.length:100)+'%"></span></div></div>';
+    if(form.length)h+='<div class="h2">Tabs you report</div><div class="card" style="padding:6px 14px">'+form.map(function(t){return tabRow(t)}).join('')+'</div>';
+    else h+='<div class="card muted">Your department has no tabs that need entry. Everything you own fills itself from other apps.</div>';
+    if(auto.length)h+='<div class="h2">Fills itself — nothing to enter</div><div class="card" style="padding:6px 14px">'+auto.map(function(t){return tabRow(t)}).join('')+'</div>';
+  } else if(S.view==='all'){
+    h+='<p class="muted" style="margin:0 2px 10px">Anyone can cover a tab when its owner is out.</p>';
+    ROLE_ORDER.forEach(function(r){
+      var ts=S.tabs.filter(function(t){return t.owner_role===r&&FORM_KINDS.indexOf(t.kind)>=0});if(!ts.length)return;
+      var d=ts.filter(isCovered).length;
+      h+='<div class="h2">'+esc(ROLES[r])+' · '+d+'/'+ts.length+'</div><div class="card" style="padding:6px 14px">'+ts.map(function(t){return tabRow(t)}).join('')+'</div>';
+    });
+  } else h+=boardHtml();
+  h+='<button class="btn btn-quiet" style="margin-top:16px" onclick="logOut()">Done — log out</button>';
+  app().innerHTML=h;window.scrollTo(0,0);
+}
+
+// ---------- entry summaries ----------
+function fval(f,v){
+  if(v==null||v===''||(Array.isArray(v)&&!v.length))return '';
+  if(Array.isArray(v))return v.join(', ');
+  if(f.t==='date')return md(v);
+  return String(v);
+}
+function summary(t,e){
+  var items=(t.fields&&t.fields.items)||[],parts=[];
+  items.forEach(function(f){var v=fval(f,e.data[f.k]);if(v!=='')parts.push((f.t==='longtext'||f.t==='text')&&items.length>2?v:f.l+': '+v)});
+  return parts.join(' · ');
+}
+function roomTag(e){return e.room?'Rm '+e.room+(e.bed?'-'+e.bed:''):''}
+function fallLine(f){
+  var w={staff:'witnessed by staff',family_or_resident:'witnessed by family/resident',unwitnessed:'unwitnessed'}[f.witnessed]||'witness not recorded';
+  var inj={none:'no injury',minor:'minor injury',major:'MAJOR injury',pending:'injury pending'}[f.injury]||'injury not recorded';
+  return md(f.date)+(f.time?' '+f.time:'')+' · '+esc(f.room?'Rm '+f.room+(f.bed?'-'+f.bed:''):f.location||'')+' · '+w+' · '+inj+(f.sent_out?' · sent out':'');
+}
+function boardHtml(){
+  var secs={},h='';
+  S.tabs.forEach(function(t){if(FORM_KINDS.indexOf(t.kind)<0)return;(secs[t.section]=secs[t.section]||[]).push(t)});
+  var allForm=S.tabs.filter(function(t){return FORM_KINDS.indexOf(t.kind)>=0&&t.cadence!=='as_needed'});
+  var d=allForm.filter(isCovered).length;
+  h+='<div class="card"><div class="big">'+d+' of '+allForm.length+'</div><div class="muted">tabs covered for '+md(S.today)+'</div><div class="prog"><span style="width:'+(100*d/allForm.length)+'%"></span></div></div>';
+  Object.keys(secs).forEach(function(sname){
+    h+='<div class="h2">'+esc(sname)+'</div><div class="card brd">';
+    secs[sname].forEach(function(t){
+      var c=cov(t.tab_key),lines=[];
+      if(t.kind==='falls'){
+        var fl=(S.data.falls||[]).filter(function(f){return f.date>=addDays(S.today,-7)});
+        lines=fl.length?fl.map(fallLine):['No falls logged in the last 7 days.'];
+      } else {
+        var es=entriesFor(t.tab_key).filter(function(e){return e.status!=='closed'});
+        lines=es.map(function(e){return esc([roomTag(e),summary(t,e)].filter(Boolean).join(' · '))});
+        if(!lines.length)lines=[c.status==='nothing'?'Nothing new today ('+esc(c.by)+').':(t.kind==='list'?'No open items.':'Nothing entered yet.')];
+      }
+      h+='<div style="margin:10px 0 4px;display:flex;justify-content:space-between;gap:8px;align-items:center"><h3 style="cursor:pointer" onclick="openTab(\''+t.tab_key+'\')">'+esc(t.label)+(t.headline?'<span class="star">Mitchell priority</span>':'')+'</h3>'+covPill(t)+'</div>'+lines.map(function(l){return '<div class="ln">'+l+'</div>'}).join('');
+    });
+    h+='</div>';
+  });
+  return h;
+}
+function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+
+// ---------- tab screen ----------
+function openTab(k){S.tab=k;S.editing=null;renderTab();window.scrollTo(0,0)}
+function back(){S.tab=null;renderHome()}
+function renderTab(){
+  var t=S.byKey[S.tab];if(!t)return back();
+  var c=cov(t.tab_key),h='<button class="btn btn-sm btn-quiet" onclick="back()">← Back</button>';
+  h+='<div class="card tabhead" style="margin-top:10px"><div class="num">Tab #'+t.tab_no+' · '+esc(ROLES[t.owner_role])+((t.partners||[]).length?' with '+esc(t.partners.map(function(p){return ROLES[p]}).join(', ')):'')+'</div>'+
+     '<h2>'+esc(t.label)+(t.headline?'<span class="star">Mitchell priority</span>':'')+'</h2><p>'+esc(t.help||'')+'</p><p style="margin-top:6px">'+esc(KIND_HINT[t.kind]||'')+'</p>'+
+     '<div style="margin-top:9px">'+covPill(t)+(c.by?' <span class="muted">by '+esc(c.by)+'</span>':'')+'</div></div>';
+  if(t.kind==='falls')h+=fallsScreen(t);
+  else if(t.kind==='count')h+=countScreen(t);
+  else if(t.kind==='log')h+=logScreen(t);
+  else if(t.kind==='list')h+=listScreen(t);
+  if(c.status!=='entered')h+='<button class="btn btn-ghost" style="margin-top:4px" onclick="nothing(\''+t.tab_key+'\')">'+(t.kind==='list'?'No changes today':t.kind==='falls'?'No falls since yesterday\'s standup':'Nothing to report today')+'</button>';
+  app().innerHTML=h;wireForm();
+}
+function countScreen(t){
+  var e=entriesFor(t.tab_key)[0];
+  return '<div class="card"><div style="font-weight:800;color:var(--primary)">'+(e?'Today\'s numbers (saved by '+esc(e.reporter)+')':'Enter today\'s numbers')+'</div>'+formHtml(t,e)+
+         '<button class="btn btn-primary" style="margin-top:14px" onclick="save(\''+t.tab_key+'\','+(e?'\''+e.id+'\'':'null')+',\'count\')">'+(e?'Update':'Save')+'</button></div>';
+}
+function logScreen(t){
+  var es=entriesFor(t.tab_key),h='';
+  if(es.length)h+='<div class="h2">Today ('+es.length+')</div>'+es.map(function(e){return itemHtml(t,e,'log')}).join('');
+  h+='<div class="card" style="margin-top:12px"><div style="font-weight:800;color:var(--primary)">Add a row</div>'+formHtml(t,null)+
+     '<button class="btn btn-primary" style="margin-top:14px" onclick="save(\''+t.tab_key+'\',null,\'log\')">Add</button></div>';
+  return h;
+}
+function listScreen(t){
+  var es=entriesFor(t.tab_key),open=es.filter(function(e){return e.status==='open'}),closed=es.filter(function(e){return e.status==='closed'}),h='';
+  h+='<div class="h2">Open ('+open.length+')</div>';
+  if(!open.length)h+='<div class="card muted">Nothing open on this list.</div>';
+  h+=open.map(function(e){return S.editing===e.id?'<div class="card">'+formHtml(t,e)+'<div class="row2" style="margin-top:12px"><button class="btn btn-quiet" onclick="S.editing=null;renderTab()">Cancel</button><button class="btn btn-primary" onclick="save(\''+t.tab_key+'\',\''+e.id+'\',\'update\')">Save changes</button></div></div>':itemHtml(t,e,'list')}).join('');
+  if(closed.length)h+='<div class="h2">Closed today</div>'+closed.map(function(e){return itemHtml(t,e,'closed')}).join('');
+  if(!S.editing)h+='<div class="card" style="margin-top:12px"><div style="font-weight:800;color:var(--primary)">Add to the list</div>'+formHtml(t,null)+
+     '<button class="btn btn-primary" style="margin-top:14px" onclick="save(\''+t.tab_key+'\',null,\'list\')">Add</button></div>';
+  return h;
+}
+function itemHtml(t,e,mode){
+  var age=e.entry_date&&e.entry_date!==S.today?' · since '+md(e.entry_date):'';
+  var acts='';
+  if(mode==='list')acts='<button class="btn btn-sm btn-quiet" onclick="S.editing=\''+e.id+'\';renderTab()">Update</button><button class="btn btn-sm btn-primary" onclick="closeItem(\''+e.id+'\')">Close</button><button class="btn btn-sm btn-quiet" onclick="voidItem(\''+e.id+'\')">Remove (entered by mistake)</button>';
+  if(mode==='log')acts='<button class="btn btn-sm btn-quiet" onclick="voidItem(\''+e.id+'\')">Remove</button>';
+  if(mode==='closed')acts='<button class="btn btn-sm btn-quiet" onclick="reopen(\''+e.id+'\')">Reopen</button>';
+  return '<div class="item"><div class="t">'+esc(roomTag(e)||'Entry')+'</div><div class="d">'+esc(summary(t,e))+'</div><div class="m">'+esc(e.reporter)+age+(mode==='closed'?' · closed by '+esc(e.closed_by):'')+'</div>'+(acts?'<div class="acts">'+acts+'</div>':'')+'</div>';
+}
+
+// ---------- form rendering ----------
+function chips(name,opts,val,multi){
+  var vals=multi?(val||[]):[val];
+  return '<div class="chips" data-chips="'+name+'" data-multi="'+(multi?1:0)+'">'+opts.map(function(o){return '<button type="button" class="chip'+(vals.indexOf(o)>=0?' on':'')+'" data-v="'+esc(o)+'">'+esc(o)+'</button>'}).join('')+'</div>';
+}
+function fieldHtml(f,v){
+  var L='<label>'+esc(f.l)+(f.req?' <span class="req">*</span>':'')+'</label>',id='f_'+f.k;
+  v=v==null?'':v;
+  switch(f.t){
+    case 'longtext':return L+'<textarea id="'+id+'">'+esc(v)+'</textarea>';
+    case 'number':return L+'<input id="'+id+'" type="number" inputmode="decimal" step="'+(f.step||'1')+'" value="'+esc(v)+'">';
+    case 'date':return L+'<input id="'+id+'" type="date" value="'+esc(v)+'">';
+    case 'time':return L+'<input id="'+id+'" type="time" value="'+esc(v)+'">';
+    case 'select':return L+chips(f.k,f.o,v,false);
+    case 'multi':return L+chips(f.k,f.o,v||[],true);
+    case 'dept':return L+'<select id="'+id+'"><option value=""></option>'+DEPTS.map(function(d){return '<option'+(d===v?' selected':'')+'>'+esc(d)+'</option>'}).join('')+'</select>';
+    case 'person':return L+'<select id="'+id+'"><option value=""></option>'+ROSTER.map(function(p){return '<option'+(p.name===v?' selected':'')+'>'+esc(p.name)+'</option>'}).join('')+'</select>';
+    case 'people':return L+chips(f.k,ROSTER.map(function(p){return p.name}),v||[],true);
+    default:return L+'<input id="'+id+'" type="text" maxlength="300" value="'+esc(v)+'">';
+  }
+}
+function roomBedHtml(e){
+  return '<div class="row2"><div><label>Room <span class="req">*</span></label><select id="f__room"><option value=""></option>'+ROOMS.map(function(r){return '<option'+(e&&e.room===r?' selected':'')+'>'+r+'</option>'}).join('')+'</select></div>'+
+    '<div><label>Bed</label>'+chips('_bed',BEDS,e?e.bed:'',false)+'</div></div>';
+}
+function formHtml(t,e){
+  var f=t.fields||{},h='';
+  if(f.room)h+=roomBedHtml(e);
+  (f.items||[]).forEach(function(x){h+=fieldHtml(x,e&&e.data?e.data[x.k]:'')});
+  h+='<div class="nophi">No resident names, diagnoses or medication names. Room and bed only.</div>';
+  return h;
+}
+function wireForm(){
+  document.querySelectorAll('[data-chips]').forEach(function(g){
+    var multi=g.dataset.multi==='1';
+    g.querySelectorAll('.chip').forEach(function(c){c.onclick=function(){
+      if(multi)c.classList.toggle('on');
+      else{var was=c.classList.contains('on');g.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')});if(!was)c.classList.add('on')}
+    }});
+  });
+  var tm=document.getElementById('f_time_fall');
+  if(tm)tm.onchange=function(){var hr=+((tm.value||'').split(':')[0]);if(isNaN(hr)||!tm.value)return;var s=hr>=7&&hr<15?'AM':hr>=15&&hr<23?'PM':'NOC';
+    var g=document.querySelector('[data-chips="shift"]');g.querySelectorAll('.chip').forEach(function(x){x.classList.toggle('on',x.dataset.v===s)})};
+}
+function chipVal(name,multi){
+  var g=document.querySelector('[data-chips="'+name+'"]');if(!g)return multi?[]:'';
+  var on=[].slice.call(g.querySelectorAll('.chip.on')).map(function(c){return c.dataset.v});
+  return multi?on:(on[0]||'');
+}
+function collect(t){
+  var f=t.fields||{},data={},miss=[],room=null,bed=null;
+  if(f.room){room=(document.getElementById('f__room')||{}).value||'';bed=chipVal('_bed',false)||null;if(!room)miss.push('Room')}
+  (f.items||[]).forEach(function(x){
+    var v;
+    if(x.t==='select')v=chipVal(x.k,false);
+    else if(x.t==='multi'||x.t==='people')v=chipVal(x.k,true);
+    else{var el=document.getElementById('f_'+x.k);v=el?el.value.trim():'';if(x.t==='number'&&v!=='')v=Number(v)}
+    if(x.req&&(v===''||v==null||(Array.isArray(v)&&!v.length)))miss.push(x.l);
+    if(!(v===''||(Array.isArray(v)&&!v.length)))data[x.k]=v;
+  });
+  return {data:data,room:room||null,bed:bed,miss:miss};
+}
+
+// ---------- writes ----------
+async function guard(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){if(e.message!=='bad_pin')toast('Not saved: '+e.message)}finally{S.busy=false}}
+function save(k,id,mode){guard(async function(){
+  var t=S.byKey[k],c=collect(t);
+  if(c.miss.length){toast('Needed: '+c.miss.join(', '));return}
+  if(mode==='update')await rpc('standup_update',{p_pin:S.pin,p_id:id,p_room:c.room,p_bed:c.bed,p_data:c.data,p_name:S.name,p_role:ROLES[S.role]});
+  else await rpc('standup_submit',{p_pin:S.pin,p_tab_key:k,p_room:c.room,p_bed:c.bed,p_data:c.data,p_name:S.name,p_role:ROLES[S.role],p_entry_date:null});
+  S.editing=null;await refresh();renderTab();toast('Saved');
+})}
+function closeItem(id){var n=prompt('Close this item. Optional note (what resolved it):','');if(n===null)return;guard(async function(){await rpc('standup_close',{p_pin:S.pin,p_id:id,p_name:S.name,p_role:ROLES[S.role],p_note:n});await refresh();renderTab();toast('Closed')})}
+function reopen(id){guard(async function(){await rpc('standup_reopen',{p_pin:S.pin,p_id:id,p_name:S.name});await refresh();renderTab();toast('Reopened')})}
+function voidItem(id){if(!confirm('Remove this entry? Use this only for something entered by mistake.'))return;guard(async function(){await rpc('standup_void',{p_pin:S.pin,p_id:id,p_name:S.name});await refresh();renderTab();toast('Removed')})}
+function nothing(k){guard(async function(){await rpc('standup_nothing',{p_pin:S.pin,p_tab_key:k,p_name:S.name,p_role:ROLES[S.role]});await refresh();renderTab();toast('Marked: nothing new')})}
+
+// ---------- falls ----------
+function fallsScreen(t){
+  var fl=(S.data.falls||[]),h='';
+  h+='<div class="card"><div style="font-weight:800;color:var(--primary)">Log a fall</div>'+
+    '<div class="row2"><div><label>Date <span class="req">*</span></label><input id="f_date_fall" type="date" value="'+S.today+'" max="'+S.today+'" min="'+addDays(S.today,-14)+'"></div>'+
+    '<div><label>Time</label><input id="f_time_fall" type="time"></div></div>'+
+    roomBedHtml(null)+
+    '<label>Shift <span class="req">*</span></label>'+chips('shift',['AM','PM','NOC'],'',false)+
+    '<label>Where</label>'+chips('where',['Resident room','Bathroom','Hallway','Dining room','Patio','Therapy gym','Other'],'',false)+
+    '<label>Witnessed <span class="req">*</span></label>'+chips('witnessed',['By staff','By family or resident','Unwitnessed'],'',false)+
+    '<label>Injury <span class="req">*</span></label>'+chips('injury',['None','Minor','Major','Pending assessment'],'',false)+
+    '<label>Sent to hospital</label>'+chips('sent',['No','Yes'],'No',false)+
+    '<label>Falling Star in place</label>'+chips('star',['Yes','No','Placed after fall'],'',false)+
+    '<label>What happened <span class="req">*</span></label><textarea id="f_desc_fall" placeholder="e.g. slid from wheelchair while self-transferring to bed"></textarea>'+
+    '<label>Immediate actions</label><textarea id="f_act_fall" placeholder="e.g. neuro checks started, MD and RP notified 19:20"></textarea>'+
+    '<div class="row2"><div><label>CNA on duty</label><input id="f_cna_fall" type="text" maxlength="60"></div><div><label>Nurse on duty</label><input id="f_nurse_fall" type="text" maxlength="60"></div></div>'+
+    '<div class="nophi">No resident names. Room and bed identify the fall; the full report stays in PCC.</div>'+
+    '<button class="btn btn-primary" style="margin-top:14px" onclick="saveFall()">Log fall</button></div>';
+  h+='<div class="h2">Falls in the last 30 days ('+fl.length+')</div><div class="card">';
+  h+=fl.length?'<table><tr><th>When</th><th>Where</th><th>Witnessed</th><th>Injury</th></tr>'+fl.map(function(f){
+    return '<tr><td>'+md(f.date)+(f.time?' '+f.time:'')+(f.shift?' '+f.shift:'')+'</td><td>'+esc(f.room?'Rm '+f.room+(f.bed?'-'+f.bed:''):f.location||'')+'</td><td>'+esc({staff:'Staff',family_or_resident:'Family/resident',unwitnessed:'No'}[f.witnessed]||'—')+'</td><td>'+esc({none:'None',minor:'Minor',major:'Major',pending:'Pending'}[f.injury]||'—')+(f.sent_out?' · sent out':'')+'</td></tr>'}).join('')+'</table>':'<span class="muted">No falls logged in the last 30 days.</span>';
+  h+='</div>';
+  return h;
+}
+function saveFall(){guard(async function(){
+  var g=function(n){return chipVal(n,false)};
+  var room=document.getElementById('f__room').value,date=document.getElementById('f_date_fall').value,desc=document.getElementById('f_desc_fall').value.trim();
+  var wit={'By staff':'staff','By family or resident':'family_or_resident','Unwitnessed':'unwitnessed'}[g('witnessed')];
+  var inj={'None':'none','Minor':'minor','Major':'major','Pending assessment':'pending'}[g('injury')];
+  var miss=[];if(!date)miss.push('Date');if(!room)miss.push('Room');if(!g('shift'))miss.push('Shift');if(!wit)miss.push('Witnessed');if(!inj)miss.push('Injury');if(!desc)miss.push('What happened');
+  if(miss.length){toast('Needed: '+miss.join(', '));return}
+  var bed=g('_bed')||null,where=g('where'),star=g('star');
+  var loc=where?('Room '+room+(bed?'-'+bed:'')+(where!=='Resident room'?', '+where.toLowerCase():'')):null;
+  var det={};var cna=document.getElementById('f_cna_fall').value.trim(),nurse=document.getElementById('f_nurse_fall').value.trim();
+  if(cna)det.cna_on_duty=cna;if(nurse)det.nurse_on_duty=nurse;if(where)det.where=where;if(star)det.falling_star=star;
+  await rpc('standup_submit_fall',{p_pin:S.pin,p_date:date,p_time:document.getElementById('f_time_fall').value||null,p_room:room,p_bed:bed,
+    p_shift:g('shift'),p_location:loc,p_witnessed:wit,p_injury:inj,p_sent_out:g('sent')==='Yes',p_falling_star:star?star!=='No':null,
+    p_description:desc,p_actions:document.getElementById('f_act_fall').value.trim()||null,p_details:det,p_name:S.name,p_role:ROLES[S.role]});
+  await refresh();renderTab();toast('Fall logged');
+})}
+
+start();
+</script>
+</body>
+</html>
