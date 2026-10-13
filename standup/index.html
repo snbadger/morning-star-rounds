@@ -351,7 +351,7 @@ function wireForm(){
     }});
   });
   var tm=document.getElementById('f_time_fall');
-  if(tm)tm.onchange=function(){var hr=+((tm.value||'').split(':')[0]);if(isNaN(hr)||!tm.value)return;var s=hr>=7&&hr<15?'AM':hr>=15&&hr<23?'PM':'NOC';
+  if(tm)tm.onchange=function(){var hr=+((tm.value||'').split(':')[0]);if(isNaN(hr)||!tm.value)return;var s=hr>=6&&hr<14?'AM':hr>=14&&hr<22?'PM':'NOC'; // facility shifts AM 06-14, PM 14-22, NOC 22-06 (Paycom clock-ins)
     var g=document.querySelector('[data-chips="shift"]');g.querySelectorAll('.chip').forEach(function(x){x.classList.toggle('on',x.dataset.v===s)})};
 }
 function chipVal(name,multi){
