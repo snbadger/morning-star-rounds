@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Plaud Review</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--blue:#0071e3;--blue-d:#0058b0;--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--muted:#6e6e73;--line:#d2d2d7;--red:#d70015;--red-bg:#fff0f0;--amber:#b25000;--amber-bg:#fff6e5;--green:#1a7f37;--green-bg:#eaf7ee;--gray-bg:#f0f0f2;--r:18px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:90px}
+.nav{position:sticky;top:0;z-index:50;background:rgba(245,245,247,.85);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.08);padding:12px 16px 10px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;max-width:640px;margin:0 auto}
+.nav h1{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.nav .sub{font-size:13px;color:var(--muted);margin-top:1px}
+.nav button.link{background:none;border:none;color:var(--blue);font-size:15px;font-family:inherit;cursor:pointer;padding:6px 0 6px 10px}
+.chips{display:flex;gap:8px;overflow-x:auto;max-width:640px;margin:10px auto 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:14px;font-weight:600;padding:7px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--text);cursor:pointer;font-family:inherit}
+.chip.on{background:var(--text);border-color:var(--text);color:#fff}
+.chip .n{opacity:.6;font-weight:500;margin-left:4px}
+.page{max-width:640px;margin:0 auto;padding:14px 16px}
+.card{background:var(--card);border-radius:var(--r);border:1px solid rgba(0,0,0,.06);padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:opacity .25s,transform .25s}
+.card.gone{opacity:0;transform:translateX(40px)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--gray-bg);color:var(--muted)}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.green{background:var(--green-bg);color:var(--green)}
+.pill.blue{background:#e8f2fd;color:var(--blue-d)}
+.task{font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-.2px}
+.meta{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.4}
+.meta b{color:var(--text);font-weight:600}
+.src{font-size:12.5px;color:var(--muted);margin-top:4px}
+.details{font-size:14px;line-height:1.5;color:#3a3a3c;margin-top:10px;background:var(--bg);border-radius:12px;padding:10px 12px;white-space:pre-wrap;display:none}
+.card.open .details{display:block}
+.more{background:none;border:none;color:var(--blue);font-size:14px;font-family:inherit;cursor:pointer;padding:8px 0 0}
+.acts{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin-top:14px}
+.btn{border:none;border-radius:999px;font-size:15px;font-weight:600;padding:12px 8px;cursor:pointer;font-family:inherit;min-height:44px}
+.btn.go{background:var(--blue);color:#fff}
+.btn.done{background:var(--green-bg);color:var(--green)}
+.btn.skip{background:var(--gray-bg);color:var(--text)}
+.btn.full{width:100%}
+.btn:disabled{opacity:.45}
+.edit{display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.card.editing .edit{display:block}
+.card.editing .acts{display:none}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 5px}
+input,select,textarea{width:100%;font-size:16px;font-family:inherit;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--text)}
+textarea{min-height:76px;resize:vertical;line-height:1.4}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:16px;line-height:1.5}
+.empty .big{font-size:40px;margin-bottom:8px}
+h2{font-size:15px;font-weight:600;color:var(--muted);margin:24px 4px 10px;text-transform:uppercase;letter-spacing:.4px}
+.mini{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:11px 14px;margin-bottom:8px;border:1px solid rgba(0,0,0,.05)}
+.mini .t{font-size:14px;line-height:1.35;flex:1;min-width:0}
+.mini .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.mini a,.mini button{font-size:14px;color:var(--blue);background:none;border:none;font-family:inherit;cursor:pointer;white-space:nowrap;text-decoration:none}
+.err{color:var(--red)!important}
+.gate{max-width:360px;margin:12vh auto 0;padding:0 24px;text-align:center}
+.gate h1{font-size:28px;font-weight:700;letter-spacing:-.4px}
+.gate p{color:var(--muted);margin:8px 0 22px;font-size:15px;line-height:1.45}
+.gate input{text-align:center;font-size:24px;letter-spacing:6px;margin-bottom:10px}
+.gate .msg{color:var(--red);font-size:14px;min-height:20px;margin-bottom:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:rgba(29,29,31,.95);color:#fff;border-radius:999px;padding:12px 8px 12px 20px;font-size:15px;display:flex;align-items:center;gap:12px;transition:transform .25s;z-index:99;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast button{background:none;border:none;color:#64b5ff;font-weight:600;font-size:15px;font-family:inherit;padding:4px 12px;cursor:pointer}
+.toast button:empty{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+<script>
+var SB_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SB_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+var UNDO_MS=6000;
+var S={pin:null,data:null,filter:'all',busy:false,timers:{}};
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function $(id){return document.getElementById(id)}
+var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function fmtD(d){if(!d)return'';var p=d.split('-');var dt=new Date(+p[0],p[1]-1,+p[2]);return DOW[dt.getDay()]+' '+(+p[1])+'/'+(+p[2])}
+function dueClass(d){if(!d||!S.data)return'';if(d<S.data.today)return'red';if(d===S.data.today)return'amber';return''}
+
+var toastTimer;
+function toast(msg,btn,fn,ms){var t=$('toast');$('toastMsg').textContent=msg;var b=$('toastBtn');b.textContent=btn||'';b.onclick=function(){hideToast();fn&&fn()};t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||3000)}
+function hideToast(){$('toast').classList.remove('show')}
+
+async function rpc(fn,args){
+  var r=await sb.rpc(fn,args);
+  if(r.error){
+    var m=String(r.error.message||'');
+    if(m.indexOf('bad_pin')>=0||m.indexOf('no_pin')>=0){ls('pr_pin',null);S.pin=null;gate('That PIN did not work.');throw new Error('bad_pin')}
+    if(m.indexOf('locked')>=0){ls('pr_pin',null);S.pin=null;gate('Too many wrong PINs. Wait 15 minutes and try again.');throw new Error('bad_pin')}
+    throw new Error(m);
+  }
+  return r.data;
+}
+
+/* ---------- PIN gate ---------- */
+async function start(){
+  S.pin=ls('pr_pin');
+  if(S.pin){try{await load();return}catch(e){if(e.message==='bad_pin')return;$('app').innerHTML='<div class="empty">Could not load. Check the connection and refresh.<br><small>'+esc(e.message)+'</small></div>';return}}
+  gate('');
+}
+async function gate(msg){
+  var has=true;try{var r=await sb.rpc('plaud_review_has_pin');has=r.data!==false}catch(e){}
+  $('app').innerHTML='<div class="gate"><h1>Plaud Review</h1>'+
+    (has?'<p>Approve action items from your recordings.</p><input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN">'
+        :'<p>Choose a 6–8 digit PIN for this page. Only you should know it.</p><input id="pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN"><input id="pin2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Again">')+
+    '<div class="msg">'+esc(msg)+'</div><button class="btn go full" id="pinGo">'+(has?'Open':'Set PIN')+'</button></div>';
+  $('pin').focus();
+  $('pin').onkeydown=function(e){if(e.key==='Enter')$('pinGo').click()};
+  $('pinGo').onclick=async function(){
+    var v=$('pin').value.trim();
+    if(!has){
+      if(v!==$('pin2').value.trim())return gate('The two PINs don’t match.');
+      var r=await sb.rpc('plaud_review_set_pin',{p_pin:v});
+      if(r.error)return gate(r.error.message.indexOf('6_to_8')>=0?'Use 6 to 8 digits.':r.error.message);
+    }
+    S.pin=v;
+    try{await load();ls('pr_pin',v)}catch(e){if(e.message!=='bad_pin')gate('Could not connect: '+e.message)}
+  };
+}
+function logOut(){ls('pr_pin',null);location.href=new URL('../',location.href).href}
+
+/* ---------- data ---------- */
+async function load(){
+  S.data=await rpc('plaud_review_list',{p_pin:S.pin});
+  render();
+  // Approved earlier but the Asana call never ran (page closed inside the undo window) -> finish it now.
+  S.data.recent.forEach(function(i){if(i.status==='approved'&&!i.asana_task_gid&&!i.asana_error&&!S.timers[i.id])createTask(i.id,true)});
+}
+
+function isSafety(i){return i.priority==='P1'||(i.flags||[]).indexOf('SAFETY')>=0}
+function isStephen(i){return /^Stephen/.test(i.route_label||'')}
+function dueNow(i){var d=i.due_date;return d&&d<=S.data.today}
+var FILTERS=[['all','All',function(){return true}],['safety','Safety',isSafety],['due','Due now',dueNow],
+  ['mine','Mine',isStephen],['team','Team',function(i){return!isStephen(i)}]];
+
+function render(){
+  var d=S.data,list=d.pending;
+  var f=FILTERS.filter(function(x){return x[0]===S.filter})[0]||FILTERS[0];
+  var shown=list.filter(f[2]);
+  var h='<div class="nav"><div class="nav-row"><div><h1>Plaud Review</h1><div class="sub">'+
+    (list.length?list.length+' to review':'All caught up')+'</div></div><button class="link" onclick="logOut()">Lock</button></div>'+
+    '<div class="chips">'+FILTERS.map(function(x){var n=list.filter(x[2]).length;
+      return'<button class="chip'+(x[0]===S.filter?' on':'')+'" onclick="setFilter(\''+x[0]+'\')">'+x[1]+'<span class="n">'+n+'</span></button>'}).join('')+'</div></div>';
+  h+='<div class="page">';
+  if(!shown.length)h+='<div class="empty"><div class="big">✓</div>'+(list.length?'Nothing in this filter.':'Nothing waiting. New items arrive after the 4 AM sync.')+'</div>';
+  shown.forEach(function(i){h+=cardHtml(i)});
+  if(d.recent.length){
+    h+='<h2>Decided in the last 2 days</h2>';
+    d.recent.forEach(function(i){h+=miniHtml(i)});
+  }
+  h+='</div>';
+  $('app').innerHTML=h;
+}
+function setFilter(f){S.filter=f;render();window.scrollTo(0,0)}
+
+function cardHtml(i){
+  var p='';
+  if(isSafety(i))p+='<span class="pill red">Safety</span>';
+  (i.flags||[]).forEach(function(f){if(f!=='SAFETY'&&f!=='PRIVATE')p+='<span class="pill amber">'+esc(f)+'</span>'});
+  if(i.is_private)p+='<span class="pill">Private</span>';
+  if(i.due_date)p+='<span class="pill '+dueClass(i.due_date)+'">Due '+esc(fmtD(i.due_date))+'</span>';
+  p+='<span class="pill blue">'+esc(i.batch_date===S.data.today?'New today':'From '+fmtD(i.batch_date))+'</span>';
+  var opts=S.data.routes.map(function(r){return'<option'+(r.label===i.route_label?' selected':'')+'>'+esc(r.label)+'</option>'}).join('');
+  return'<div class="card" id="c_'+i.id+'">'+
+    '<div class="pills">'+p+'</div>'+
+    '<div class="task">'+esc(i.task_name)+'</div>'+
+    '<div class="meta">→ <b>'+esc(i.route_label||i.proposed_assignee)+'</b></div>'+
+    '<div class="src">'+esc(i.source_meeting||'')+'</div>'+
+    (i.notes?'<div class="details">'+esc(i.notes)+'</div><button class="more" onclick="toggle(\''+i.id+'\',this)">Details</button>':'')+
+    '<div class="acts"><button class="btn go" onclick="decide(\''+i.id+'\',\'approved\')">Create</button>'+
+      '<button class="btn done" onclick="decide(\''+i.id+'\',\'already_done\')">Done</button>'+
+      '<button class="btn skip" onclick="decide(\''+i.id+'\',\'declined\')">Skip</button></div>'+
+    '<button class="more" onclick="openEdit(\''+i.id+'\')">Edit before creating</button>'+
+    '<div class="edit"><label>Task</label><textarea id="t_'+i.id+'">'+esc(i.task_name)+'</textarea>'+
+      '<label>Assign to</label><select id="a_'+i.id+'">'+opts+'</select>'+
+      '<label>Due</label><input type="date" id="d_'+i.id+'" value="'+esc(i.due_date||'')+'">'+
+      '<label>Add a note <span style="text-transform:none;letter-spacing:0;font-weight:400">(goes in the Asana task)</span></label><textarea id="n_'+i.id+'" placeholder="Optional"></textarea>'+
+      '<div class="row2"><button class="btn skip" onclick="closeEdit(\''+i.id+'\')">Cancel</button><button class="btn go" onclick="decide(\''+i.id+'\',\'approved\',true)">Create</button></div></div>'+
+  '</div>';
+}
+var LABEL={approved:'Created',already_done:'Already done',declined:'Skipped',expired:'Expired'};
+function miniHtml(i){
+  var right='',sub=LABEL[i.status]||i.status;
+  if(i.status==='approved'){
+    if(i.asana_task_gid)right='<a href="https://app.asana.com/0/0/'+esc(i.asana_task_gid)+'/f" target="_blank" rel="noopener">Open</a>';
+    else if(i.asana_error){sub='<span class="err">Not created: '+esc(i.asana_error)+'</span>';right='<button onclick="createTask(\''+i.id+'\')">Retry</button>'}
+    else sub='Creating…';
+  }
+  if(!i.asana_task_gid)right+='<button onclick="undo(\''+i.id+'\')">Undo</button>';
+  return'<div class="mini"><div class="t">'+esc(i.final_task_name||i.task_name)+'<div class="s">'+sub+' · '+esc(i.route_label||'')+'</div></div>'+right+'</div>';
+}
+function toggle(id,b){var c=$('c_'+id);c.classList.toggle('open');b.textContent=c.classList.contains('open')?'Hide details':'Details'}
+function openEdit(id){$('c_'+id).classList.add('editing')}
+function closeEdit(id){$('c_'+id).classList.remove('editing')}
+
+/* ---------- actions ---------- */
+async function decide(id,status,edited){
+  if(S.busy)return;S.busy=true;
+  var args={p_pin:S.pin,p_id:id,p_status:status,p_route_label:null,p_task_name:null,p_due:null,p_note:null};
+  if(edited){args.p_route_label=$('a_'+id).value;args.p_task_name=$('t_'+id).value;args.p_due=$('d_'+id).value||null;args.p_note=$('n_'+id).value}
+  try{
+    var row=await rpc('plaud_review_decide',args);
+    var c=$('c_'+id);if(c)c.classList.add('gone');
+    setTimeout(function(){
+      S.data.pending=S.data.pending.filter(function(x){return x.id!==id});
+      S.data.recent=[row].concat(S.data.recent.filter(function(x){return x.id!==id}));
+      render();
+    },220);
+    if(status==='approved'){
+      // Hold the Asana call for the undo window so a mis-tap never leaves a stray task.
+      S.timers[id]=setTimeout(function(){delete S.timers[id];createTask(id)},UNDO_MS);
+      toast('Creating for '+row.route_label.replace(/ —.*/,'')+'…','Undo',function(){undo(id)},UNDO_MS);
+    }else toast(LABEL[status],'Undo',function(){undo(id)},UNDO_MS);
+  }catch(e){if(e.message!=='bad_pin')toast('Not saved: '+e.message)}
+  finally{S.busy=false}
+}
+async function undo(id){
+  if(S.timers[id]){clearTimeout(S.timers[id]);delete S.timers[id]}
+  try{
+    var row=await rpc('plaud_review_undo',{p_pin:S.pin,p_id:id});
+    S.data.recent=S.data.recent.filter(function(x){return x.id!==id});
+    S.data.pending=[row].concat(S.data.pending.filter(function(x){return x.id!==id}));
+    render();toast('Back in the list');
+  }catch(e){if(e.message.indexOf('already_created')>=0)toast('Already in Asana. Delete it there if needed.');else if(e.message!=='bad_pin')toast('Undo failed: '+e.message)}
+}
+async function createTask(id,quiet){
+  try{
+    var r=await fetch(SB_URL+'/functions/v1/plaud-review-create',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify({pin:S.pin,id:id})});
+    var j=await r.json();
+    var it=S.data.recent.filter(function(x){return x.id===id})[0];
+    if(it){if(j.ok){it.asana_task_gid=j.asana_task;it.asana_error=null}else it.asana_error=j.error||('HTTP '+r.status)}
+    render();
+    if(!quiet)toast(j.ok?'Created in Asana':'Asana did not create it. Tap Retry below.');
+  }catch(e){toast('Network error. Tap Retry below.')}
+}
+start();
+</script>
+</body>
+</html>
