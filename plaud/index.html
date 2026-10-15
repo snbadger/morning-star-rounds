@@ -98,7 +98,7 @@ async function rpc(fn,args){
   if(r.error){
     var m=String(r.error.message||'');
     if(m.indexOf('bad_pin')>=0||m.indexOf('no_pin')>=0){ls('pr_pin',null);S.pin=null;gate('That PIN did not work.');throw new Error('bad_pin')}
-    if(m.indexOf('locked')>=0){ls('pr_pin',null);S.pin=null;gate('Too many wrong PINs. Wait 15 minutes and try again.');throw new Error('bad_pin')}
+    if(m.indexOf('locked')>=0){ls('pr_pin',null);S.pin=null;gate('Too many wrong PINs. Wait an hour and try again.');throw new Error('bad_pin')}
     throw new Error(m);
   }
   return r.data;
@@ -114,7 +114,7 @@ async function gate(msg){
   var has=true;try{var r=await sb.rpc('plaud_review_has_pin');has=r.data!==false}catch(e){}
   $('app').innerHTML='<div class="gate"><h1>Plaud Review</h1>'+
     (has?'<p>Approve action items from your recordings.</p><input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN">'
-        :'<p>Choose a 6–8 digit PIN for this page. Only you should know it.</p><input id="pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN"><input id="pin2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Again">')+
+        :'<p>Choose a 4–8 digit PIN for this page. Only you should know it.</p><input id="pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN"><input id="pin2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Again">')+
     '<div class="msg">'+esc(msg)+'</div><button class="btn go full" id="pinGo">'+(has?'Open':'Set PIN')+'</button></div>';
   $('pin').focus();
   $('pin').onkeydown=function(e){if(e.key==='Enter')$('pinGo').click()};
@@ -123,7 +123,7 @@ async function gate(msg){
     if(!has){
       if(v!==$('pin2').value.trim())return gate('The two PINs don’t match.');
       var r=await sb.rpc('plaud_review_set_pin',{p_pin:v});
-      if(r.error)return gate(r.error.message.indexOf('6_to_8')>=0?'Use 6 to 8 digits.':r.error.message);
+      if(r.error)return gate(r.error.message.indexOf('4_to_8')>=0?'Use 4 to 8 digits.':r.error.message);
     }
     S.pin=v;
     try{await load();ls('pr_pin',v)}catch(e){if(e.message!=='bad_pin')gate('Could not connect: '+e.message)}
