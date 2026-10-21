@@ -278,6 +278,17 @@ function homeView(){
        '<div class="room-num">'+rb.replace('P','')+(rb.slice(-1)==='P'?'<span style="font-size:11px;color:var(--text-light)"> priv</span>':'')+'</div>'+
        '<div class="room-status">'+status+flags+extra+by+'</div><div style="color:var(--text-light)">›</div></div>';
   });
+  // Missing list — scheduled beds with no entry this shift (a bed charted on the other shift the same day doesn't count as missing).
+  var otherShift=logs.filter(function(l){return l.shift!==selShift}).map(function(l){return l.room_bed});
+  var missing=sched.filter(function(rb){return !logFor(rb)&&otherShift.indexOf(rb)<0});
+  if(sched.length){
+    var past=selDate<today;
+    h+='<div class="card" style="margin-top:14px;border-left:5px solid '+(missing.length?'var(--danger)':'var(--success)')+'">'+
+       '<b style="font-size:15px">'+(missing.length?(past?'Missed':'Still missing')+' — '+missing.length+' bed'+(missing.length===1?'':'s'):'✅ Nothing missing')+'</b>'+
+       (missing.length?'<div class="hint" style="margin:4px 0 8px">Not documented yet this shift. Tap a bed to document it. Empty bed? Mark it "Empty bed".</div>'+
+         missing.map(function(rb){return '<span class="skin-chip on" onclick="openForm(\''+rb+'\')">'+rb+'</span>'}).join('')
+       :'<div class="hint" style="margin-top:4px">Every scheduled bed on this shift is documented.</div>')+'</div>';
+  }
   h+='<div style="margin-top:14px"><button class="btn btn-ghost" onclick="addExtra()">+ Log an off-schedule shower</button></div>';
   h+=logoutRow();
   return h;
