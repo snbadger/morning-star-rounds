@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Star — Shower Audit</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--purple:#8e44ad;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:50px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.header h1{font-size:19px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:12px;opacity:.75;margin-top:2px}
+.header a{color:#fff;font-size:13px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;text-decoration:none;white-space:nowrap}
+.page{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.card h2{font-size:15px;font-weight:800;color:var(--primary);margin-bottom:4px}
+.hint{font-size:12.5px;color:var(--text-light);line-height:1.45}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.controls .grp{display:flex;flex-direction:column;gap:4px}
+.controls label{font-size:11.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px}
+input[type=date],select{padding:9px 10px;border:1.5px solid var(--border);border-radius:9px;font-size:15px;background:#fff;color:var(--text);font-family:inherit}
+.chip{padding:8px 12px;border:1.5px solid var(--border);border-radius:18px;background:#fff;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.chip.on{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.tabs{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+.tab{flex:1;min-width:110px;padding:10px 6px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:center;color:var(--text-light)}
+.tab.active{border-color:var(--primary);background:#eaf2f8;color:var(--primary)}
+.tab .n{display:inline-block;min-width:20px;padding:1px 6px;border-radius:10px;background:var(--danger);color:#fff;font-size:11px;margin-left:4px}
+.tab .n.zero{background:var(--success)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;border-left:5px solid var(--border)}
+.kpi.g{border-left-color:var(--success)}.kpi.y{border-left-color:var(--warn)}.kpi.r{border-left-color:var(--danger)}
+.kpi .lbl{font-size:11.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px}
+.kpi .val{font-size:28px;font-weight:800;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .det{font-size:12px;color:var(--text-light);line-height:1.35}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light);padding:8px 8px;border-bottom:2px solid var(--border);white-space:nowrap;cursor:default}
+th.sort{cursor:pointer}
+td{padding:8px 8px;border-bottom:1px solid #eef0f3;vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:700;margin:1px 3px 1px 0;white-space:nowrap}
+.p-red{background:#fdedec;color:#b03a2e}.p-amb{background:#fef5e7;color:#a6600c}.p-gray{background:#eef0f3;color:#566573}
+.p-green{background:#eafaf1;color:#1e8449}.p-purple{background:#f4ecf7;color:#7d3c98}
+.grid-day{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:4px;margin-top:6px}
+.bed{font-size:12px;font-weight:700;text-align:center;padding:6px 2px;border-radius:6px;color:#fff}
+.b-shower{background:var(--success)}.b-bed_bath{background:var(--purple)}.b-refused{background:var(--danger)}
+.b-empty_bed{background:#b2babb}.b-missed{background:#fff;color:var(--danger);border:2px dashed var(--danger)}
+.b-pending{background:#fff;color:var(--text-light);border:2px dashed var(--border)}
+.b-other{background:#fff;color:var(--primary);border:2px solid var(--primary-light)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-light);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px}
+.dayrow{padding:10px 0;border-bottom:1px solid #eef0f3}
+.dayrow:last-child{border-bottom:none}
+.dayhdr{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700}
+.bar{height:8px;background:#eef0f3;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar>div{height:100%}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{padding:10px 14px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;background:var(--primary);color:#fff}
+.btn.ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.empty{text-align:center;color:var(--text-light);padding:24px 8px;font-size:14px}
+.loading{text-align:center;padding:40px;color:var(--text-light)}
+.ladder{display:flex;gap:4px}
+.ladder i{display:inline-block;width:18px;height:18px;border-radius:4px;font-style:normal;font-size:11px;font-weight:800;text-align:center;line-height:18px}
+.ladder i.on{background:var(--success);color:#fff}.ladder i.off{background:#eef0f3;color:#aab2b9}
+.foot{font-size:11.5px;color:var(--text-light);line-height:1.5;margin-top:6px}
+.printonly{display:none}
+@media (max-width:600px){.kpi .val{font-size:24px}.page{padding:12px}td,th{padding:7px 5px}}
+@media print{
+  .header,.controls-card,.tabs,.btnrow,.noprint{display:none!important}
+  .printonly{display:block}
+  body{background:#fff}.page{max-width:none;padding:0}
+  .card,.kpi{box-shadow:none;break-inside:avoid}
+  .section{display:block!important}
+  .bed{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .kpi,.pill,.bar>div{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🚿 Shower Sheet Audit</h1><div class="sub">Documentation &amp; follow-through — rooms/beds only</div></div>
+  <a href="../">← Apps</a>
+</div>
+
+<div class="page">
+  <div class="printonly card">
+    <h2>Morning Star — Shower Sheet Compliance Audit</h2>
+    <div class="hint" id="printRange"></div>
+  </div>
+
+  <div class="card controls-card">
+    <div class="controls">
+      <div class="grp"><label>From</label><input type="date" id="fFrom"></div>
+      <div class="grp"><label>To</label><input type="date" id="fTo"></div>
+      <div class="grp"><label>Shift</label>
+        <select id="fShift"><option value="both">AM + PM</option><option value="AM">AM only</option><option value="PM">PM only</option></select></div>
+      <div class="grp"><label>Quick range</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="presets">
+          <span class="chip" data-p="7">Last 7 days</span>
+          <span class="chip" data-p="14">Last 14</span>
+          <span class="chip" data-p="mtd">This month</span>
+          <span class="chip" data-p="lm">Last month</span>
+        </div></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="content"><div class="loading">Loading shower logs…</div></div>
+
+  <div class="foot noprint" id="foot"></div>
+</div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// MUST MATCH /showers/index.html SCHEDULE ("MStar Schedule (2)", revised 2025.04.03).
+// If the shower schedule changes, update both pages.
+var SCHEDULE={
+ 1:{AM:['5A','6C','8A','10C','11G','12B','14A','15C','16B'],PM:['4P','5B','9B','9C','11A','11F','12A','12D','14C','14E']},
+ 2:{AM:['2P','6B','8B','10B','11H','12E','14H','15D','16C'],PM:['3P','7A','9A','10A','11D','11E','12H','12G','14D','18A']},
+ 3:{AM:['5C','7B','7C','8C','11B','12C','14B','15A','16A','16D'],PM:['1P','5D','6A','11C','12F','14F','14G','15B','18B']},
+ 0:{AM:[],PM:[]}
+};
+SCHEDULE[4]=SCHEDULE[1];SCHEDULE[5]=SCHEDULE[2];SCHEDULE[6]=SCHEDULE[3];
+
+var TASKS=[{key:'nails',label:'Nails'},{key:'facial_hair',label:'Facial hair'},{key:'wash',label:'Hair & body wash'},{key:'lotion',label:'Lotion'}];
+var REFUSAL_STEPS=[
+ {key:'alt_time',short:'1',label:'Alternate time / different staff'},
+ {key:'second_cna',short:'2',label:'Second CNA attempted'},
+ {key:'nurse',short:'3',label:'Licensed nurse offered'},
+ {key:'dsd_don',short:'4',label:'DSD / DON notified'}
+];
+var SKIN_LABEL={bruising:'Bruising',skin_tear:'Skin tear',redness:'Redness',open_area:'Open area',dryness:'Dryness'};
+
+var state={from:null,to:null,shift:'both',tab:'overview',logs:[],sortCna:'entries'};
+try{var t=localStorage.getItem('sa_tab');if(t)state.tab=t}catch(e){}
+
+// ---------- date helpers (local / Pacific) ----------
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function parseYmd(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function addDays(s,n){var d=parseYmd(s);d.setDate(d.getDate()+n);return ymd(d)}
+function todayStr(){return ymd(new Date())}
+function fmtDate(s){return parseYmd(s).toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'})}
+function fmtTs(ts){var d=new Date(ts);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pct(n,d){return d?Math.round(n/d*1000)/10:null}
+function pctStr(n,d){var p=pct(n,d);return p==null?'—':p+'%'}
+function normName(n){n=(n||'').trim().replace(/\s+/g,' ');return n?n.toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase()}):'(no name)'}
+function outLabel(o){return o==='shower'?'Shower':o==='bed_bath'?'Bed bath':o==='empty_bed'?'Empty bed':o==='refused'?'Refused':o}
+function outPill(o){var c=o==='shower'?'p-green':o==='bed_bath'?'p-purple':o==='refused'?'p-red':'p-gray';return '<span class="pill '+c+'">'+outLabel(o)+'</span>'}
+function careGiven(o){return o==='shower'||o==='bed_bath'}
+
+function setPreset(p){
+  var t=todayStr();
+  if(p==='7'){state.from=addDays(t,-6);state.to=t}
+  else if(p==='14'){state.from=addDays(t,-13);state.to=t}
+  else if(p==='mtd'){state.from=t.slice(0,8)+'01';state.to=t}
+  else if(p==='lm'){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);state.from=ymd(d);var e=new Date(d.getFullYear(),d.getMonth()+1,0);state.to=ymd(e)}
+  document.getElementById('fFrom').value=state.from;document.getElementById('fTo').value=state.to;
+  markPreset(p);load();
+}
+function markPreset(p){document.querySelectorAll('#presets .chip').forEach(function(c){c.classList.toggle('on',c.dataset.p===p)})}
+
+// ---------- data ----------
+async function load(){
+  document.getElementById('content').innerHTML='<div class="loading">Loading shower logs…</div>';
+  var all=[],page=0,size=1000;
+  while(true){
+    var r=await sb.from('shower_logs').select('id,log_date,shift,room_bed,scheduled,outcome,bed_bath_reason,tasks,skin_issues,skin_locations,skin_note,notes,refusal_steps,cna_name,nurse_reviewed_by,nurse_reviewed_at,created_at,updated_at')
+      .gte('log_date',state.from).lte('log_date',state.to).order('log_date').range(page*size,page*size+size-1);
+    if(r.error){document.getElementById('content').innerHTML='<div class="card empty">Could not load shower logs: '+esc(r.error.message)+'</div>';return}
+    all=all.concat(r.data||[]);
+    if(!r.data||r.data.length<size)break;page++;
+  }
+  state.logs=all;render();
+}
+
+// ---------- audit engine ----------
+function shiftsSel(){return state.shift==='both'?['AM','PM']:[state.shift]}
+
+function analyze(){
+  var today=todayStr(),shifts=shiftsSel();
+  var logs=state.logs.filter(function(l){return shifts.indexOf(l.shift)>=0});
+  var byKey={},byDayBed={};
+  state.logs.forEach(function(l){byKey[l.log_date+'|'+l.shift+'|'+l.room_bed]=l;(byDayBed[l.log_date+'|'+l.room_bed]=byDayBed[l.log_date+'|'+l.room_bed]||[]).push(l)});
+
+  // 1. Scheduled slots vs documentation
+  var slots=[],days=[];
+  for(var d=state.from;d<=state.to&&d<=today;d=addDays(d,1)){
+    var dow=parseYmd(d).getDay(),day={date:d,dow:dow,shifts:{}};
+    shifts.forEach(function(s){
+      var beds=SCHEDULE[dow][s]||[],arr=[];
+      beds.forEach(function(b){
+        var l=byKey[d+'|'+s+'|'+b],st,other=null;
+        if(l)st=l.outcome;
+        else{
+          var o=(byDayBed[d+'|'+b]||[]).filter(function(x){return x.shift!==s});
+          if(o.length){st='other';other=o[0]}
+          else st=(d===today)?'pending':'missed';
+        }
+        var slot={date:d,shift:s,bed:b,status:st,log:l||other};
+        arr.push(slot);slots.push(slot);
+      });
+      day.shifts[s]=arr;
+    });
+    days.push(day);
+  }
+  var due=slots.filter(function(s){return s.status!=='pending'});
+  var documented=due.filter(function(s){return s.status!=='missed'});
+  var missed=due.filter(function(s){return s.status==='missed'});
+  var occ=documented.filter(function(s){return s.status!=='empty_bed'&&s.status!=='other'});
+  var cnt=function(arr,st){return arr.filter(function(s){return s.status===st}).length};
+
+  // 2. Entry-level quality checks (scheduled + off-schedule entries)
+  var exceptions=[];
+  var q={care:0,tasksComplete:0,taskRefusals:0,bb:0,bbNoReason:0,skin:0,skinReviewed:0,skinNoLoc:0,skinNoNote:0,
+         refused:0,ladder:[0,0,0,0],stopAt1:0,noNurseStep:0,reviewDue:0,reviewed:0,late:0,offSched:0};
+  logs.forEach(function(l){
+    var issues=[],o=l.outcome;
+    if(!l.scheduled)q.offSched++;
+    if(careGiven(o)){
+      q.care++;
+      var t=l.tasks||{},miss=TASKS.filter(function(k){var v=t[k.key];return v===undefined||v===null||v===''||v===false});
+      if(!miss.length)q.tasksComplete++;else issues.push({sev:'amb',txt:'Care tasks not marked: '+miss.map(function(k){return k.label}).join(', ')});
+      TASKS.forEach(function(k){if(t[k.key]==='refused')q.taskRefusals++});
+    }
+    if(o==='bed_bath'){q.bb++;if(!l.bed_bath_reason){q.bbNoReason++;issues.push({sev:'amb',txt:'Bed bath — no reason given'})}}
+    var skin=(l.skin_issues||[]).length>0;
+    if(skin){
+      q.skin++;
+      if(l.nurse_reviewed_by)q.skinReviewed++;else issues.push({sev:'red',txt:'Skin issue NOT reviewed by nurse: '+(l.skin_issues||[]).map(function(k){return SKIN_LABEL[k]||k}).join(', ')});
+      if(!(l.skin_locations||[]).length){q.skinNoLoc++;issues.push({sev:'amb',txt:'Skin issue — no body location marked'})}
+      if(!l.skin_note){q.skinNoNote++;issues.push({sev:'amb',txt:'Skin issue — no description'})}
+    }
+    if(o==='refused'){
+      q.refused++;
+      var rs=l.refusal_steps||{},done=REFUSAL_STEPS.map(function(s){return !!rs[s.key]});
+      done.forEach(function(v,i){if(v)q.ladder[i]++});
+      if(!done[1]&&!done[2]&&!done[3]){q.stopAt1++;issues.push({sev:'amb',txt:'Refusal — stopped at step 1 (no second CNA or nurse)'})}
+      if(!done[2]){q.noNurseStep++;if(done[1]||done[3])issues.push({sev:'amb',txt:'Refusal — licensed nurse step not documented'})}
+      REFUSAL_STEPS.forEach(function(s,i){if(i>0&&rs[s.key]&&!rs[s.key].by)issues.push({sev:'gray',txt:'Refusal step '+s.short+' checked without a name'})});
+    }
+    if(o!=='empty_bed'&&l.log_date<today){
+      q.reviewDue++;
+      if(l.nurse_reviewed_by)q.reviewed++;
+      else if(!skin)issues.push({sev:'gray',txt:'Not signed off by charge nurse'});
+    }
+    if(l.created_at){var cd=ymd(new Date(l.created_at));if(cd>l.log_date){q.late++;issues.push({sev:'gray',txt:'Entered late ('+fmtTs(l.created_at)+')'})}}
+    if(issues.length)exceptions.push({log:l,issues:issues,sev:issues.some(function(i){return i.sev==='red'})?0:issues.some(function(i){return i.sev==='amb'})?1:2});
+  });
+  exceptions.sort(function(a,b){return a.sev-b.sev||(b.log.log_date<a.log.log_date?-1:1)});
+
+  // 3. Repeat refusals by bed
+  var refBed={};
+  logs.filter(function(l){return l.outcome==='refused'}).forEach(function(l){(refBed[l.room_bed]=refBed[l.room_bed]||[]).push(l)});
+  var repeat=Object.keys(refBed).filter(function(b){return refBed[b].length>=2}).map(function(b){return {bed:b,list:refBed[b]}}).sort(function(a,b){return b.list.length-a.list.length});
+
+  // 4. By CNA
+  var cna={};
+  logs.forEach(function(l){
+    var k=normName(l.cna_name),c=cna[k]=cna[k]||{name:k,entries:0,shower:0,bed_bath:0,refused:0,empty:0,care:0,tasksOk:0,reviewDue:0,reviewed:0,skin:0,refStop1:0,late:0,exc:0};
+    c.entries++;
+    if(l.outcome==='shower')c.shower++;else if(l.outcome==='bed_bath')c.bed_bath++;else if(l.outcome==='refused')c.refused++;else if(l.outcome==='empty_bed')c.empty++;
+    if(careGiven(l.outcome)){c.care++;var t=l.tasks||{};if(TASKS.every(function(k){var v=t[k.key];return v!==undefined&&v!==null&&v!==''&&v!==false}))c.tasksOk++}
+    if(l.outcome!=='empty_bed'&&l.log_date<today){c.reviewDue++;if(l.nurse_reviewed_by)c.reviewed++}
+    if((l.skin_issues||[]).length)c.skin++;
+    if(l.outcome==='refused'){var rs=l.refusal_steps||{};if(!rs.second_cna&&!rs.nurse&&!rs.dsd_don)c.refStop1++}
+    if(l.created_at&&ymd(new Date(l.created_at))>l.log_date)c.late++;
+  });
+  exceptions.forEach(function(e){var k=normName(e.log.cna_name);if(cna[k]&&e.sev<2)cna[k].exc++});
+
+  // 5. Charge-nurse reviewers
+  var rev={};logs.forEach(function(l){if(l.nurse_reviewed_by){var k=normName(l.nurse_reviewed_by);rev[k]=(rev[k]||0)+1}});
+
+  return {days:days,slots:slots,due:due,documented:documented,missed:missed,occ:occ,
+    shower:cnt(occ,'shower'),bedbath:cnt(occ,'bed_bath'),refusedSched:cnt(occ,'refused'),empty:cnt(documented,'empty_bed'),other:cnt(documented,'other'),
+    pending:slots.length-due.length,q:q,exceptions:exceptions,repeat:repeat,cna:Object.values(cna),rev:rev,logs:logs};
+}
+
+function grade(v,g,y){if(v==null)return '';return v>=g?'g':v>=y?'y':'r'}
+function gradeLow(v,g,y){if(v==null)return '';return v<=g?'g':v<=y?'y':'r'}
+
+// ---------- render ----------
+function render(){
+  var A=analyze();state.A=A;
+  var nEx=A.exceptions.filter(function(e){return e.sev<2}).length;
+  var tabs=[['overview','Overview',null],['missed','Missed',A.missed.length],['exceptions','Follow-up',nEx],['cna','By CNA',null],['grid','Daily Grid',null]];
+  document.getElementById('tabs').innerHTML=tabs.map(function(t){
+    return '<div class="tab'+(state.tab===t[0]?' active':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+(t[2]!=null?'<span class="n'+(t[2]?'':' zero')+'">'+t[2]+'</span>':'')+'</div>'}).join('');
+  var rng=fmtDate(state.from)+' – '+fmtDate(state.to)+' · '+(state.shift==='both'?'AM + PM':state.shift+' shift');
+  document.getElementById('printRange').textContent=rng+' · Printed '+new Date().toLocaleString('en-US');
+  var h='';
+  // Print renders every section; screen shows the active tab.
+  ['overview','missed','exceptions','cna','grid'].forEach(function(t){
+    h+='<div class="section" style="display:'+(state.tab===t?'block':'none')+'">'+window['r_'+t](A)+'</div>';
+  });
+  document.getElementById('content').innerHTML=h;
+  document.getElementById('foot').innerHTML=
+    'Source: Shower Sheet app (Supabase <code>shower_logs</code>), live. '+A.logs.length+' entries in range'+(A.q.offSched?' ('+A.q.offSched+' off-schedule)':'')+'. '+
+    'Schedule = MStar Schedule (2), rev. 2025.04.03; Sunday has no scheduled showers. Today\'s slots count as <b>pending</b>, not missed. '+
+    'A scheduled bed documented on the other shift the same day counts as documented. Rooms/beds only — beds change residents, so read repeat-refusal patterns with the census.';
+}
+
+function kpi(cls,lbl,val,det){return '<div class="kpi '+cls+'"><div class="lbl">'+lbl+'</div><div class="val">'+val+'</div><div class="det">'+det+'</div></div>'}
+
+window.r_overview=function(A){
+  var q=A.q,h='';
+  var docP=pct(A.documented.length,A.due.length);
+  var hyg=A.shower+A.bedbath,att=hyg+A.refusedSched;
+  var refP=pct(A.refusedSched,att);
+  var taskP=pct(q.tasksComplete,q.care);
+  var revP=pct(q.reviewed,q.reviewDue);
+  var skinP=pct(q.skinReviewed,q.skin);
+  var escP=pct(q.refused-q.stopAt1,q.refused);
+  h+='<div class="kpis">'+
+    kpi(grade(docP,98,90),'Documentation',docP==null?'—':docP+'%',A.documented.length+' of '+A.due.length+' scheduled slots charted · <b>'+A.missed.length+' missed</b>'+(A.pending?' · '+A.pending+' pending today':''))+
+    kpi(gradeLow(refP,10,18),'Refusal rate',refP==null?'—':refP+'%',A.refusedSched+' refused of '+att+' scheduled attempts (shower + bed bath + refused)')+
+    kpi('', 'Showers vs bed baths',hyg?(Math.round(A.shower/hyg*100)+'%'):'—',A.shower+' showers · '+A.bedbath+' bed baths · '+A.empty+' empty beds')+
+    kpi(grade(taskP,95,85),'Care tasks complete',taskP==null?'—':taskP+'%',q.tasksComplete+' of '+q.care+' entries with all 4 tasks marked · '+q.taskRefusals+' task-level refusals')+
+    kpi(grade(revP,95,80),'Charge nurse sign-off',revP==null?'—':revP+'%',q.reviewed+' of '+q.reviewDue+' entries reviewed (excl. today &amp; empty beds)')+
+    kpi(q.skin?grade(skinP,100,90):'g','Skin flags reviewed',q.skin?skinP+'%':'—',q.skin+' skin issue'+(q.skin===1?'':'s')+' found · '+(q.skin-q.skinReviewed)+' not nurse-reviewed')+
+    kpi(q.refused?grade(escP,90,75):'g','Refusal escalation',q.refused?escP+'%':'—',(q.refused-q.stopAt1)+' of '+q.refused+' refusals went past step 1 · '+q.noNurseStep+' without nurse step')+
+    kpi(gradeLow(q.late,0,5),'Late entries',q.late,'Charted on a later day than the shower')+
+  '</div>';
+
+  // By shift
+  var rows=shiftsSel().map(function(s){
+    var due=A.due.filter(function(x){return x.shift===s}),doc=due.filter(function(x){return x.status!=='missed'});
+    var oc=doc.filter(function(x){return x.status!=='empty_bed'&&x.status!=='other'});
+    var r=oc.filter(function(x){return x.status==='refused'}).length,hy=oc.filter(function(x){return x.status==='shower'||x.status==='bed_bath'}).length;
+    return '<tr><td><b>'+s+'</b></td><td class="num">'+due.length+'</td><td class="num">'+pctStr(doc.length,due.length)+'</td><td class="num">'+(due.length-doc.length)+'</td><td class="num">'+pctStr(r,r+hy)+'</td></tr>'});
+  h+='<div class="card"><h2>By shift</h2><div class="scroll"><table><tr><th>Shift</th><th class="num">Slots due</th><th class="num">Documented</th><th class="num">Missed</th><th class="num">Refusal rate</th></tr>'+rows.join('')+'</table></div></div>';
+
+  // Refusal ladder
+  if(q.refused){
+    h+='<div class="card"><h2>Refusal escalation ladder</h2><div class="hint">Share of the '+q.refused+' refusals where each step was documented.</div><table style="margin-top:6px">'+
+      REFUSAL_STEPS.map(function(s,i){var p=pct(q.ladder[i],q.refused);return '<tr><td style="width:44%">'+s.short+'. '+s.label+'</td><td><div class="bar"><div style="width:'+p+'%;background:'+(i<2?'var(--primary-light)':'var(--accent)')+'"></div></div></td><td class="num" style="width:90px">'+q.ladder[i]+' · '+p+'%</td></tr>'}).join('')+'</table></div>';
+  }
+  // Repeat refusals
+  if(A.repeat.length){
+    h+='<div class="card"><h2>Beds with repeat refusals</h2><div class="hint">2+ refusals in this range — check that a refusal care plan is in place.</div><div class="scroll"><table style="margin-top:6px"><tr><th>Bed</th><th class="num">Refusals</th><th>Dates</th><th>Highest step reached</th></tr>'+
+      A.repeat.map(function(r){
+        var hi=0;r.list.forEach(function(l){var rs=l.refusal_steps||{};REFUSAL_STEPS.forEach(function(s,i){if(rs[s.key])hi=Math.max(hi,i+1)})});
+        return '<tr><td><b>'+esc(r.bed)+'</b></td><td class="num">'+r.list.length+'</td><td>'+r.list.map(function(l){return fmtDate(l.log_date)+' '+l.shift}).join(', ')+'</td><td>'+(hi?'Step '+hi+' — '+REFUSAL_STEPS[hi-1].label:'None')+'</td></tr>'}).join('')+'</table></div></div>';
+  }
+  // Reviewers
+  var rv=Object.keys(A.rev).sort(function(a,b){return A.rev[b]-A.rev[a]});
+  if(rv.length)h+='<div class="card"><h2>Charge nurse sign-offs</h2><div class="hint">'+rv.map(function(k){return esc(k)+' <b>'+A.rev[k]+'</b>'}).join(' · ')+'</div></div>';
+  h+=exportBtns();
+  return h;
+};
+
+window.r_missed=function(A){
+  if(!A.missed.length)return '<div class="card empty">✅ Every scheduled shower in this range was documented.</div>'+exportBtns();
+  var byDay={};A.missed.forEach(function(m){(byDay[m.date]=byDay[m.date]||[]).push(m)});
+  var bedCount={};A.missed.forEach(function(m){bedCount[m.bed]=(bedCount[m.bed]||0)+1});
+  var rep=Object.keys(bedCount).filter(function(b){return bedCount[b]>=2}).sort(function(a,b){return bedCount[b]-bedCount[a]});
+  var h='<div class="card"><h2>'+A.missed.length+' scheduled shower'+(A.missed.length===1?'':'s')+' with no entry</h2><div class="hint">Nothing charted for the scheduled bed on that shift (or the other shift). Empty beds must still be marked "Empty bed".</div>';
+  if(rep.length)h+='<div style="margin-top:8px">Missed more than once: '+rep.map(function(b){return '<span class="pill p-red">'+esc(b)+' ×'+bedCount[b]+'</span>'}).join('')+'</div>';
+  h+='<div class="scroll"><table style="margin-top:8px"><tr><th>Date</th><th>Shift</th><th>Missed beds</th><th class="num">Charted</th></tr>';
+  Object.keys(byDay).sort().reverse().forEach(function(d){
+    ['AM','PM'].forEach(function(s){
+      var m=byDay[d].filter(function(x){return x.shift===s});if(!m.length)return;
+      var day=A.days.find(function(x){return x.date===d}),tot=day.shifts[s].length;
+      h+='<tr><td>'+fmtDate(d)+'</td><td>'+s+'</td><td>'+m.map(function(x){return '<span class="pill p-red">'+esc(x.bed)+'</span>'}).join('')+'</td><td class="num">'+(tot-m.length)+' / '+tot+'</td></tr>';
+    });
+  });
+  return h+'</table></div></div>'+exportBtns();
+};
+
+window.r_exceptions=function(A){
+  var list=A.exceptions;
+  if(!list.length)return '<div class="card empty">✅ No follow-up items in this range.</div>'+exportBtns();
+  var showMinor=state.showMinor;
+  var shown=list.filter(function(e){return showMinor||e.sev<2});
+  var nRed=list.filter(function(e){return e.sev===0}).length,nAmb=list.filter(function(e){return e.sev===1}).length,nG=list.length-nRed-nAmb;
+  var h='<div class="card"><h2>Entries needing follow-up</h2><div class="hint"><span class="pill p-red">'+nRed+' urgent</span><span class="pill p-amb">'+nAmb+' incomplete</span><span class="pill p-gray">'+nG+' minor (sign-off / late)</span></div>'+
+    '<div class="btnrow noprint" style="margin-top:6px"><span class="chip'+(showMinor?' on':'')+'" onclick="state.showMinor=!state.showMinor;render()">'+(showMinor?'✓ ':'')+'Include minor items</span></div>'+
+    '<div class="scroll"><table style="margin-top:8px"><tr><th>Date</th><th>Shift</th><th>Bed</th><th>Outcome</th><th>CNA</th><th>Issue</th><th>Detail</th></tr>';
+  shown.forEach(function(e){
+    var l=e.log,det=[];
+    if((l.skin_issues||[]).length){det.push('📍 '+((l.skin_locations||[]).join(', ')||'no location')+(l.skin_note?' — '+esc(l.skin_note):''))}
+    if(l.outcome==='refused')det.push(ladderHtml(l));
+    if(l.nurse_reviewed_by)det.push('<span class="hint">Reviewed: '+esc(l.nurse_reviewed_by)+'</span>');
+    h+='<tr><td>'+fmtDate(l.log_date)+'</td><td>'+l.shift+'</td><td><b>'+esc(l.room_bed)+'</b>'+(l.scheduled?'':' <span class="pill p-gray">off-sched</span>')+'</td><td>'+outPill(l.outcome)+'</td><td>'+esc(normName(l.cna_name))+'</td><td>'+
+      e.issues.filter(function(i){return showMinor||i.sev!=='gray'}).map(function(i){return '<span class="pill p-'+i.sev+'">'+esc(i.txt)+'</span>'}).join('<br>')+'</td><td>'+det.join('<br>')+'</td></tr>';
+  });
+  return h+'</table></div></div>'+exportBtns();
+};
+
+function ladderHtml(l){var rs=l.refusal_steps||{};return '<span class="ladder" title="Refusal steps">'+REFUSAL_STEPS.map(function(s){var on=!!rs[s.key];return '<i class="'+(on?'on':'off')+'" title="'+esc(s.label+(on&&rs[s.key].by?' — '+rs[s.key].by:''))+'">'+s.short+'</i>'}).join('')+'</span>'}
+
+window.r_cna=function(A){
+  var rows=A.cna.slice(),k=state.sortCna;
+  rows.sort(function(a,b){
+    if(k==='name')return a.name<b.name?-1:1;
+    if(k==='tasks')return (pct(a.tasksOk,a.care)||0)-(pct(b.tasksOk,b.care)||0);
+    if(k==='review')return (pct(a.reviewed,a.reviewDue)||0)-(pct(b.reviewed,b.reviewDue)||0);
+    if(k==='refused')return (pct(b.refused,b.refused+b.shower+b.bed_bath)||0)-(pct(a.refused,a.refused+a.shower+a.bed_bath)||0);
+    if(k==='exc')return b.exc-a.exc;
+    return b.entries-a.entries;
+  });
+  var th=function(key,lbl,num){return '<th class="sort'+(num?' num':'')+'" onclick="state.sortCna=\''+key+'\';render()">'+lbl+(state.sortCna===key?' ▾':'')+'</th>'};
+  var h='<div class="card"><h2>By CNA</h2><div class="hint">Names as typed in the app (case-normalized). Tap a column to sort. Coach on incomplete tasks, refusals that stop at step 1, and late charting.</div><div class="scroll"><table style="margin-top:8px"><tr>'+
+    th('name','CNA')+th('entries','Entries',1)+'<th class="num">Shower</th><th class="num">Bed bath</th>'+th('refused','Refused',1)+th('tasks','Tasks complete',1)+'<th class="num">Refusals stopped at 1</th><th class="num">Skin flags</th><th class="num">Late</th>'+th('exc','Follow-ups',1)+'</tr>';
+  rows.forEach(function(c){
+    var tp=pct(c.tasksOk,c.care);
+    h+='<tr><td><b>'+esc(c.name)+'</b></td><td class="num">'+c.entries+'</td><td class="num">'+c.shower+'</td><td class="num">'+c.bed_bath+'</td><td class="num">'+c.refused+(c.refused?' <span class="hint">('+pctStr(c.refused,c.refused+c.shower+c.bed_bath)+')</span>':'')+'</td>'+
+      '<td class="num"><span class="pill '+(tp==null?'p-gray':tp>=95?'p-green':tp>=85?'p-amb':'p-red')+'">'+(tp==null?'—':tp+'%')+'</span></td><td class="num">'+(c.refStop1?'<span class="pill p-amb">'+c.refStop1+'</span>':'0')+'</td><td class="num">'+c.skin+'</td><td class="num">'+c.late+'</td><td class="num">'+(c.exc?'<span class="pill p-amb">'+c.exc+'</span>':'0')+'</td></tr>';
+  });
+  return h+'</table></div></div>'+exportBtns();
+};
+
+window.r_grid=function(A){
+  var h='<div class="card"><h2>Daily grid</h2><div class="legend">'+
+    '<span><i class="b-shower"></i>Shower</span><span><i class="b-bed_bath"></i>Bed bath</span><span><i class="b-refused"></i>Refused</span><span><i class="b-empty_bed"></i>Empty bed</span>'+
+    '<span><i class="b-other"></i>Charted other shift</span><span><i class="b-missed"></i>Missed</span><span><i class="b-pending"></i>Pending (today)</span></div>';
+  A.days.slice().reverse().forEach(function(d){
+    if(d.dow===0){h+='<div class="dayrow"><div class="dayhdr"><span>'+fmtDate(d.date)+'</span><span class="hint">Sunday — no scheduled showers</span></div></div>';return}
+    Object.keys(d.shifts).forEach(function(s){
+      var arr=d.shifts[s],due=arr.filter(function(x){return x.status!=='pending'}),doc=due.filter(function(x){return x.status!=='missed'}).length,p=pct(doc,due.length);
+      h+='<div class="dayrow"><div class="dayhdr"><span>'+fmtDate(d.date)+' · '+s+'</span><span>'+(due.length?doc+' / '+due.length+' charted':'in progress')+'</span></div>'+
+        (due.length?'<div class="bar"><div style="width:'+p+'%;background:'+(p>=98?'var(--success)':p>=90?'var(--warn)':'var(--danger)')+'"></div></div>':'')+
+        '<div class="grid-day">'+arr.map(function(x){
+          var t=x.bed+' — '+(x.status==='other'?'charted on '+x.log.shift+' ('+outLabel(x.log.outcome)+')':x.status==='missed'?'MISSED':x.status==='pending'?'pending':outLabel(x.status))+(x.log&&x.log.cna_name?' · '+normName(x.log.cna_name):'');
+          return '<div class="bed b-'+x.status+'" title="'+esc(t)+'">'+esc(x.bed)+'</div>'}).join('')+'</div></div>';
+    });
+  });
+  return h+'</div>'+exportBtns();
+};
+
+function exportBtns(){return '<div class="btnrow noprint"><button class="btn" onclick="window.print()">🖨 Print audit</button><button class="btn ghost" onclick="exportCsv()">⬇ Export CSV</button></div>'}
+
+function exportCsv(){
+  var A=state.A,rows=[['type','date','shift','room_bed','outcome','cna','issue','nurse_reviewed_by']];
+  A.missed.forEach(function(m){rows.push(['missed',m.date,m.shift,m.bed,'','','No entry for scheduled shower',''])});
+  A.exceptions.forEach(function(e){var l=e.log;e.issues.forEach(function(i){rows.push([i.sev==='red'?'urgent':i.sev==='amb'?'incomplete':'minor',l.log_date,l.shift,l.room_bed,l.outcome,normName(l.cna_name),i.txt,l.nurse_reviewed_by||''])})});
+  var csv=rows.map(function(r){return r.map(function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='Shower_Audit_'+state.from+'_to_'+state.to+'.csv';document.body.appendChild(a);a.click();a.remove();
+}
+
+function setTab(t){state.tab=t;try{localStorage.setItem('sa_tab',t)}catch(e){}render();window.scrollTo(0,0)}
+
+// ---------- init ----------
+document.querySelectorAll('#presets .chip').forEach(function(c){c.onclick=function(){setPreset(c.dataset.p)}});
+document.getElementById('fFrom').onchange=function(e){state.from=e.target.value;markPreset(null);if(state.from&&state.to)load()};
+document.getElementById('fTo').onchange=function(e){state.to=e.target.value;markPreset(null);if(state.from&&state.to)load()};
+document.getElementById('fShift').onchange=function(e){state.shift=e.target.value;if(state.logs)render()};
+setPreset('7');
+</script>
+</body>
+</html>
