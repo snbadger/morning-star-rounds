@@ -80,6 +80,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 <script>
 var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var NOTIFY_URL=SUPABASE_URL+'/functions/v1/deep-clean-notify';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 // Sebastian's Deep Clean Schedule (paper sheet, Housekeeping): day of the month -> bed group.
@@ -103,7 +104,8 @@ var SLOT_BY_KEY={};SLOTS.forEach(function(s){SLOT_BY_KEY[s.key]=s});
 var STAFF=["Elizabeth Estrada","Lee You","Lyelah Figueroa","Robert Sosa","Sebastian Lopez"];
 
 // Deep-clean checklist. Editing this only changes what new entries show;
-// saved entries keep the task keys that were checked at the time.
+// saved entries keep the task keys that were checked at the time. The deep-clean-notify
+// edge function has a copy of these labels for the email — keep them in sync.
 var TASKS=[
  {key:'high_dust',label:'High dust',sub:'Vents, light fixtures, TV, top of wardrobe & curtain track'},
  {key:'walls',label:'Walls, doors & baseboards',sub:'Spot-wash walls, wipe door & handles, scrub baseboards'},
@@ -278,8 +280,15 @@ async function save(){
   saving=false;
   if(res.error){toast('Save failed: '+res.error.message);btn.disabled=false;btn.textContent='Save';return}
   await loadData();
+  // Email Sebastian (EVS director) about the new deep clean. Best-effort; the function is
+  // idempotent, so an edit that keeps the same row never re-sends.
+  var saved=logs.find(function(l){return l.slot===row.slot&&l.clean_date===row.clean_date});
+  if(saved&&!saved.notify_sent_at){
+    fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deep_clean_id:saved.id})})
+      .catch(function(){/* notification is best-effort */});
+  }
   view='home';render();window.scrollTo(0,0);
-  toast(editing?'Updated — '+curSlot.label:'✓ '+curSlot.label+' saved');
+  toast(editing?'Updated — '+curSlot.label:'✓ '+curSlot.label+' saved — Sebastian notified');
 }
 async function remove(){
   if(!editing||!confirm('Delete the '+fmtDateLong(editing.clean_date)+' deep clean for '+curSlot.label+'?'))return;
