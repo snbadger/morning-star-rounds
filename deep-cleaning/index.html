@@ -19,35 +19,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-success{background:var(--success);color:#fff}
-.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
 .btn-danger-ghost{background:#fff;color:var(--danger);border:1.5px solid var(--danger);font-size:13px;padding:10px}
 .btn:disabled{opacity:.5}
 label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
 input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
 .hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
-.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
 .back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
-.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
-/* month board */
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:20px 0}
+/* today card */
+.today{border:2px solid var(--primary-light)}
+.today.done{border-color:var(--success);background:#f4fbf7}
+.today .lbl{font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px}
+.today.done .lbl{color:var(--success)}
+.today .big{font-size:26px;font-weight:800;color:var(--primary);margin:4px 0 2px}
+.missed-card{border:2px solid var(--danger);background:#fff7f6}
+.missed-card .lbl{font-size:12px;font-weight:800;color:var(--danger);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+/* month sheet */
 .month-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .month-nav .mo{font-weight:800;font-size:17px;color:var(--primary)}
 .month-nav button{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:16px;font-weight:700;color:var(--primary);cursor:pointer}
 .progress-wrap{background:#eef1f4;border-radius:8px;height:12px;margin-top:10px;overflow:hidden}
 .progress-bar{height:100%;background:var(--success);border-radius:8px;transition:width .3s}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-light);margin-top:8px}
-.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
-.legend .l-done::before{background:var(--success)}.legend .l-due::before{background:var(--warn)}.legend .l-over::before{background:var(--danger)}
-.rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.room{background:#fff;border:2px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:transform .1s}
-.room:active{transform:scale(.96)}
-.room .num{font-size:20px;font-weight:800;color:var(--primary);line-height:1}
-.room .when{font-size:10px;color:var(--text-light);line-height:1.2}
-.room.done{border-color:var(--success);background:#eafaf1}.room.done .num{color:var(--success)}
-.room.due{border-color:var(--warn);background:#fef9e7}
-.room.overdue{border-color:var(--danger);background:#fdedec}.room.overdue .num{color:var(--danger)}
+.row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #f0f2f5;cursor:pointer}
+.row:last-child{border-bottom:none}
+.row:active{background:#f7f9fb}
+.row .day{width:30px;min-width:30px;height:30px;border-radius:8px;background:#eef1f4;color:var(--text-light);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.row .area{flex:1;font-size:15px;font-weight:700;color:var(--primary)}
+.row .st{font-size:12px;font-weight:700;text-align:right;line-height:1.3}
+.row.done .day{background:var(--success);color:#fff}.row.done .st{color:var(--success)}
+.row.today .day{background:var(--primary-light);color:#fff}.row.today .st{color:var(--primary-light)}
+.row.missed .day{background:var(--danger);color:#fff}.row.missed .st{color:var(--danger)}
+.row.upcoming .st{color:var(--text-light);font-weight:600}
+.row.paper .st{color:var(--text-light);font-weight:600;font-style:italic}
+.row.catchup{cursor:default}.row.catchup .area{color:var(--text-light);font-weight:600;font-style:italic}
 /* checklist */
 .task{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f2f5;cursor:pointer;align-items:flex-start}
 .task:last-child{border-bottom:none}
@@ -57,14 +65,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .task.done .task-label{color:var(--text-light)}
 .task-sub{font-size:12px;color:var(--text-light);margin-top:2px}
 .room-big{font-size:26px;font-weight:800;color:var(--primary)}
-.hist{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f5;font-size:14px}
-.hist:last-child{border-bottom:none}
-.hist .r{font-weight:800;color:var(--primary);min-width:70px}
-.hist .m{font-size:12px;color:var(--text-light);flex:1;text-align:right}
-.hist .cnt{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#eafaf1;color:var(--success);margin-left:8px}
-.hist .cnt.partial{background:#fef9e7;color:#a07708}
 .banner{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:12px;text-align:center}
-.banner-green{background:#eafaf1;color:var(--success)}
 .banner-amber{background:#fef9e7;color:#a07708}
 </style>
 </head>
@@ -81,10 +82,23 @@ var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Every resident room gets one deep clean per calendar month.
-var ROOMS=['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','18'];
-var PRIVATE_ROOMS={'1':1,'2':1,'3':1,'4':1};
-var OVERDUE_DAYS=45;
+// Sebastian's Deep Clean Schedule (paper sheet, Housekeeping): day of the month -> bed group.
+// Days 27-31 are "if any missed" catch-up days. Mirrors public.deep_clean_slots — change both together.
+var SLOTS=[
+ {key:'1',day:1,label:'Room 1'},{key:'2',day:2,label:'Room 2'},{key:'3',day:3,label:'Room 3'},{key:'4',day:4,label:'Room 4'},
+ {key:'5AB',day:5,label:'Room 5 A,B'},{key:'5CD',day:6,label:'Room 5 C,D'},
+ {key:'6',day:7,label:'Room 6 A,B,C'},{key:'7',day:8,label:'Room 7 A,B,C'},{key:'8',day:9,label:'Room 8 A,B,C'},
+ {key:'9',day:10,label:'Room 9 A,B,C'},{key:'10',day:11,label:'Room 10 A,B,C'},{key:'18',day:12,label:'Room 18 A,B'},
+ {key:'11AB',day:13,label:'Room 11 A,B'},{key:'11CD',day:14,label:'Room 11 C,D'},{key:'11EF',day:15,label:'Room 11 E,F'},{key:'11GH',day:16,label:'Room 11 G,H'},
+ {key:'12AD',day:17,label:'Room 12 A,B,C,D'},{key:'12EH',day:18,label:'Room 12 E,F,G,H'},
+ {key:'14AB',day:19,label:'Room 14 A,B'},{key:'14CD',day:20,label:'Room 14 C,D'},{key:'14EF',day:21,label:'Room 14 E,F'},{key:'14GH',day:22,label:'Room 14 G,H'},
+ {key:'15AB',day:23,label:'Room 15 A,B'},{key:'15CD',day:24,label:'Room 15 C,D'},
+ {key:'16AB',day:25,label:'Room 16 A,B'},{key:'16CD',day:26,label:'Room 16 C,D'}
+];
+// App went live mid-month; anything scheduled before this date was tracked on the paper sheet,
+// so it shows as "On paper" instead of "Missed". Mirrors v_deep_clean_status.
+var TRACK_START='2026-10-22';
+var SLOT_BY_KEY={};SLOTS.forEach(function(s){SLOT_BY_KEY[s.key]=s});
 // Housekeeping roster (active EVS staff). Names are suggestions — anyone can type their own.
 var STAFF=["Elizabeth Estrada","Lee You","Lyelah Figueroa","Robert Sosa","Sebastian Lopez"];
 
@@ -106,30 +120,42 @@ var TASKS=[
 ];
 
 var me={name:localStorage.getItem('dc_name')||''};
-var view='home', curRoom=null, editing=null, monthOffset=0, logs=[], lastByRoom={};
-var saving=false, lastSavedId=null;
+var view='home', curSlot=null, editing=null, monthOffset=0, logs=[];
+var saving=false;
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
-function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function pad(n){return String(n).padStart(2,'0')}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function todayDay(){return new Date().getDate()}
 function monthOf(off){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+off);return d}
-function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function ym(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
 function fmtDate(s){if(!s)return '';var p=s.split('-');return parseInt(p[1])+'/'+parseInt(p[2])}
 function fmtDateLong(s){if(!s)return '';var d=new Date(s+'T12:00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
-function daysSince(s){if(!s)return null;return Math.round((new Date(today()+'T12:00:00')-new Date(s+'T12:00:00'))/864e5)}
-function roomLabel(r){return 'Room '+r+(PRIVATE_ROOMS[r]?' (private)':'')}
-function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function firstName(n){return String(n||'').split(' ')[0]}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+firstName(me.name)):'Sign in'}
 function editIdentity(){view='identity';render()}
 function doneCount(l){var n=0;TASKS.forEach(function(t){if(l.tasks&&l.tasks[t.key])n++});return n}
 
 async function loadData(){
-  // Last ~13 months covers the month-by-month board and every room's most recent clean.
-  var since=new Date();since.setMonth(since.getMonth()-13);
+  var since=monthOf(-12);
   var r=await sb.from('deep_cleans').select('*').gte('clean_date',ym(since)+'-01').order('clean_date',{ascending:false});
   if(r.error){toast('Could not load — check connection');return}
   logs=r.data||[];
-  lastByRoom={};
-  logs.forEach(function(l){if(!lastByRoom[l.room])lastByRoom[l.room]=l});
+}
+function logFor(slotKey,monthKey){
+  return logs.find(function(l){return l.slot===slotKey&&l.clean_date.slice(0,7)===monthKey})||null;
+}
+// done / today / missed / upcoming for the viewed month (past months: done or missed only)
+function slotStatus(s,monthKey){
+  var l=logFor(s.key,monthKey);
+  if(l)return {cls:'done',log:l};
+  if(monthKey+'-'+pad(s.day)<TRACK_START)return {cls:'paper',log:null};
+  if(monthOffset<0)return {cls:'missed',log:null};
+  var d=todayDay();
+  if(s.day===d)return {cls:'today',log:null};
+  if(s.day<d)return {cls:'missed',log:null};
+  return {cls:'upcoming',log:null};
 }
 
 function render(){
@@ -142,7 +168,7 @@ function render(){
 
 function identityView(){
   return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
-  '<div class="hint">Your name goes on every room you deep clean.</div>'+
+  '<div class="hint">Your name goes on every deep clean you log — it replaces your initials on the paper schedule.</div>'+
   '<label>Your name</label><input id="idName" list="staffList" placeholder="Type or pick your name" value="'+esc(me.name)+'" autocomplete="off">'+
   '<datalist id="staffList">'+STAFF.map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>'+
   '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
@@ -154,72 +180,69 @@ function saveIdentity(){
   view='home';refresh();
 }
 
-function roomStatus(room,monthKey){
-  var inMonth=logs.find(function(l){return l.room===room&&l.clean_date.slice(0,7)===monthKey});
-  if(inMonth)return {cls:'done',log:inMonth};
-  var last=lastByRoom[room];
-  var ds=last?daysSince(last.clean_date):null;
-  if(monthOffset<0)return {cls:'',log:null};          // past month, nothing logged — just blank
-  if(ds!==null&&ds>OVERDUE_DAYS)return {cls:'overdue',log:last};
-  return {cls:'due',log:last||null};   // never logged = due, not overdue (no history to judge by)
-}
-
 function homeView(){
   var m=monthOf(monthOffset), key=ym(m);
   var title=m.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  var done=0, overdue=0;
-  var tiles=ROOMS.map(function(r){
-    var s=roomStatus(r,key);
-    if(s.cls==='done')done++; if(s.cls==='overdue')overdue++;
-    var when='';
-    if(s.cls==='done')when='✓ '+fmtDate(s.log.clean_date)+'<br>'+esc(s.log.cleaned_by.split(' ')[0]);
-    else if(s.log)when='last '+fmtDate(s.log.clean_date)+'<br>'+daysSince(s.log.clean_date)+' days ago';
-    else if(monthOffset>=0)when='never<br>logged';
-    return '<div class="room '+s.cls+'" onclick="openLog(\''+r+'\')"><div class="num">'+r+'</div><div class="when">'+when+'</div></div>';
-  }).join('');
-  var h='<div class="card"><div class="month-nav"><button onclick="monthOffset--;render()">‹</button><div class="mo">'+title+'</div>'+
-    '<button onclick="monthOffset++;render()"'+(monthOffset>=0?' disabled style="opacity:.3"':'')+'>›</button></div>'+
-    '<div class="progress-wrap"><div class="progress-bar" style="width:'+Math.round(done/ROOMS.length*100)+'%"></div></div>'+
-    '<div class="hint" style="margin-top:6px"><b>'+done+' of '+ROOMS.length+'</b> rooms deep cleaned'+(monthOffset===0?' this month':'')+
-    (overdue&&monthOffset===0?' · <span style="color:var(--danger);font-weight:700">'+overdue+' overdue</span>':'')+'</div>'+
-    '<div class="legend"><span class="l-done">Done this month</span><span class="l-due">Due</span><span class="l-over">Overdue (45+ days)</span></div></div>';
-  h+='<div class="section-title"><span>Rooms — tap one to log a deep clean</span></div><div class="rooms">'+tiles+'</div>';
-
-  var monthLogs=logs.filter(function(l){return l.clean_date.slice(0,7)===key}).sort(function(a,b){return a.clean_date<b.clean_date?1:-1});
-  h+='<div class="section-title"><span>Logged in '+esc(m.toLocaleDateString('en-US',{month:'long'}))+' ('+monthLogs.length+')</span></div>';
-  if(!monthLogs.length)h+='<div class="card empty">Nothing logged yet'+(monthOffset===0?' — tap a room above to start':'')+'</div>';
-  else{
-    h+='<div class="card">'+monthLogs.map(function(l){
-      var n=doneCount(l);
-      return '<div class="hist" onclick="openLog(\''+l.room+'\',\''+l.id+'\')"><span class="r">Room '+l.room+'</span>'+
-        '<span class="m">'+fmtDate(l.clean_date)+' · '+esc(l.cleaned_by)+'</span>'+
-        '<span class="cnt'+(n<TASKS.length?' partial':'')+'">'+n+'/'+TASKS.length+'</span></div>';
-    }).join('')+'</div>';
+  var h='';
+  if(monthOffset===0){
+    var d=todayDay(), cur=ym(new Date());
+    var todaySlot=SLOTS.find(function(s){return s.day===d});
+    var dateTxt=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    if(todaySlot){
+      var tl=logFor(todaySlot.key,cur);
+      h+='<div class="card today'+(tl?' done':'')+'"><div class="lbl">Today · '+esc(dateTxt)+' · Day '+d+'</div>'+
+        '<div class="big">'+esc(todaySlot.label)+'</div>'+
+        (tl?'<div class="hint" style="color:var(--success);font-weight:700">✓ Done by '+esc(tl.cleaned_by)+'</div>'
+           :'<div style="margin-top:12px"><button class="btn btn-primary" onclick="openLog(\''+todaySlot.key+'\')">Log today\'s deep clean</button></div>')+
+        '</div>';
+    }else{
+      h+='<div class="card today"><div class="lbl">Today · '+esc(dateTxt)+' · Day '+d+'</div>'+
+        '<div class="big">Catch-up day</div><div class="hint">No room is scheduled today — clean any missed rooms below.</div></div>';
+    }
+    var missed=SLOTS.filter(function(s){return slotStatus(s,key).cls==='missed'});
+    if(missed.length){
+      h+='<div class="card missed-card"><div class="lbl">Missed this month ('+missed.length+') — catch up days 27–31</div>'+
+        missed.map(function(s){return rowHtml(s,{cls:'missed',log:null})}).join('')+'</div>';
+    }
   }
+  var done=SLOTS.filter(function(s){return logFor(s.key,key)}).length;
+  h+='<div class="card"><div class="month-nav"><button onclick="monthOffset--;render()">‹</button><div class="mo">'+title+'</div>'+
+    '<button onclick="monthOffset++;render()"'+(monthOffset>=0?' disabled style="opacity:.3"':'')+'>›</button></div>'+
+    '<div class="progress-wrap"><div class="progress-bar" style="width:'+Math.round(done/SLOTS.length*100)+'%"></div></div>'+
+    '<div class="hint" style="margin-top:6px"><b>'+done+' of '+SLOTS.length+'</b> scheduled deep cleans done</div></div>';
+  h+='<div class="section-title">Deep Clean Schedule — tap a row to log it</div><div class="card" style="padding:6px 12px">';
+  SLOTS.forEach(function(s){h+=rowHtml(s,slotStatus(s,key))});
+  for(var cd=27;cd<=31;cd++)h+='<div class="row catchup"><div class="day">'+cd+'</div><div class="area">If any missed</div></div>';
+  h+='</div>';
   h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh</div>';
   h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
      '<span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
   return h;
+}
+function rowHtml(s,st){
+  var txt={done:st.log?('✓ '+fmtDate(st.log.clean_date)+' · '+esc(firstName(st.log.cleaned_by))):'',today:'Today',missed:'Missed',upcoming:'Day '+s.day,paper:'On paper sheet'}[st.cls];
+  var onclick=st.log?'openLog(\''+s.key+'\',\''+st.log.id+'\')':'openLog(\''+s.key+'\')';
+  return '<div class="row '+st.cls+'" onclick="'+onclick+'"><div class="day">'+s.day+'</div>'+
+    '<div class="area">'+esc(s.label)+'</div><div class="st">'+txt+'</div></div>';
 }
 // Shared phone: clear this app's identity and go back to the Staff Apps home screen.
 function logout(){try{localStorage.removeItem('dc_name');}catch(e){}location.href='../';}
 
 // ---- Log a deep clean ----
 var form={};
-function openLog(room,id){
-  curRoom=room;
+function openLog(slotKey,id){
+  curSlot=SLOT_BY_KEY[slotKey];
   editing=id?logs.find(function(l){return l.id===id}):null;
   form={date:editing?editing.clean_date:today(),tasks:{},notes:editing?(editing.notes||''):''};
   if(editing)TASKS.forEach(function(t){form.tasks[t.key]=!!(editing.tasks&&editing.tasks[t.key])});
   view='log';render();window.scrollTo(0,0);
 }
 function logView(){
-  var last=lastByRoom[curRoom];
   var n=0;TASKS.forEach(function(t){if(form.tasks[t.key])n++});
-  var h='<span class="back" onclick="view=\'home\';render()">‹ All rooms</span>';
+  var h='<span class="back" onclick="view=\'home\';render()">‹ Schedule</span>';
   if(editing)h+='<div class="banner banner-amber">Editing the '+fmtDateLong(editing.clean_date)+' entry by '+esc(editing.cleaned_by)+'</div>';
-  h+='<div class="card"><div class="room-big">'+roomLabel(curRoom)+'</div>'+
-    '<div class="hint">'+(last&&!editing?'Last deep clean '+fmtDateLong(last.clean_date)+' by '+esc(last.cleaned_by)+' ('+daysSince(last.clean_date)+' days ago)':(!last?'No deep clean logged yet for this room':''))+'</div>'+
+  h+='<div class="card"><div class="room-big">'+esc(curSlot.label)+'</div>'+
+    '<div class="hint">Scheduled for day '+curSlot.day+' of each month</div>'+
     '<label>Date cleaned</label><input type="date" id="fDate" value="'+form.date+'" max="'+today()+'" onchange="form.date=this.value">'+
     '</div>';
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
@@ -230,8 +253,8 @@ function logView(){
       '<div><div class="task-label">'+esc(t.label)+'</div><div class="task-sub">'+esc(t.sub)+'</div></div></div>';
   });
   h+='</div>';
-  h+='<div class="card"><label style="margin-top:0">Notes (optional)</label><textarea id="fNotes" rows="2" placeholder="Anything to flag — damage, could not finish, resident declined… (no resident names)" oninput="form.notes=this.value">'+esc(form.notes)+'</textarea></div>';
-  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save deep clean — '+roomLabel(curRoom))+'</button>';
+  h+='<div class="card"><label style="margin-top:0">Notes (optional)</label><textarea id="fNotes" rows="2" placeholder="Anything to flag — damage, could not finish, bed occupied… (no resident names)" oninput="form.notes=this.value">'+esc(form.notes)+'</textarea></div>';
+  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save deep clean — '+esc(curSlot.label))+'</button>';
   if(editing)h+='<div style="margin-top:10px"><button class="btn btn-danger-ghost" onclick="remove()">Delete this entry</button></div>';
   return h;
 }
@@ -245,22 +268,21 @@ async function save(){
   if(!form.date){toast('Pick the date');return}
   if(n<TASKS.length&&!confirm('Only '+n+' of '+TASKS.length+' items checked. Save as a partial deep clean?'))return;
   saving=true;var btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving…';
-  var row={room:curRoom,clean_date:form.date,cleaned_by:editing?editing.cleaned_by:me.name,tasks:form.tasks,notes:(form.notes||'').trim()||null,source:'staff-app'};
+  var row={slot:curSlot.key,clean_date:form.date,cleaned_by:editing?editing.cleaned_by:me.name,tasks:form.tasks,notes:(form.notes||'').trim()||null,source:'staff-app'};
   if(editing&&editing.clean_date!==form.date){
     // date changed: move the row rather than leave a duplicate behind
     var del=await sb.from('deep_cleans').delete().eq('id',editing.id);
     if(del.error){toast('Save failed: '+del.error.message);saving=false;btn.disabled=false;btn.textContent='Save changes';return}
   }
-  var res=await sb.from('deep_cleans').upsert(row,{onConflict:'room,clean_date'}).select().single();
+  var res=await sb.from('deep_cleans').upsert(row,{onConflict:'slot,clean_date'});
   saving=false;
   if(res.error){toast('Save failed: '+res.error.message);btn.disabled=false;btn.textContent='Save';return}
-  lastSavedId=res.data.id;
   await loadData();
-  view='home';render();
-  toast(editing?'Updated — Room '+curRoom:'✓ Room '+curRoom+' deep clean saved');
+  view='home';render();window.scrollTo(0,0);
+  toast(editing?'Updated — '+curSlot.label:'✓ '+curSlot.label+' saved');
 }
 async function remove(){
-  if(!editing||!confirm('Delete the '+fmtDateLong(editing.clean_date)+' deep clean for Room '+curRoom+'?'))return;
+  if(!editing||!confirm('Delete the '+fmtDateLong(editing.clean_date)+' deep clean for '+curSlot.label+'?'))return;
   var r=await sb.from('deep_cleans').delete().eq('id',editing.id);
   if(r.error){toast('Delete failed: '+r.error.message);return}
   await loadData();view='home';render();toast('Entry deleted');
