@@ -13,7 +13,7 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 | Shower Sheet | `/showers/` | CNAs | Supabase `shower_logs` | Live |
 | CNA Assignment Sheet | `/assignments/` | Charge nurses (roster edit = leadership PIN) | Supabase `cna_roster` (RPCs `get_cna_roster`, `save_cna_roster`); showers mirror `/showers/` SCHEDULE | Live |
 | Room Changes | `/room-changes/` | All staff | Supabase `room_changes` | Live |
-| Deep Cleaning | `/deep-cleaning/` | Housekeeping (sign in by name, `dc_name`) | Supabase `deep_cleans` (room + date + checklist, no PHI; upsert on room/date) → `v_deep_clean_status` per-room last clean / done-this-month / overdue (45+ days) | Live — added 10/22/26 |
+| Deep Cleaning | `/deep-cleaning/` | Housekeeping (sign in by name, `dc_name`) | Sebastian's paper Deep Clean Schedule: 26 bed-group slots, day N of the month = slot N, days 27–31 catch-up. Supabase `deep_cleans` (slot + date + checklist, no PHI; upsert on slot/date), `deep_clean_slots` (schedule — mirror of `SLOTS` in the page), `v_deep_clean_status` (this month: done / today / missed / upcoming / paper = before 10/22/26 go-live) | Live — added 10/22/26 |
 | Resident Grievance | `/grievances/` | All staff; resident/family self-entry mode (hand over the device) | Supabase `grievances` (resident Last, F. + room #) → Asana task for SSD + email to SSD/Admin via grievance-notify | Live — added 9/22/26 |
 | Ideas for Improvement | `/ideas/` | All staff | Supabase → Asana | Live |
 | Skill Validation | `/competency/` | Leadership (PIN on hub, moved 8/19/26) | Supabase `competency_validations` | Live |
