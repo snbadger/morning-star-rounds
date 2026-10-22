@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Deep Cleaning</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-ghost{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-danger-ghost{background:#fff;color:var(--danger);border:1.5px solid var(--danger);font-size:13px;padding:10px}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
+/* month board */
+.month-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.month-nav .mo{font-weight:800;font-size:17px;color:var(--primary)}
+.month-nav button{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:16px;font-weight:700;color:var(--primary);cursor:pointer}
+.progress-wrap{background:#eef1f4;border-radius:8px;height:12px;margin-top:10px;overflow:hidden}
+.progress-bar{height:100%;background:var(--success);border-radius:8px;transition:width .3s}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-light);margin-top:8px}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.legend .l-done::before{background:var(--success)}.legend .l-due::before{background:var(--warn)}.legend .l-over::before{background:var(--danger)}
+.rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.room{background:#fff;border:2px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:transform .1s}
+.room:active{transform:scale(.96)}
+.room .num{font-size:20px;font-weight:800;color:var(--primary);line-height:1}
+.room .when{font-size:10px;color:var(--text-light);line-height:1.2}
+.room.done{border-color:var(--success);background:#eafaf1}.room.done .num{color:var(--success)}
+.room.due{border-color:var(--warn);background:#fef9e7}
+.room.overdue{border-color:var(--danger);background:#fdedec}.room.overdue .num{color:var(--danger)}
+/* checklist */
+.task{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f0f2f5;cursor:pointer;align-items:flex-start}
+.task:last-child{border-bottom:none}
+.checkbox{width:28px;height:28px;min-width:28px;border:2px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;margin-top:1px}
+.task.done .checkbox{background:var(--success);border-color:var(--success)}
+.task-label{font-size:15px;line-height:1.4}
+.task.done .task-label{color:var(--text-light)}
+.task-sub{font-size:12px;color:var(--text-light);margin-top:2px}
+.room-big{font-size:26px;font-weight:800;color:var(--primary)}
+.hist{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f5;font-size:14px}
+.hist:last-child{border-bottom:none}
+.hist .r{font-weight:800;color:var(--primary);min-width:70px}
+.hist .m{font-size:12px;color:var(--text-light);flex:1;text-align:right}
+.hist .cnt{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#eafaf1;color:var(--success);margin-left:8px}
+.hist .cnt.partial{background:#fef9e7;color:#a07708}
+.banner{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:12px;text-align:center}
+.banner-green{background:#eafaf1;color:var(--success)}
+.banner-amber{background:#fef9e7;color:#a07708}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🧽 Deep Cleaning</h1><div class="sub">Morning Star Post Acute · Housekeeping</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="page" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// Every resident room gets one deep clean per calendar month.
+var ROOMS=['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','18'];
+var PRIVATE_ROOMS={'1':1,'2':1,'3':1,'4':1};
+var OVERDUE_DAYS=45;
+// Housekeeping roster (active EVS staff). Names are suggestions — anyone can type their own.
+var STAFF=["Elizabeth Estrada","Lee You","Lyelah Figueroa","Robert Sosa","Sebastian Lopez"];
+
+// Deep-clean checklist. Editing this only changes what new entries show;
+// saved entries keep the task keys that were checked at the time.
+var TASKS=[
+ {key:'high_dust',label:'High dust',sub:'Vents, light fixtures, TV, top of wardrobe & curtain track'},
+ {key:'walls',label:'Walls, doors & baseboards',sub:'Spot-wash walls, wipe door & handles, scrub baseboards'},
+ {key:'bed',label:'Bed frame, rails & mattress',sub:'Wipe frame, rails, controls & cord; mattress top, sides & underneath'},
+ {key:'furniture',label:'Nightstand, overbed table & chairs',sub:'Inside & out, drawers emptied of trash and wiped'},
+ {key:'closet',label:'Wardrobe / closet',sub:'Shelves, rod & floor of closet wiped'},
+ {key:'windows',label:'Window, sill & blinds',sub:'Glass inside, sill and each blind slat'},
+ {key:'curtain',label:'Privacy curtain changed',sub:'Fresh curtain hung; old one to laundry'},
+ {key:'bathroom',label:'Bathroom deep clean',sub:'Toilet base & bowl, sink & faucet, shower/grout, mirror, grab bars, floor edges'},
+ {key:'floor',label:'Floor edges, corners & under bed',sub:'Move furniture, scrub edges & corners, machine-scrub or mop'},
+ {key:'touchpoints',label:'High-touch surfaces disinfected',sub:'Call light, bed controls, remotes, light switches, door handles, phone'},
+ {key:'trash',label:'Trash & sharps containers wiped',sub:'Inside & out; liners replaced'},
+ {key:'inspect',label:'Final look — report any damage',sub:'Chipped paint, loose rails, stained ceiling tiles → Equipment Repair app'}
+];
+
+var me={name:localStorage.getItem('dc_name')||''};
+var view='home', curRoom=null, editing=null, monthOffset=0, logs=[], lastByRoom={};
+var saving=false, lastSavedId=null;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function monthOf(off){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+off);return d}
+function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function fmtDate(s){if(!s)return '';var p=s.split('-');return parseInt(p[1])+'/'+parseInt(p[2])}
+function fmtDateLong(s){if(!s)return '';var d=new Date(s+'T12:00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function daysSince(s){if(!s)return null;return Math.round((new Date(today()+'T12:00:00')-new Date(s+'T12:00:00'))/864e5)}
+function roomLabel(r){return 'Room '+r+(PRIVATE_ROOMS[r]?' (private)':'')}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
+function editIdentity(){view='identity';render()}
+function doneCount(l){var n=0;TASKS.forEach(function(t){if(l.tasks&&l.tasks[t.key])n++});return n}
+
+async function loadData(){
+  // Last ~13 months covers the month-by-month board and every room's most recent clean.
+  var since=new Date();since.setMonth(since.getMonth()-13);
+  var r=await sb.from('deep_cleans').select('*').gte('clean_date',ym(since)+'-01').order('clean_date',{ascending:false});
+  if(r.error){toast('Could not load — check connection');return}
+  logs=r.data||[];
+  lastByRoom={};
+  logs.forEach(function(l){if(!lastByRoom[l.room])lastByRoom[l.room]=l});
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='log'){el.innerHTML=logView();return}
+  el.innerHTML=homeView();
+}
+
+function identityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
+  '<div class="hint">Your name goes on every room you deep clean.</div>'+
+  '<label>Your name</label><input id="idName" list="staffList" placeholder="Type or pick your name" value="'+esc(me.name)+'" autocomplete="off">'+
+  '<datalist id="staffList">'+STAFF.map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('idName').value.trim();
+  if(!n){toast('Please enter your name');return}
+  me.name=n;localStorage.setItem('dc_name',me.name);
+  view='home';refresh();
+}
+
+function roomStatus(room,monthKey){
+  var inMonth=logs.find(function(l){return l.room===room&&l.clean_date.slice(0,7)===monthKey});
+  if(inMonth)return {cls:'done',log:inMonth};
+  var last=lastByRoom[room];
+  var ds=last?daysSince(last.clean_date):null;
+  if(monthOffset<0)return {cls:'',log:null};          // past month, nothing logged — just blank
+  if(ds!==null&&ds>OVERDUE_DAYS)return {cls:'overdue',log:last};
+  return {cls:'due',log:last||null};   // never logged = due, not overdue (no history to judge by)
+}
+
+function homeView(){
+  var m=monthOf(monthOffset), key=ym(m);
+  var title=m.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  var done=0, overdue=0;
+  var tiles=ROOMS.map(function(r){
+    var s=roomStatus(r,key);
+    if(s.cls==='done')done++; if(s.cls==='overdue')overdue++;
+    var when='';
+    if(s.cls==='done')when='✓ '+fmtDate(s.log.clean_date)+'<br>'+esc(s.log.cleaned_by.split(' ')[0]);
+    else if(s.log)when='last '+fmtDate(s.log.clean_date)+'<br>'+daysSince(s.log.clean_date)+' days ago';
+    else if(monthOffset>=0)when='never<br>logged';
+    return '<div class="room '+s.cls+'" onclick="openLog(\''+r+'\')"><div class="num">'+r+'</div><div class="when">'+when+'</div></div>';
+  }).join('');
+  var h='<div class="card"><div class="month-nav"><button onclick="monthOffset--;render()">‹</button><div class="mo">'+title+'</div>'+
+    '<button onclick="monthOffset++;render()"'+(monthOffset>=0?' disabled style="opacity:.3"':'')+'>›</button></div>'+
+    '<div class="progress-wrap"><div class="progress-bar" style="width:'+Math.round(done/ROOMS.length*100)+'%"></div></div>'+
+    '<div class="hint" style="margin-top:6px"><b>'+done+' of '+ROOMS.length+'</b> rooms deep cleaned'+(monthOffset===0?' this month':'')+
+    (overdue&&monthOffset===0?' · <span style="color:var(--danger);font-weight:700">'+overdue+' overdue</span>':'')+'</div>'+
+    '<div class="legend"><span class="l-done">Done this month</span><span class="l-due">Due</span><span class="l-over">Overdue (45+ days)</span></div></div>';
+  h+='<div class="section-title"><span>Rooms — tap one to log a deep clean</span></div><div class="rooms">'+tiles+'</div>';
+
+  var monthLogs=logs.filter(function(l){return l.clean_date.slice(0,7)===key}).sort(function(a,b){return a.clean_date<b.clean_date?1:-1});
+  h+='<div class="section-title"><span>Logged in '+esc(m.toLocaleDateString('en-US',{month:'long'}))+' ('+monthLogs.length+')</span></div>';
+  if(!monthLogs.length)h+='<div class="card empty">Nothing logged yet'+(monthOffset===0?' — tap a room above to start':'')+'</div>';
+  else{
+    h+='<div class="card">'+monthLogs.map(function(l){
+      var n=doneCount(l);
+      return '<div class="hist" onclick="openLog(\''+l.room+'\',\''+l.id+'\')"><span class="r">Room '+l.room+'</span>'+
+        '<span class="m">'+fmtDate(l.clean_date)+' · '+esc(l.cleaned_by)+'</span>'+
+        '<span class="cnt'+(n<TASKS.length?' partial':'')+'">'+n+'/'+TASKS.length+'</span></div>';
+    }).join('')+'</div>';
+  }
+  h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh</div>';
+  h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
+     '<span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
+  return h;
+}
+// Shared phone: clear this app's identity and go back to the Staff Apps home screen.
+function logout(){try{localStorage.removeItem('dc_name');}catch(e){}location.href='../';}
+
+// ---- Log a deep clean ----
+var form={};
+function openLog(room,id){
+  curRoom=room;
+  editing=id?logs.find(function(l){return l.id===id}):null;
+  form={date:editing?editing.clean_date:today(),tasks:{},notes:editing?(editing.notes||''):''};
+  if(editing)TASKS.forEach(function(t){form.tasks[t.key]=!!(editing.tasks&&editing.tasks[t.key])});
+  view='log';render();window.scrollTo(0,0);
+}
+function logView(){
+  var last=lastByRoom[curRoom];
+  var n=0;TASKS.forEach(function(t){if(form.tasks[t.key])n++});
+  var h='<span class="back" onclick="view=\'home\';render()">‹ All rooms</span>';
+  if(editing)h+='<div class="banner banner-amber">Editing the '+fmtDateLong(editing.clean_date)+' entry by '+esc(editing.cleaned_by)+'</div>';
+  h+='<div class="card"><div class="room-big">'+roomLabel(curRoom)+'</div>'+
+    '<div class="hint">'+(last&&!editing?'Last deep clean '+fmtDateLong(last.clean_date)+' by '+esc(last.cleaned_by)+' ('+daysSince(last.clean_date)+' days ago)':(!last?'No deep clean logged yet for this room':''))+'</div>'+
+    '<label>Date cleaned</label><input type="date" id="fDate" value="'+form.date+'" max="'+today()+'" onchange="form.date=this.value">'+
+    '</div>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+    '<span style="font-weight:800;color:var(--primary)">Checklist · '+n+'/'+TASKS.length+'</span>'+
+    '<span style="font-size:13px;font-weight:700;color:var(--primary-light);cursor:pointer" onclick="markAll()">'+(n===TASKS.length?'Clear all':'Mark all done')+'</span></div>';
+  TASKS.forEach(function(t){
+    h+='<div class="task'+(form.tasks[t.key]?' done':'')+'" onclick="toggle(\''+t.key+'\')"><div class="checkbox">'+(form.tasks[t.key]?'✓':'')+'</div>'+
+      '<div><div class="task-label">'+esc(t.label)+'</div><div class="task-sub">'+esc(t.sub)+'</div></div></div>';
+  });
+  h+='</div>';
+  h+='<div class="card"><label style="margin-top:0">Notes (optional)</label><textarea id="fNotes" rows="2" placeholder="Anything to flag — damage, could not finish, resident declined… (no resident names)" oninput="form.notes=this.value">'+esc(form.notes)+'</textarea></div>';
+  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save deep clean — '+roomLabel(curRoom))+'</button>';
+  if(editing)h+='<div style="margin-top:10px"><button class="btn btn-danger-ghost" onclick="remove()">Delete this entry</button></div>';
+  return h;
+}
+function toggle(k){form.tasks[k]=!form.tasks[k];render()}
+function markAll(){var all=TASKS.every(function(t){return form.tasks[t.key]});TASKS.forEach(function(t){form.tasks[t.key]=!all});render()}
+
+async function save(){
+  if(saving)return;
+  var n=0;TASKS.forEach(function(t){if(form.tasks[t.key])n++});
+  if(!n){toast('Check at least one item');return}
+  if(!form.date){toast('Pick the date');return}
+  if(n<TASKS.length&&!confirm('Only '+n+' of '+TASKS.length+' items checked. Save as a partial deep clean?'))return;
+  saving=true;var btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving…';
+  var row={room:curRoom,clean_date:form.date,cleaned_by:editing?editing.cleaned_by:me.name,tasks:form.tasks,notes:(form.notes||'').trim()||null,source:'staff-app'};
+  if(editing&&editing.clean_date!==form.date){
+    // date changed: move the row rather than leave a duplicate behind
+    var del=await sb.from('deep_cleans').delete().eq('id',editing.id);
+    if(del.error){toast('Save failed: '+del.error.message);saving=false;btn.disabled=false;btn.textContent='Save changes';return}
+  }
+  var res=await sb.from('deep_cleans').upsert(row,{onConflict:'room,clean_date'}).select().single();
+  saving=false;
+  if(res.error){toast('Save failed: '+res.error.message);btn.disabled=false;btn.textContent='Save';return}
+  lastSavedId=res.data.id;
+  await loadData();
+  view='home';render();
+  toast(editing?'Updated — Room '+curRoom:'✓ Room '+curRoom+' deep clean saved');
+}
+async function remove(){
+  if(!editing||!confirm('Delete the '+fmtDateLong(editing.clean_date)+' deep clean for Room '+curRoom+'?'))return;
+  var r=await sb.from('deep_cleans').delete().eq('id',editing.id);
+  if(r.error){toast('Delete failed: '+r.error.message);return}
+  await loadData();view='home';render();toast('Entry deleted');
+}
+
+async function refresh(){await loadData();render()}
+setInterval(function(){if(view==='home'&&me.name)refresh()},120000);
+refresh();
+</script>
+</body>
+</html>
