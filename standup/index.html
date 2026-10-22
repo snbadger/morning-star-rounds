@@ -219,7 +219,7 @@ function renderHome(){
       var d=ts.filter(isCovered).length;
       h+='<div class="h2">'+esc(ROLES[r])+' · '+d+'/'+ts.length+'</div><div class="card" style="padding:6px 14px">'+ts.map(function(t){return tabRow(t)}).join('')+'</div>';
     });
-  } else h+=boardHtml();
+  } else h+='<a class="btn btn-primary" style="text-decoration:none;margin-bottom:12px" href="screen.html">Open the standup screen (for the TV)</a>'+boardHtml();
   h+='<button class="btn btn-quiet" style="margin-top:16px" onclick="logOut()">Done — log out</button>';
   app().innerHTML=h;window.scrollTo(0,0);
 }
