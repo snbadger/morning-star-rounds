@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Star — Standup Screen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#0d2137;--primary:#1a3c5e;--bg:#eef1f5;--card:#fff;--text:#1f2d3d;--muted:#5b6b7c;--border:#dfe5ec;
+ --ok:#1f8a5b;--ok-bg:#e7f5ee;--warn:#9a6700;--warn-bg:#fdf3e0;--bad:#b3261e;--bad-bg:#fdeceb;--auto:#2d5d8a;--auto-bg:#e8f0f8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:17px}
+header{background:linear-gradient(135deg,var(--navy),var(--primary));color:#fff;padding:12px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+header h1{font-size:20px;font-weight:800;white-space:nowrap}
+header .sub{font-size:12px;opacity:.75}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+.kpi{background:rgba(255,255,255,.11);border-radius:10px;padding:6px 14px;min-width:120px}
+.kpi b{display:block;font-size:24px;font-weight:800;line-height:1.1}
+.kpi span{font-size:11.5px;opacity:.85;text-transform:uppercase;letter-spacing:.4px}
+.kpi.red{background:rgba(255,120,110,.28)}
+.clock{text-align:right;white-space:nowrap}
+.clock b{font-size:24px;font-weight:800;display:block}
+.timer{font-variant-numeric:tabular-nums}
+.timer.over{color:#ffb4ab}
+nav{display:flex;gap:6px;padding:10px 22px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+@media (min-width:900px) and (min-height:600px){.top{position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12)}}
+nav button{border:0;background:#eef1f4;color:var(--muted);font:inherit;font-size:14px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
+nav button.on{background:var(--primary);color:#fff}
+nav .sp{flex:1}
+nav .hint{font-size:12px;color:var(--muted)}
+.att{padding:10px 22px;background:#fff;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.att .lbl{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+.att button{border:1.5px solid var(--border);background:#fff;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;padding:6px 11px;border-radius:18px;cursor:pointer}
+.att button.p{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.att button.l{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+main{padding:18px 22px 60px}
+h2.sec{font-size:24px;color:var(--primary);margin:6px 0 12px;display:flex;align-items:baseline;gap:12px}
+h2.sec small{font-size:13px;color:var(--muted);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card.alert{border-left:5px solid var(--bad)}
+.card h3{font-size:17px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.card h3 .own{font-size:12px;color:var(--muted);font-weight:600}
+.sum{font-size:14px;color:var(--muted);margin:4px 0 6px}
+.ln{font-size:15px;padding:6px 0;border-top:1px solid #f0f2f5;line-height:1.35}
+.ln:first-of-type{border-top:0}
+.ln.flag{color:var(--bad);font-weight:600}
+.ln .dt{display:inline-block;min-width:44px;color:var(--muted);font-size:13px;font-weight:600}
+.ln .rm{font-weight:700}
+.ln .det{color:var(--muted);font-size:13.5px}
+.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)}.p-no{background:#eef1f4;color:var(--muted)}.p-todo{background:var(--warn-bg);color:var(--warn)}.p-auto{background:var(--auto-bg);color:var(--auto)}.p-bad{background:var(--bad-bg);color:var(--bad)}
+.more{font-size:13px;color:var(--muted);margin-top:4px}
+.quiet{margin-top:16px;background:#fff;border:1px dashed var(--border);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.6}
+.quiet b{color:var(--primary)}
+.quiet .todo b{color:var(--warn)}
+.pinbox{max-width:360px;margin:12vh auto;background:#fff;border-radius:14px;padding:26px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.pinbox input{width:100%;font-size:24px;letter-spacing:5px;text-align:center;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin:14px 0}
+.pinbox button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.err{color:var(--bad);font-size:13px;margin-top:8px}
+.foot{font-size:12px;color:var(--muted);margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}header{padding:10px 14px}main{padding:14px}.kpi{min-width:96px}}
+</style>
+</head>
+<body>
+<div id="root"><div class="pinbox">Loading…</div></div>
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+// Same roster and roles as the Standup Log app (index.html).
+var ROSTER=[
+ {name:'Donna Rogers',role:'don'},{name:'Savanna McCormick',role:'adon'},{name:'Amandeep Brar',role:'mds'},
+ {name:'Yessi Flores',role:'dsd'},{name:'Randy Bago',role:'adm'},{name:'Belem Gonzalez',role:'bom'},
+ {name:'Valerie Estrada',role:'ssd'},{name:'Michael Miller',role:'act'},{name:'Lucy Malcolm',role:'act'},
+ {name:'Kim Beatrez',role:'diet'},{name:'Annie Vang',role:'mr'},{name:'Kelsey Kennington',role:'hr'},
+ {name:'Sebastian Lopez',role:'mnt'},{name:'Joe Fronteras',role:'rehab'},{name:'Stephen Badger',role:'admin'}
+];
+var ROLES={don:'DON',adon:'ADON',mds:'MDS',dsd:'DSD / IP',adm:'Admissions',bom:'Business Office',ssd:'Social Services',act:'Activities',
+ diet:'Dietary',mr:'Medical Records',hr:'HR',mnt:'Maintenance / EVS',rehab:'Rehab',admin:'Administrator'};
+var FORM_KINDS=['log','count','list','falls'];
+
+// Lean Alignment SWI v2.0 order: six sections, ~10 minutes.
+var SECTIONS=[
+ {k:'safety',t:'Safety & Compliance',tabs:['falls','grievances','isolation','ebp','sitter','behaviors','at_risk_rta','fapu','wound_vac','immunizations','survey']},
+ {k:'census',t:'Census & Admissions',tabs:['census','prior_day_admissions','discharges','rta','ama','expirations','resident_at_hospital','bedholds','pending_admissions','referral_response','tours','do_not_admit','room_changes','overnight_stays']},
+ {k:'clinical',t:'Clinical Highlights',tabs:['uda_overdue','poc_compliance','dc_assessments','appointments','care_conferences','cares_in_pairs','assisted_dining','therapy_initial','therapy_refusals','mds_due','pasarr','bims_phq','nomnc','high_cost_meds','resident_council']},
+ {k:'staffing',t:'Staffing & Scheduling',tabs:['nursing_ppd','staffing_ppd','call_offs','open_positions','hr_scorecard','pbj_accounting']},
+ {k:'ops',t:'Operations & Revenue',tabs:['painting','resident_rounds','floor_rounds','mds_day4','auths_levels_payer','medi_cal_pending','non_payers','outstanding_auths','auths_due','therapy_part_b','respiratory_part_b','mini_packet','admission_packets','arbitration','bad_debt_cash','rentals','special_projects']},
+ {k:'people',t:'People, Wins & Group Items',tabs:['shout_outs','anniversary','birthdays','inspirational_thought','google_review','group_items']}
+];
+var SEC_SECONDS=100;
+
+var S={pin:null,tabs:[],byKey:{},today:null,day:null,live:null,view:0,started:null,att:{},attId:null,busy:false,loadedAt:null};
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function md(d){if(!d)return '';var p=String(d).slice(0,10).split('-');return (+p[1])+'/'+(+p[2])}
+function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+async function rpc(fn,args){
+  if(!sb)throw new Error('offline');
+  var r=await sb.rpc(fn,args);
+  if(r.error){if(String(r.error.message).indexOf('bad_pin')>=0){ls('su_pin',null);S.pin=null;showPin('That PIN did not work.');throw new Error('bad_pin')}throw new Error(r.error.message)}
+  return r.data;
+}
+
+// ---------- start ----------
+function showPin(msg){
+  document.getElementById('root').innerHTML='<div class="pinbox"><div style="font-size:20px;font-weight:800;color:var(--primary)">Standup Screen</div>'+
+    '<div style="font-size:14px;color:var(--muted);margin-top:6px">Leadership PIN</div>'+
+    '<input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button onclick="submitPin()">Open</button>'+(msg?'<div class="err">'+esc(msg)+'</div>':'')+'</div>';
+  var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
+}
+async function submitPin(){
+  var v=document.getElementById('pinIn').value.trim();if(!v)return;
+  try{await rpc('standup_bootstrap',{p_pin:v});ls('su_pin',v);S.pin=v;await boot()}catch(e){if(e.message!=='bad_pin')showPin('Could not connect: '+e.message)}
+}
+async function boot(){
+  var b=await rpc('standup_bootstrap',{p_pin:S.pin});
+  S.tabs=b.tabs;S.today=b.today;S.byKey={};S.tabs.forEach(function(t){S.byKey[t.tab_key]=t});
+  var listed={};SECTIONS.forEach(function(s){s.tabs.forEach(function(k){listed[k]=1})});
+  S.tabs.forEach(function(t){if(!listed[t.tab_key]&&t.active!==false&&(FORM_KINDS.indexOf(t.kind)>=0||t.kind==='auto')&&t.tab_key!=='attendance')SECTIONS[SECTIONS.length-1].tabs.push(t.tab_key)});
+  var h=parseInt(ls('su_screen_view'),10);if(h>=-1&&h<SECTIONS.length)S.view=h;
+  await load();render();
+  setInterval(function(){if(!S.busy)load().then(render).catch(function(){})},60000);
+  setInterval(tick,1000);
+}
+async function load(){
+  var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_live',{p_pin:S.pin})]);
+  S.day=r[0];S.live=r[1];S.loadedAt=new Date();
+  var a=(S.day.entries||[]).filter(function(e){return e.tab_key==='attendance'})[0];
+  S.att={};S.attId=a?a.id:null;
+  if(a){(a.data.present||[]).forEach(function(n){S.att[n]='p'});(a.data.late||[]).forEach(function(n){S.att[n]='l'})}
+}
+
+// ---------- data per tab ----------
+function auto(k){return S.live&&S.live.auto&&S.live.auto[k]}
+function cov(k){return (S.day&&S.day.coverage&&S.day.coverage[k])||{}}
+function entries(k){return ((S.day&&S.day.entries)||[]).filter(function(e){return e.tab_key===k&&e.status!=='closed'})}
+function fval(f,v){if(v==null||v===''||(Array.isArray(v)&&!v.length))return '';if(Array.isArray(v))return v.join(', ');if(f.t==='date')return md(v);return String(v)}
+function summary(t,e){
+  var items=(t.fields&&t.fields.items)||[],parts=[];
+  items.forEach(function(f){var v=fval(f,e.data[f.k]);if(v!=='')parts.push((f.t==='longtext'||f.t==='text')&&items.length>2?v:f.l+': '+v)});
+  return parts.join(' · ');
+}
+function fallLine(f){
+  var w={staff:'witnessed',family_or_resident:'witnessed by family/resident',unwitnessed:'unwitnessed'}[f.witnessed]||'';
+  var inj={none:'no injury',minor:'minor injury',major:'MAJOR injury',pending:'injury pending'}[f.injury]||'';
+  return {date:f.date,room:f.room?f.room+(f.bed?'-'+f.bed:''):(f.location||''),title:[f.shift,w,inj,f.sent_out?'sent out':''].filter(Boolean).join(' · '),flag:f.injury==='major'||f.injury==='pending'||f.sent_out};
+}
+// Returns {state:'content'|'nothing'|'todo'|'quiet', sum, rows:[{date,room,title,detail,flag,status}]}
+function tabData(t){
+  var k=t.tab_key,c=cov(k);
+  if(t.kind==='auto'){
+    var a=auto(k);if(!a)return {state:'quiet',sum:'No feed yet'};
+    var rows=(a.rows||[]).filter(function(r){return r.status!=='done'});
+    return {state:rows.length?'content':'quiet',sum:a.summary,rows:rows,stale:a.as_of&&a.as_of<addDays(S.today,-3)?a.as_of:null};
+  }
+  if(t.kind==='falls'){
+    var fl=((S.day&&S.day.falls)||[]).filter(function(f){return f.date>=addDays(S.today,-7)}).map(fallLine);
+    return {state:fl.length?'content':(c.status==='nothing'?'nothing':'todo'),sum:fl.length?fl.length+' falls in the last 7 days':'No falls in the last 7 days',rows:fl};
+  }
+  var es=entries(k);
+  if(es.length)return {state:'content',sum:t.kind==='list'?es.length+' open':es.length+' today',rows:es.map(function(e){return {date:t.kind==='list'?null:e.entry_date,room:e.room?e.room+(e.bed?'-'+e.bed:''):'',title:summary(t,e),detail:t.kind==='list'?'since '+md(e.entry_date):(e.reporter?'by '+e.reporter:'')}})};
+  if(c.status==='nothing'||t.cadence==='as_needed')return {state:'nothing'};
+  if(c.status==='entered')return {state:'nothing'};
+  return {state:'todo'};
+}
+
+// ---------- render ----------
+function kpiHtml(){
+  var L=S.live||{},cen=(L.census||[])[0]||{},mtd=L.census_mtd||{},bud=L.budget_adc;
+  var falls7=((S.day&&S.day.falls)||[]).filter(function(f){return f.date>=addDays(S.today,-7)}).length;
+  var rta=auto('rta'),rtaN=rta?(rta.rows||[]).length:0;
+  var form=S.tabs.filter(function(t){return FORM_KINDS.indexOf(t.kind)>=0&&t.cadence!=='as_needed'&&t.tab_key!=='attendance'});
+  var done=form.filter(function(t){var c=cov(t.tab_key);return c.status==='entered'||c.status==='nothing'}).length;
+  var present=Object.keys(S.att).length;
+  var rr=auto('resident_rounds'),rToday=rr?(rr.rows||[]).filter(function(r){return r.date===S.today}).length:0;
+  var k=function(v,l,red){return '<div class="kpi'+(red?' red':'')+'"><b>'+esc(v)+'</b><span>'+esc(l)+'</span></div>'};
+  return k(cen.total_census!=null?cen.total_census:'—','Census '+md(cen.date),bud&&cen.total_census<bud)+
+    k(mtd.avg_total!=null?mtd.avg_total:'—','MTD ADC'+(bud?' · budget '+bud:''),bud&&mtd.avg_total<bud)+
+    k(falls7,'Falls · 7 days',falls7>0)+k(rtaN,'Send-outs · 7 days',rtaN>0)+
+    k(done+'/'+form.length,'Tabs covered',done<form.length*0.6)+k(rToday,'Rounders today',false)+k(present+'/'+ROSTER.length,'Present',false);
+}
+function attHtml(){
+  return '<div class="att"><span class="lbl">Attendance</span>'+ROSTER.map(function(p,i){
+    var s=S.att[p.name];return '<button class="'+(s||'')+'" onclick="toggleAtt('+i+')" title="Tap: on time → late → absent">'+esc(p.name.split(' ')[0])+(s==='l'?' · late':'')+'</button>'}).join('')+'</div>';
+}
+function lineHtml(r){
+  return '<div class="ln'+(r.flag?' flag':'')+'">'+(r.date?'<span class="dt">'+md(r.date)+'</span>':'')+(r.room?'<span class="rm">Rm '+esc(r.room)+'</span> · ':'')+esc(r.title||'')+
+    (r.status&&r.status!=='done'?' <span class="pill '+(r.flag?'p-bad':'p-todo')+'">'+esc(r.status)+'</span>':'')+(r.detail?' <span class="det">'+esc(r.detail)+'</span>':'')+'</div>';
+}
+function cardHtml(t,d){
+  var rows=d.rows||[],show=rows.slice(0,8),flagged=rows.some(function(r){return r.flag});
+  var pill=t.kind==='auto'||t.kind==='falls'?'<span class="pill p-auto">Live</span>':cov(t.tab_key).status==='entered'?'<span class="pill p-ok">Updated</span>':'<span class="pill p-todo">Standing list</span>';
+  return '<div class="card'+(flagged?' alert':'')+'"><h3><span>'+esc(t.label)+'</span>'+pill+'</h3>'+
+    '<div class="sum">'+esc(ROLES[t.owner_role]||'')+(d.sum?' · '+esc(d.sum):'')+(d.stale?' · <b style="color:var(--bad)">data from '+md(d.stale)+'</b>':'')+'</div>'+
+    show.map(lineHtml).join('')+(rows.length>show.length?'<div class="more">+ '+(rows.length-show.length)+' more in the app</div>':'')+'</div>';
+}
+function sectionHtml(sec,i){
+  var content=[],nothing=[],todo=[],quiet=[];
+  sec.tabs.forEach(function(k){
+    var t=S.byKey[k];if(!t||t.active===false||t.kind==='keep'||t.kind==='ref')return;
+    var d=tabData(t);
+    if(d.state==='content')content.push(cardHtml(t,d));
+    else if(d.state==='todo')todo.push(t);
+    else if(d.state==='nothing')nothing.push(t);
+    else quiet.push(t);
+  });
+  var h='<h2 class="sec">'+(i+1)+' · '+esc(sec.t)+' <small>'+content.length+' with something to say</small></h2>';
+  h+=content.length?'<div class="grid">'+content.join('')+'</div>':'<div class="quiet">Nothing to report in this section.</div>';
+  if(todo.length||nothing.length||quiet.length){
+    h+='<div class="quiet">';
+    if(todo.length)h+='<div class="todo"><b>Not reported yet:</b> '+todo.map(function(t){return esc(t.label)+' ('+esc(ROLES[t.owner_role]||'')+')'}).join(' · ')+'</div>';
+    if(nothing.length)h+='<div><b>Nothing new:</b> '+nothing.map(function(t){return esc(t.label)}).join(' · ')+'</div>';
+    if(quiet.length)h+='<div><b>Quiet:</b> '+quiet.map(function(t){return esc(t.label)}).join(' · ')+'</div>';
+    h+='</div>';
+  }
+  return h;
+}
+function render(){
+  var nav='<nav>'+SECTIONS.map(function(s,i){return '<button class="'+(S.view===i?'on':'')+'" onclick="go('+i+')">'+(i+1)+' · '+esc(s.t)+'</button>'}).join('')+
+    '<button class="'+(S.view===-1?'on':'')+'" onclick="go(-1)">All</button><span class="sp"></span><span class="hint">← → sections · A all · S timer · R refresh</span></nav>';
+  var head='<header><div><h1>Morning Star Standup</h1><div class="sub">'+new Date(S.today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+
+    ' · updated '+(S.loadedAt?S.loadedAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'')+'</div></div><div class="kpis">'+kpiHtml()+'</div>'+
+    '<div class="clock"><b id="clk"></b><span class="timer" id="tmr" onclick="toggleTimer()" style="cursor:pointer">▶ Start 10:00</span></div></header>';
+  var body=S.view===-1?SECTIONS.map(sectionHtml).join('<div style="height:22px"></div>'):sectionHtml(SECTIONS[S.view],S.view);
+  var y=window.scrollY;
+  document.getElementById('root').innerHTML='<div class="top">'+head+nav+'</div>'+attHtml()+'<main>'+body+
+    '<div class="foot">Residents shown by room-bed only. Enter updates in the Standup Log app; this screen refreshes every minute.</div></main>';
+  window.scrollTo(0,y);tick();
+}
+function go(i){S.view=i;ls('su_screen_view',String(i));render();window.scrollTo(0,0)}
+
+// ---------- timer / clock ----------
+function toggleTimer(){S.started=S.started?null:Date.now();tick()}
+function tick(){
+  var c=document.getElementById('clk');if(c)c.textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  var t=document.getElementById('tmr');if(!t)return;
+  if(!S.started){t.textContent='▶ Start 10:00';t.className='timer';return}
+  var el=Math.floor((Date.now()-S.started)/1000),left=600-el,a=Math.abs(left);
+  var sec=Math.min(SECTIONS.length,Math.floor(el/SEC_SECONDS)+1);
+  t.textContent=(left<0?'+':'')+Math.floor(a/60)+':'+('0'+a%60).slice(-2)+' · section '+sec+' pace';
+  t.className='timer'+(left<0?' over':'');
+}
+
+// ---------- attendance ----------
+var attTimer=null;
+function toggleAtt(i){
+  var n=ROSTER[i].name,s=S.att[n];
+  if(!s)S.att[n]='p';else if(s==='p')S.att[n]='l';else delete S.att[n];
+  render();clearTimeout(attTimer);attTimer=setTimeout(saveAtt,1200);
+}
+async function saveAtt(){
+  S.busy=true;
+  var present=[],late=[];Object.keys(S.att).forEach(function(n){(S.att[n]==='p'?present:late).push(n)});
+  var data={present:present,late:late};
+  try{
+    if(S.attId)await rpc('standup_update',{p_pin:S.pin,p_id:S.attId,p_room:null,p_bed:null,p_data:data,p_name:'Standup screen',p_role:'Administrator'});
+    else{await rpc('standup_submit',{p_pin:S.pin,p_tab_key:'attendance',p_room:null,p_bed:null,p_data:data,p_name:'Standup screen',p_role:'Administrator',p_entry_date:null});await load()}
+  }catch(e){if(e.message!=='bad_pin')alert('Attendance not saved: '+e.message)}
+  finally{S.busy=false}
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  if(e.key==='ArrowRight')go(S.view===-1?0:Math.min(SECTIONS.length-1,S.view+1));
+  else if(e.key==='ArrowLeft')go(S.view<=0?0:S.view-1);
+  else if(e.key==='a'||e.key==='A')go(-1);
+  else if(e.key==='s'||e.key==='S')toggleTimer();
+  else if(e.key==='r'||e.key==='R')load().then(render);
+  else if(e.key>='1'&&e.key<='6')go(+e.key-1);
+});
+
+(async function(){
+  S.pin=ls('su_pin');
+  if(!S.pin)return showPin();
+  try{await boot()}catch(e){if(e.message!=='bad_pin')document.getElementById('root').innerHTML='<div class="pinbox">Could not load. Check the connection and refresh.<div class="err">'+esc(e.message)+'</div></div>'}
+})();
+</script>
+</body>
+</html>
