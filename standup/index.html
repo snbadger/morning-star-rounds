@@ -110,7 +110,7 @@ var DEPTS=['Nursing','Dietary','Maintenance/EVS','Housekeeping/Laundry','Activit
 var FORM_KINDS=['log','count','list','falls'];
 var KIND_HINT={log:'Add a row for each item today.',count:'One set of numbers per day. Saving again today updates it.',list:'A standing list. Items stay open until you close them.',falls:'Writes to the incident log.'};
 
-var S={pin:null,name:null,role:null,tabs:[],byKey:{},today:null,data:null,view:'mine',tab:null,editing:null,busy:false};
+var S={pin:null,name:null,role:null,tabs:[],byKey:{},today:null,data:null,auto:{},view:'mine',tab:null,editing:null,busy:false};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -143,7 +143,11 @@ async function boot(){
   if(!S.role)return showWho();
   await refresh();route();
 }
-async function refresh(){S.data=await rpc('standup_today',{p_pin:S.pin,p_date:null});}
+async function refresh(){
+  var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_auto',{p_pin:S.pin}).catch(function(){return null})]);
+  S.data=r[0];S.auto=r[1]||{};
+}
+function autoFor(k){return S.auto&&S.auto[k]}
 
 function showPin(msg){
   app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Leadership PIN</div><p class="muted" style="margin-top:6px">Same PIN as the leadership tools on the hub.</p>'+
@@ -189,9 +193,10 @@ function tabRow(t,showOwner){
   var c=cov(t.tab_key),extra=[];
   if(t.kind==='list'&&c.open)extra.push(c.open+' open');
   if((t.kind==='log'||t.kind==='count')&&c.today_entries)extra.push(c.today_entries+' today');
+  var au=autoFor(t.tab_key);if(au)extra.push(au.summary);
   if(showOwner)extra.push(ROLES[t.owner_role]);
   if(t.owner_role!==S.role&&!showOwner)extra.push('shared with '+ROLES[t.owner_role]);
-  var clickable=FORM_KINDS.indexOf(t.kind)>=0;
+  var clickable=FORM_KINDS.indexOf(t.kind)>=0||!!au;
   return '<div class="trow" '+(clickable?'onclick="openTab(\''+t.tab_key+'\')"':'style="cursor:default"')+'><div class="nm"><b>'+esc(t.label)+(t.headline?'<span class="star">Mitchell priority</span>':'')+'</b><span>#'+t.tab_no+(extra.length?' · '+esc(extra.join(' · ')):'')+'</span></div>'+covPill(t)+(clickable?'<span class="go">›</span>':'')+'</div>';
 }
 function renderHome(){
@@ -239,7 +244,7 @@ function fallLine(f){
 }
 function boardHtml(){
   var secs={},h='';
-  S.tabs.forEach(function(t){if(FORM_KINDS.indexOf(t.kind)<0)return;(secs[t.section]=secs[t.section]||[]).push(t)});
+  S.tabs.forEach(function(t){if(FORM_KINDS.indexOf(t.kind)<0&&!autoFor(t.tab_key))return;(secs[t.section]=secs[t.section]||[]).push(t)});
   var allForm=S.tabs.filter(function(t){return FORM_KINDS.indexOf(t.kind)>=0&&t.cadence!=='as_needed'});
   var d=allForm.filter(isCovered).length;
   h+='<div class="card"><div class="big">'+d+' of '+allForm.length+'</div><div class="muted">tabs covered for '+md(S.today)+'</div><div class="prog"><span style="width:'+(100*d/allForm.length)+'%"></span></div></div>';
@@ -247,7 +252,10 @@ function boardHtml(){
     h+='<div class="h2">'+esc(sname)+'</div><div class="card brd">';
     secs[sname].forEach(function(t){
       var c=cov(t.tab_key),lines=[];
-      if(t.kind==='falls'){
+      var au=autoFor(t.tab_key);
+      if(au&&FORM_KINDS.indexOf(t.kind)<0){
+        lines=[esc(au.summary)].concat((au.rows||[]).filter(function(r){return r.status!=='done'}).slice(0,6).map(function(r){return esc([r.room?'Rm '+r.room:'',r.title,r.detail].filter(Boolean).join(' · '))}));
+      } else if(t.kind==='falls'){
         var fl=(S.data.falls||[]).filter(function(f){return f.date>=addDays(S.today,-7)});
         lines=fl.length?fl.map(fallLine):['No falls logged in the last 7 days.'];
       } else {
@@ -276,8 +284,19 @@ function renderTab(){
   else if(t.kind==='count')h+=countScreen(t);
   else if(t.kind==='log')h+=logScreen(t);
   else if(t.kind==='list')h+=listScreen(t);
-  if(c.status!=='entered')h+='<button class="btn btn-ghost" style="margin-top:4px" onclick="nothing(\''+t.tab_key+'\')">'+(t.kind==='list'?'No changes today':t.kind==='falls'?'No falls since yesterday\'s standup':'Nothing to report today')+'</button>';
+  else if(autoFor(t.tab_key))h+=autoScreen(t);
+  if(c.status!=='entered'&&FORM_KINDS.indexOf(t.kind)>=0)h+='<button class="btn btn-ghost" style="margin-top:4px" onclick="nothing(\''+t.tab_key+'\')">'+(t.kind==='list'?'No changes today':t.kind==='falls'?'No falls since yesterday\'s standup':'Nothing to report today')+'</button>';
   app().innerHTML=h;wireForm();
+}
+function autoLine(r){
+  return '<div class="item"'+(r.flag?' style="border-color:#f1c2be;background:var(--danger-bg)"':'')+'><div class="t">'+esc([r.room?'Rm '+r.room:'',r.title].filter(Boolean).join(' · '))+
+    (r.status?' <span class="pill '+(r.status==='done'?'p-ok':r.flag?'p-red':'p-todo')+'">'+esc(r.status)+'</span>':'')+'</div>'+
+    (r.detail?'<div class="d">'+esc(r.detail)+'</div>':'')+(r.date?'<div class="m">'+md(r.date)+'</div>':'')+'</div>';
+}
+function autoScreen(t){
+  var a=autoFor(t.tab_key),rows=a.rows||[];
+  var h='<div class="card"><div style="font-weight:800;color:var(--primary)">'+esc(a.summary)+'</div><div class="muted" style="margin-top:4px">Live from '+esc(a.source)+(a.as_of?' · latest data '+md(a.as_of):'')+'. Nothing to enter here.</div></div>';
+  return h+rows.map(autoLine).join('');
 }
 function countScreen(t){
   var e=entriesFor(t.tab_key)[0];
