@@ -13,16 +13,17 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
 | Shower Sheet | `/showers/` | CNAs | Supabase `shower_logs` | Live |
 | CNA Assignment Sheet | `/assignments/` | Charge nurses (roster edit = leadership PIN) | Supabase `cna_roster` (RPCs `get_cna_roster`, `save_cna_roster`); showers mirror `/showers/` SCHEDULE | Live |
 | Room Changes | `/room-changes/` | All staff | Supabase `room_changes` | Live |
+| Deep Cleaning | `/deep-cleaning/` | Housekeeping (sign in by name, `dc_name`) | Supabase `deep_cleans` (room + date + checklist, no PHI; upsert on room/date) → `v_deep_clean_status` per-room last clean / done-this-month / overdue (45+ days) | Live — added 10/22/26 |
 | Resident Grievance | `/grievances/` | All staff; resident/family self-entry mode (hand over the device) | Supabase `grievances` (resident Last, F. + room #) → Asana task for SSD + email to SSD/Admin via grievance-notify | Live — added 9/22/26 |
 | Ideas for Improvement | `/ideas/` | All staff | Supabase → Asana | Live |
 | Skill Validation | `/competency/` | Leadership (PIN on hub, moved 8/19/26) | Supabase `competency_validations` | Live |
 | In-Service Completion | `/inservice-dashboard/` | Leadership (PIN on hub) — DSD | Supabase `v_dsd_*` views via `dining-quiz` edge fn | Live — added 9/17/26 |
 | Shower Sheet Audit | `/shower-audit/` | Leadership (PIN on hub) — DSD | Supabase `shower_logs` (anon read, read-only page); SCHEDULE mirrors `/showers/` | Built 10/21/26 |
-| Equipment Repair | `/repairs/` | All staff | Supabase `equipment_repairs` + repair-notify email | Live |
+| Equipment Repair | `/repairs/` | All staff | Supabase `equipment_repairs`; `repair-notify` edge fn creates the Asana task in Maintenance & EVS (email to Sebastian removed 10/22/26) | Live |
 | Shout Outs | `/shoutouts/` | All staff | Supabase `shoutouts` | Live |
 | Room Rounds & Daily Board | `/rounds/` | Leadership (PIN on hub) | Supabase `rounding_observations`, `action_items`; LAL mattress setting miss → same-day Nursing action item + DON email via `lal-notify` | Live — moved from root 8/19/26; LAL check added 10/1/26 |
 | Standup Log | `/standup/` | Leadership (PIN on hub; the app asks for the same PIN and checks it server-side) | Supabase `standup_tabs` (79 tabs from Mitchell's JERICHO-STANDUP workbook), `standup_entries`, `standup_checks`; falls write to `incidents`. RPCs `standup_*` (PIN-checked). Feeds the Standup Dashboard (`standup_live`) | Live — added 10/13/26 |
-| Plaud Review | `/plaud/` | **Stephen only** — own PIN (set on first visit, checked server-side, 8 misses = 15-min lockout). Not on the hub. | Supabase `plaud_review_items` (loaded each morning by `01_Work/_System/scripts/plaud_review/load_plaud_review.py`), `plaud_review_routes`; RPCs `plaud_review_*`; Approve → `plaud-review-create` edge fn creates the Asana task after a 6-second undo window | Live — added 10/14/26 |
+| Plaud Review | `/plaud/` | **Stephen only** — own PIN (4–8 digits, set on first visit, checked server-side, 5 misses = 1-hour lockout). Not on the hub. | Supabase `plaud_review_items` (loaded each morning by `01_Work/_System/scripts/plaud_review/load_plaud_review.py`), `plaud_review_routes`; RPCs `plaud_review_*`; Approve → `plaud-review-create` edge fn creates the Asana task after a 6-second undo window | Live — added 10/14/26 |
 | Staffing Form Signatures (612) | `/form-signing/?t={token}` | Donna / Amandeep | Supabase | Live — personal links only, not on hub |
 | Team Building Prep | `/teambuilding/` | Dept heads | — | One-time (July 2026), not on hub |
 | Supply Order | separate repo `morning-star-supply` | All staff search & add; `#admin` = ordering view (mark off + CSV) | Supabase `supply_requests` | Live |
