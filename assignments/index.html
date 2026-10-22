@@ -357,7 +357,7 @@
 </div>
 
 <div class="override-panel" id="overridePanel">
-  <h3>Special assignments — resident caregiver preference, shower swaps</h3>
+  <h3>Special assignments — resident caregiver preference, shower swaps, 1:1 (Float)</h3>
   <div class="ov-row">
     Bed <select id="ovBed"></select>
     <select id="ovType">
@@ -468,6 +468,7 @@ let pendingRows = [{}, {}, {}];
 // Special assignments for this sheet: bed → group (bed + its shower), and shower-only swaps (bed → group)
 let bedPins = {};
 let showerPins = {};         // rowKey (g1..g7, rna, float) → chosen name for this sheet
+let oneToOne = new Set();    // beds given to the Float CNA as a 1:1 (bed + shower leave the groups)
 
 // Break schedules
 const BREAKS = {
@@ -628,7 +629,7 @@ async function loadRoster() {
 }
 
 // New date/shift = new sheet: clear picks so home-group defaults apply
-function onDateShiftChange() { picks = {}; bedPins = {}; showerPins = {}; renderRoster(); generate(); }
+function onDateShiftChange() { picks = {}; bedPins = {}; showerPins = {}; oneToOne = new Set(); renderRoster(); generate(); }
 
 function byRole(role, shift) {
   return roster.filter(r => r.role === role && (!shift || r.shift === shift));
@@ -701,26 +702,34 @@ function renderOverrides(cnaCount, showers) {
   const keepBed = bedSel.value, keepGrp = grpSel.value;
   bedSel.innerHTML = ALL_ROOMS.filter(r => !emptyRooms.has(r))
     .map(r => `<option value="${r}">${r}${showers.includes(r) ? ' 🚿' : ''}</option>`).join('');
-  grpSel.innerHTML = Array.from({ length: cnaCount }, (_, i) => `<option value="${i + 1}">Group ${i + 1}</option>`).join('');
+  grpSel.innerHTML = Array.from({ length: cnaCount }, (_, i) => `<option value="${i + 1}">Group ${i + 1}</option>`).join('')
+    + '<option value="float">Float — 1:1</option>';
   if (keepBed) bedSel.value = keepBed;
-  if (keepGrp && keepGrp <= cnaCount) grpSel.value = keepGrp;
+  if (keepGrp && (keepGrp === 'float' || keepGrp <= cnaCount)) grpSel.value = keepGrp;
   const items = [
+    ...[...oneToOne].map(b => ({ b, kind: '1to1', off: emptyRooms.has(b) })),
     ...Object.entries(bedPins).map(([b, g]) => ({ b, g, kind: 'bed', off: g > cnaCount || emptyRooms.has(b) })),
     ...Object.entries(showerPins).map(([b, g]) => ({ b, g, kind: 'shower', off: g > cnaCount || !showers.includes(b) || emptyRooms.has(b) })),
   ];
   document.getElementById('ovList').innerHTML = items.map(it => `<span class="ov-item"${it.off ? ' style="opacity:.5" title="Not applied today (group not running, bed empty, or no shower scheduled)"' : ''}>
-      ${it.kind === 'bed' ? '📌 ' + it.b + ' → Group ' + it.g : '🚿 ' + it.b + ' shower → Group ' + it.g}
+      ${it.kind === '1to1' ? '1:1 ' + it.b + ' → Float' : it.kind === 'bed' ? '📌 ' + it.b + ' → Group ' + it.g : '🚿 ' + it.b + ' shower → Group ' + it.g}
       <button onclick="removeOverride('${it.kind}','${it.b}')" title="Remove">×</button></span>`).join('');
 }
 function addOverride() {
-  const b = document.getElementById('ovBed').value, g = parseInt(document.getElementById('ovGroup').value, 10);
-  if (!b || !g) return;
+  const b = document.getElementById('ovBed').value, gv = document.getElementById('ovGroup').value;
+  if (!b || !gv) return;
+  if (gv === 'float') {   // 1:1 — the Float CNA takes the bed and its shower; it leaves the group workload
+    oneToOne.add(b); delete bedPins[b]; delete showerPins[b];
+    return generate();
+  }
+  const g = parseInt(gv, 10);
+  oneToOne.delete(b);
   if (document.getElementById('ovType').value === 'shower') showerPins[b] = g;
   else { bedPins[b] = g; delete showerPins[b]; }   // the bed's shower follows the bed
   generate();
 }
 function removeOverride(kind, b) {
-  if (kind === 'bed') delete bedPins[b]; else delete showerPins[b];
+  if (kind === '1to1') oneToOne.delete(b); else if (kind === 'bed') delete bedPins[b]; else delete showerPins[b];
   generate();
 }
 function openOverride(bed) {
@@ -990,9 +999,12 @@ function generate() {
   const breaks = BREAKS[shift] || [];
 
   // Special assignments: pinned beds move to their chosen group before balancing and never move after
-  const pinned = new Set(Object.keys(bedPins).filter(b => bedPins[b] <= cnaCount && !emptyRooms.has(b)));
   const bedOrder = Object.fromEntries(ALL_ROOMS.map((b, i) => [b, i]));
-  const startGroups = baseGroups.map(g => ({ group: g.group, rooms: g.rooms.filter(r => !pinned.has(r)) }));
+  const pinned = new Set(Object.keys(bedPins).filter(b => bedPins[b] <= cnaCount && !emptyRooms.has(b)));
+  // 1:1 beds go to the Float row; groups balance as if those beds were empty
+  const ones = [...oneToOne].filter(b => !emptyRooms.has(b)).sort((a, b) => bedOrder[a] - bedOrder[b]);
+  const offGroups = new Set([...emptyRooms, ...ones]);
+  const startGroups = baseGroups.map(g => ({ group: g.group, rooms: g.rooms.filter(r => !pinned.has(r) && !ones.includes(r)) }));
   pinned.forEach(b => startGroups[bedPins[b] - 1].rooms.push(b));
   startGroups.forEach(g => g.rooms.sort((a, b) => bedOrder[a] - bedOrder[b]));
 
@@ -1006,7 +1018,7 @@ function generate() {
   // Get final groups (balanced or template + pins)
   let groups;
   if (shouldBalance) {
-    groups = balanceGroups(startGroups, emptyRooms, pinned);
+    groups = balanceGroups(startGroups, offGroups, pinned);
   } else {
     groups = startGroups.map(g => ({
       ...g,
@@ -1019,13 +1031,13 @@ function generate() {
   baseGroups.forEach(g => g.rooms.forEach(r => { baseOf[r] = g.group; }));
   // Shower-only swaps (ignore swaps for empty beds, unscheduled showers, or groups not running)
   const swaps = Object.fromEntries(Object.entries(showerPins).filter(([b, g]) =>
-    g <= cnaCount && showers.includes(b) && !emptyRooms.has(b)));
+    g <= cnaCount && showers.includes(b) && !emptyRooms.has(b) && !ones.includes(b)));
   renderOverrides(cnaCount, showers);
 
   // Show/hide balance info bar
   const balanceInfoEl = document.getElementById('balanceInfo');
   if (shouldBalance) {
-    const totalOccupied = ALL_ROOMS.filter(r => !emptyRooms.has(r)).length;
+    const totalOccupied = ALL_ROOMS.filter(r => !offGroups.has(r)).length;
     const newCounts = groups.map(g => g.rooms.length);
     const maxBal = Math.max(...newCounts);
     const minBal = Math.min(...newCounts);
@@ -1155,19 +1167,25 @@ function generate() {
     <td class="tardy-cell"><input type="text" maxlength="5"></td>
   </tr>`;
 
-  // Float row — extra CNA covering as needed
+  // Float row — extra CNA covering as needed, or a 1:1 for the beds given to Float
+  const oneShowers = ones.filter(b => showers.includes(b));
   html += `<tr class="float-row">
     <td class="group-num" style="font-size:11px;">Float</td>
     ${nameCell('float', 'CNA')}
-    <td class="rooms-cell" style="font-size:11px;color:var(--gray-500);">Covers as needed</td>
-    <td class="shower-cell"><span style="color:var(--gray-500);font-size:11px;">PRN</span></td>
+    ${ones.length
+      ? `<td class="rooms-cell"><strong style="font-size:11px;margin-right:4px;">1:1</strong>${ones.map(r =>
+          `<span class="room-tag pinned" onclick="openOverride('${r}')" title="Special assignment for ${r}">${r}</span>`).join('')}</td>
+    <td class="shower-cell">${day === 'sun' ? '<span style="color:var(--gray-500);font-size:11px;">PRN</span>'
+          : oneShowers.length ? oneShowers.map(b => `<span class="shower-tag">${b}</span>`).join('') : '<span style="color:var(--gray-500);font-size:11px;">—</span>'}</td>`
+      : `<td class="rooms-cell" style="font-size:11px;color:var(--gray-500);">Covers as needed</td>
+    <td class="shower-cell"><span style="color:var(--gray-500);font-size:11px;">PRN</span></td>`}
     <td class="break-cell" style="font-size:10px;">As assigned</td>
     <td class="tardy-cell"><input type="text" maxlength="5"></td>
   </tr>`;
 
   html += '</tbody></table>';
-  if (pinned.size || Object.keys(swaps).length) {
-    html += `<div class="override-legend">📌 = bed specially assigned to this CNA &bull; (swap) = shower given to another CNA — both set by the charge nurse</div>`;
+  if (pinned.size || Object.keys(swaps).length || ones.length) {
+    html += `<div class="override-legend">📌 = bed specially assigned to this CNA &bull; (swap) = shower given to another CNA &bull; 1:1 = resident assigned one-to-one to the Float CNA — all set by the charge nurse</div>`;
   }
 
   // Two-column lower section
