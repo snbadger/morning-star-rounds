@@ -1133,6 +1133,18 @@ function generate() {
       <th style="width:50px">Tardy?</th>
     </tr></thead><tbody>`;
 
+  // What gets logged to Supabase when this sheet prints (staff + beds only; pending diagnostics never leave the page)
+  const pickOrNull = key => currentPick(key) || null;
+  lastSheet = {
+    sheet_date: selectedDate(), shift: selectedShift(), cna_count: cnaCount, auto_balanced: shouldBalance,
+    beds_occupied: ALL_ROOMS.length - emptyRooms.size, empty_beds: [...emptyRooms].sort(byOrder),
+    desk_nurse: pickOrNull('desk'), side1_nurse: pickOrNull('side1'), side2_nurse: pickOrNull('side2'),
+    rna: shift === 'am' ? pickOrNull('rna') : null,
+    groups: [], float: { cna: pickOrNull('float'), beds: floatBeds,
+      showers: showers.filter(s => floatBeds.includes(s) && !(s in swaps)).concat(Object.keys(swaps).filter(b => swaps[b] === 'float')) },
+    special_count: pinned.size + Object.keys(swaps).length + ones.length
+  };
+
   sheetGroups.forEach((g, idx) => {
 
     // Showers for this group's occupied beds, minus any swapped away, plus any swapped in
@@ -1140,6 +1152,8 @@ function generate() {
     const groupShowers = showers.filter(s => occupied.includes(s) && !(s in swaps))
       .map(s => ({ bed: s, swapped: false }))
       .concat(Object.keys(swaps).filter(b => swaps[b] === g.group).map(b => ({ bed: b, swapped: true })));
+    lastSheet.groups.push({ group: g.group, cna: pickOrNull('g' + g.group), beds: occupied,
+      showers: groupShowers.map(s => s.bed), one_to_one: !!g.oneToOne });
 
     // Build room tags
     let roomTags = '';
@@ -1300,6 +1314,21 @@ function setDefaults() {
   document.getElementById('shiftSelect').value = shift;
   document.getElementById('dateSelect').value = localISO(d);
 }
+
+// Log every print (Print button or Ctrl/Cmd+P) to Supabase cna_assignment_prints. Fire-and-forget:
+// a failed log never blocks printing. Some browsers fire beforeprint twice — skip an identical repeat within 5s.
+let lastSheet = null, lastLogged = { key: '', at: 0 };
+window.addEventListener('beforeprint', () => {
+  if (!lastSheet) return;
+  const key = JSON.stringify(lastSheet);
+  if (key === lastLogged.key && Date.now() - lastLogged.at < 5000) return;
+  lastLogged = { key, at: Date.now() };
+  fetch(`${SB_URL}/rest/v1/rpc/log_cna_assignment_print`, {
+    method: 'POST', keepalive: true,
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_sheet: lastSheet })
+  }).catch(() => {});
+});
 
 // Init
 setDefaults();
