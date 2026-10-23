@@ -261,6 +261,12 @@ function detailView(){
   '<div class="rc-meta">Resident '+esc(resDisp(c))+' · started '+fmtWhen(c.created_at)+' by '+esc(c.initiated_by)+(c.reason?'<br>Reason: '+esc(c.reason):'')+(c.notes?'<br>Note: '+esc(c.notes):'')+'</div>'+
   '<div class="progress-wrap"><div class="progress-bar" style="width:'+(p.total?Math.round(p.done/p.total*100):0)+'%"></div></div>'+
   '<div class="rc-meta" style="margin-top:6px">'+p.done+' of '+p.total+' tasks done</div></div>';
+  // Say what the change is still waiting on — it only completes when EVERY department's boxes are checked.
+  if(c.status==='open'){
+    var left=CHECKLIST_DEPTS.map(function(d){return {d:d,n:ts.filter(function(t){return t.department===d&&!t.done}).length}}).filter(function(x){return x.n});
+    if(left.length)h+='<div class="banner banner-amber">Waiting on: '+left.map(function(x){return esc(x.d)+' ('+x.n+')'}).join(', ')+
+      '<div style="font-weight:600;font-size:12px;margin-top:4px">Completes automatically when every department is checked off.</div></div>';
+  }
   // user's own department first
   var order=CHECKLIST_DEPTS.slice().sort(function(a,b){return (a===me.dept?-1:0)-(b===me.dept?-1:0)});
   order.forEach(function(d){
@@ -291,6 +297,8 @@ async function toggleTask(taskId){
   var t=ts.find(function(x){return x.id===taskId});
   if(!t)return;
   var newDone=!t.done;
+  // Unchecking erases someone's sign-off (and re-checking re-stamps it with your name), so confirm first.
+  if(!newDone&&!confirm('Uncheck this task?\n\nThis removes '+(t.completed_by===me.name?'your':(t.completed_by||'the')+'\'s')+' sign-off. Only do this if the task was NOT actually done.'))return;
   // optimistic update
   t.done=newDone;t.completed_by=newDone?me.name:null;t.completed_at=newDone?new Date().toISOString():null;
   render();
