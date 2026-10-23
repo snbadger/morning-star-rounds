@@ -123,8 +123,16 @@ async function boot(){
   S.tabs.forEach(function(t){if(!listed[t.tab_key]&&t.active!==false&&(FORM_KINDS.indexOf(t.kind)>=0||t.kind==='auto')&&t.tab_key!=='attendance')SECTIONS[SECTIONS.length-1].tabs.push(t.tab_key)});
   var h=parseInt(ls('su_screen_view'),10);if(h>=-1&&h<SECTIONS.length)S.view=h;
   await load();render();
-  setInterval(function(){if(!S.busy)load().then(render).catch(function(){})},60000);
+  setInterval(poll,60000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&(!S.loadedAt||Date.now()-S.loadedAt>60000))poll()});
   setInterval(tick,1000);
+}
+// one call at a time, never while hidden, and not overnight (8 PM–5 AM) — a stacked-up poll stalled the database 10/23
+function poll(){
+  var h=new Date().getHours();
+  if(S.busy||S.polling||document.hidden||h>=20||h<5)return;
+  S.polling=true;
+  load().then(render).catch(function(){}).then(function(){S.polling=false});
 }
 async function load(){
   var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_live',{p_pin:S.pin})]);
