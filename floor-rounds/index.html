@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Floor Rounds</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:560px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+/* hall cards */
+.hall{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid #f0f2f5;cursor:pointer}
+.hall:last-child{border-bottom:none}
+.hall .nm{flex:1}
+.hall .nm b{display:block;font-size:17px;color:var(--primary)}
+.hall .nm span{font-size:12px;color:var(--text-light)}
+.hall .st{font-size:13px;font-weight:700;text-align:right}
+.hall.done .st{color:var(--success)}.hall.fails .st{color:var(--danger)}.hall.todo .st{color:var(--primary-light)}
+.suggest{display:inline-block;font-size:10.5px;font-weight:800;background:var(--primary-light);color:#fff;border-radius:10px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+/* checklist */
+.item{padding:12px 0;border-bottom:1px solid #f0f2f5}
+.item:last-child{border-bottom:none}
+.item .lbl{font-size:15px;line-height:1.35;font-weight:600}
+.pf{display:flex;gap:8px;margin-top:8px}
+.pf button{flex:1;padding:10px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:inherit}
+.pf button.pass.on{background:var(--success);border-color:var(--success);color:#fff}
+.pf button.fail.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.item textarea{margin-top:8px;font-size:15px;padding:10px}
+/* month grid */
+.grid{overflow-x:auto}
+.grid table{border-collapse:collapse;font-size:12px;width:100%}
+.grid th,.grid td{border:1px solid #eef1f4;padding:5px 4px;text-align:center;min-width:26px}
+.grid th{color:var(--text-light);font-weight:700}
+.grid td.h{text-align:left;font-weight:700;color:var(--primary);white-space:nowrap}
+.grid td.ok{background:#e8f6ee;color:var(--success);font-weight:800}
+.grid td.bad{background:#fdeceb;color:var(--danger);font-weight:800}
+.banner{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:12px;text-align:center;background:#fef9e7;color:#a07708}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>🧭 Floor Rounds</h1><div class="sub">Morning Star Post Acute · Hall checklist</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="page" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// Halls follow the PCC wings. One hall a day is the standard (suggested hall rotates); more is welcome.
+var HALLS=[
+ {key:'East',rooms:'Rooms 1–7 · nurses station'},
+ {key:'North',rooms:'Rooms 8–10 & 18'},
+ {key:'West',rooms:'Rooms 11–16'}
+];
+// Mitchell's JERICHO-STANDUP "FLOOR ROUNDS" checklist (14 items). Keys appear on the standup screen, so keep them readable.
+var ITEMS=[
+ {key:'fire_extinguisher_clear',label:'Nothing is in front of the fire extinguisher'},
+ {key:'equipment_one_side',label:'All equipment pushed to one side of the hall'},
+ {key:'trash_picked_up',label:'Trash is picked up'},
+ {key:'white_boards_current',label:'White boards updated with accurate date and assignments'},
+ {key:'med_carts_locked',label:'Med carts are locked'},
+ {key:'trash_lids_on',label:'Trash can lids are on'},
+ {key:'uniforms',label:'Uniforms in place — radio, scrubs, name badge, earpiece'},
+ {key:'handrails_clear',label:'Nothing is sitting on the handrails'},
+ {key:'hipaa_covered',label:'HIPAA covered and computers minimized when not in use'},
+ {key:'no_food_at_station',label:'No food or drinks at the nurses stations'},
+ {key:'oxygen_stored',label:'Oxygen tanks not in resident rooms — stored appropriately'},
+ {key:'ebp_ppe_stocked',label:'EBP and PPE storage containers are stocked'},
+ {key:'foley_bags_covered',label:'Foley catheter privacy bags are covered'},
+ {key:'wheelchairs_stored',label:'Wheelchairs stored in their proper places'}
+];
+var STAFF=["Sebastian Lopez","Elizabeth Estrada","Lee You","Lyelah Figueroa","Robert Sosa","Stephen Badger"];
+
+var me={name:localStorage.getItem('fr_name')||''};
+var view='home', curHall=null, editing=null, rounds=[], form={}, saving=false;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function pad(n){return String(n).padStart(2,'0')}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function firstName(n){return String(n||'').split(' ')[0]}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+firstName(me.name)):'Sign in'}
+function editIdentity(){view='identity';render()}
+function suggestedHall(){var d=new Date();var n=Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000);return HALLS[n%HALLS.length].key}
+function counts(r){var p=0,f=0;ITEMS.forEach(function(i){var v=r.results&&r.results[i.key];if(v==='pass')p++;else if(v==='fail')f++});return {p:p,f:f}}
+function roundFor(hall,date){return rounds.find(function(r){return r.hall===hall&&r.round_date===date})||null}
+
+async function loadData(){
+  var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
+  var r=await sb.from('floor_rounds').select('*').gte('round_date',d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01').order('round_date',{ascending:false});
+  if(r.error){toast('Could not load — check connection');return}
+  rounds=r.data||[];
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='round'){el.innerHTML=roundView();return}
+  el.innerHTML=homeView();
+}
+
+function identityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
+  '<div class="hint">Your name goes on every floor round you log.</div>'+
+  '<label>Your name</label><input id="idName" list="staffList" placeholder="Type or pick your name" value="'+esc(me.name)+'" autocomplete="off">'+
+  '<datalist id="staffList">'+STAFF.map(function(s){return '<option value="'+esc(s)+'">'}).join('')+'</datalist>'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
+}
+function saveIdentity(){
+  var n=document.getElementById('idName').value.trim();
+  if(!n){toast('Please enter your name');return}
+  me.name=n;localStorage.setItem('fr_name',me.name);view='home';refresh();
+}
+
+function homeView(){
+  var t=today(),sug=suggestedHall();
+  var dateTxt=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  var h='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">Today · '+esc(dateTxt)+'</div>'+
+    '<div class="hint" style="margin-top:4px">Walk at least one hall a day before standup. Today\'s suggested hall is <b>'+sug+'</b>.</div></div>';
+  h+='<div class="section-title">Tap a hall to round it</div><div class="card" style="padding:4px 12px">';
+  HALLS.forEach(function(hl){
+    var r=roundFor(hl.key,t),cls='todo',st='Not yet';
+    if(r){var c=counts(r);cls=c.f?'fails':'done';st=c.f?(c.f+' failed · '+firstName(r.rounded_by)):('✓ All '+c.p+' pass · '+firstName(r.rounded_by))}
+    h+='<div class="hall '+cls+'" onclick="openRound(\''+hl.key+'\')"><div class="nm"><b>'+hl.key+' hall'+(hl.key===sug?'<span class="suggest">TODAY</span>':'')+'</b><span>'+esc(hl.rooms)+'</span></div><div class="st">'+st+'</div></div>';
+  });
+  h+='</div>';
+  h+=monthGrid();
+  h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh</div>';
+  h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
+     '<span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
+  return h;
+}
+function monthGrid(){
+  var d=new Date(),y=d.getFullYear(),m=d.getMonth(),days=new Date(y,m+1,0).getDate(),today_d=d.getDate();
+  var title=d.toLocaleDateString('en-US',{month:'long'});
+  var h='<div class="section-title">'+esc(title)+' — ✓ all pass · number = items failed</div><div class="card grid" style="padding:8px"><table><tr><th></th>';
+  for(var i=1;i<=days;i++)h+='<th>'+i+'</th>';
+  h+='</tr>';
+  HALLS.forEach(function(hl){
+    h+='<tr><td class="h">'+hl.key+'</td>';
+    for(var i=1;i<=days;i++){
+      var r=roundFor(hl.key,y+'-'+pad(m+1)+'-'+pad(i));
+      if(r){var c=counts(r);h+=c.f?'<td class="bad">'+c.f+'</td>':'<td class="ok">✓</td>'}
+      else h+='<td>'+(i<=today_d?'':'')+'</td>';
+    }
+    h+='</tr>';
+  });
+  return h+'</table></div>';
+}
+function logout(){try{localStorage.removeItem('fr_name');}catch(e){}location.href='../';}
+
+// ---- Round a hall ----
+function openRound(hall){
+  curHall=hall;editing=roundFor(hall,today());
+  form={results:{},fail_notes:{},notes:''};
+  if(editing){form.results=Object.assign({},editing.results||{});form.fail_notes=Object.assign({},editing.fail_notes||{});form.notes=editing.notes||''}
+  view='round';render();window.scrollTo(0,0);
+}
+function roundView(){
+  var c=counts(form),hl=HALLS.find(function(x){return x.key===curHall});
+  var h='<span class="back" onclick="view=\'home\';render()">‹ Halls</span>';
+  if(editing)h+='<div class="banner">Editing today\'s '+esc(curHall)+' round by '+esc(editing.rounded_by)+'</div>';
+  h+='<div class="card"><div style="font-size:24px;font-weight:800;color:var(--primary)">'+esc(curHall)+' hall</div><div class="hint">'+esc(hl.rooms)+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span style="font-weight:800;color:var(--primary)">'+(c.p+c.f)+'/'+ITEMS.length+' checked'+(c.f?' · <span style="color:var(--danger)">'+c.f+' failed</span>':'')+'</span>'+
+    '<span style="font-size:13px;font-weight:700;color:var(--primary-light);cursor:pointer" onclick="allPass()">Mark the rest pass</span></div></div>';
+  h+='<div class="card" style="padding:4px 16px">';
+  ITEMS.forEach(function(it){
+    var v=form.results[it.key];
+    h+='<div class="item"><div class="lbl">'+esc(it.label)+'</div><div class="pf">'+
+      '<button class="pass'+(v==='pass'?' on':'')+'" onclick="setItem(\''+it.key+'\',\'pass\')">✓ Pass</button>'+
+      '<button class="fail'+(v==='fail'?' on':'')+'" onclick="setItem(\''+it.key+'\',\'fail\')">✗ Fail</button></div>'+
+      (v==='fail'?'<textarea rows="2" placeholder="What was wrong? Fixed on the spot? (no resident names)" oninput="form.fail_notes[\''+it.key+'\']=this.value">'+esc(form.fail_notes[it.key]||'')+'</textarea>':'')+
+      '</div>';
+  });
+  h+='</div>';
+  h+='<div class="card"><label style="margin-top:0">Notes (optional)</label><textarea rows="2" placeholder="Anything else for standup (no resident names)" oninput="form.notes=this.value">'+esc(form.notes)+'</textarea></div>';
+  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save '+esc(curHall)+' hall round')+'</button>';
+  return h;
+}
+function setItem(k,v){form.results[k]=form.results[k]===v?undefined:v;if(form.results[k]===undefined)delete form.results[k];render()}
+function allPass(){ITEMS.forEach(function(i){if(!form.results[i.key])form.results[i.key]='pass'});render()}
+
+async function save(){
+  if(saving)return;
+  var c=counts(form);
+  if(c.p+c.f<ITEMS.length){toast('Mark every item pass or fail ('+(ITEMS.length-c.p-c.f)+' left)');return}
+  var missingNote=ITEMS.filter(function(i){return form.results[i.key]==='fail'&&!(form.fail_notes[i.key]||'').trim()});
+  if(missingNote.length){toast('Add a note for each failed item');return}
+  saving=true;var btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving…';
+  var notes={};Object.keys(form.fail_notes).forEach(function(k){if(form.results[k]==='fail'&&(form.fail_notes[k]||'').trim())notes[k]=form.fail_notes[k].trim()});
+  var row={round_date:today(),hall:curHall,results:form.results,fail_notes:notes,notes:(form.notes||'').trim()||null,
+           rounded_by:editing?editing.rounded_by:me.name,source:'staff-app',updated_at:new Date().toISOString()};
+  var res=await sb.from('floor_rounds').upsert(row,{onConflict:'round_date,hall'});
+  saving=false;
+  if(res.error){toast('Save failed: '+res.error.message);btn.disabled=false;btn.textContent='Save';return}
+  await loadData();view='home';render();window.scrollTo(0,0);
+  toast(c.f?'Saved — '+c.f+' item'+(c.f>1?'s':'')+' flagged for standup':'✓ '+curHall+' hall — all pass');
+}
+
+async function refresh(){await loadData();render()}
+setInterval(function(){if(view==='home'&&me.name)refresh()},120000);
+refresh();
+</script>
+</body>
+</html>
