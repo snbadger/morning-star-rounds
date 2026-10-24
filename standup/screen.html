@@ -84,10 +84,10 @@ var FORM_KINDS=['log','count','list','falls'];
 // Lean Alignment SWI v2.0 order: six sections, ~10 minutes.
 var SECTIONS=[
  {k:'safety',t:'Safety & Compliance',tabs:['falls','grievances','isolation','ebp','sitter','behaviors','at_risk_rta','fapu','wound_vac','immunizations','survey']},
- {k:'census',t:'Census & Admissions',tabs:['census','prior_day_admissions','discharges','rta','ama','expirations','resident_at_hospital','bedholds','pending_admissions','referral_response','tours','do_not_admit','room_changes','overnight_stays']},
- {k:'clinical',t:'Clinical Highlights',tabs:['uda_overdue','poc_compliance','dc_assessments','appointments','care_conferences','cares_in_pairs','assisted_dining','therapy_initial','therapy_refusals','mds_due','pasarr','bims_phq','nomnc','high_cost_meds','resident_council']},
- {k:'staffing',t:'Staffing & Scheduling',tabs:['nursing_ppd','staffing_ppd','call_offs','open_positions','hr_scorecard','pbj_accounting']},
- {k:'ops',t:'Operations & Revenue',tabs:['painting','resident_rounds','floor_rounds','mds_day4','auths_levels_payer','medi_cal_pending','non_payers','outstanding_auths','auths_due','therapy_part_b','respiratory_part_b','mini_packet','admission_packets','arbitration','bad_debt_cash','rentals','special_projects']},
+ {k:'census',t:'Census & Admissions',tabs:['census','referral_response','prior_day_admissions','mini_packet','discharges','rta','ama','expirations','resident_at_hospital','bedholds','pending_admissions','tours','do_not_admit','room_changes','overnight_stays']},
+ {k:'clinical',t:'Clinical Highlights',tabs:['mds_due','uda_overdue','poc_compliance','dc_assessments','appointments','care_conferences','cares_in_pairs','assisted_dining','therapy_initial','therapy_refusals','pasarr','bims_phq','nomnc','high_cost_meds','resident_council']},
+ {k:'staffing',t:'Staffing & Scheduling',tabs:['nursing_ppd','staffing_ppd','overtime','call_offs','open_positions','hr_scorecard','pbj_accounting']},
+ {k:'ops',t:'Operations & Revenue',tabs:['painting','resident_rounds','floor_rounds','mds_day4','auths_levels_payer','medi_cal_pending','non_payers','outstanding_auths','auths_due','therapy_part_b','respiratory_part_b','admission_packets','arbitration','bad_debt_cash','rentals','special_projects']},
  {k:'people',t:'People, Wins & Group Items',tabs:['shout_outs','anniversary','birthdays','inspirational_thought','google_review','group_items']}
 ];
 var SEC_SECONDS=100;
@@ -146,6 +146,9 @@ async function load(){
 function auto(k){return S.live&&S.live.auto&&S.live.auto[k]}
 function cov(k){return (S.day&&S.day.coverage&&S.day.coverage[k])||{}}
 function entries(k){return ((S.day&&S.day.entries)||[]).filter(function(e){return e.tab_key===k&&e.status!=='closed'})}
+// Current week = Sunday through Saturday (matches the MDS calendar).
+function weekBounds(){var t=new Date(S.today+'T12:00:00'),s=new Date(t);s.setDate(t.getDate()-t.getDay());var e=new Date(s);e.setDate(s.getDate()+6);return [s.toISOString().slice(0,10),e.toISOString().slice(0,10)]}
+function inThisWeek(e){var w=weekBounds(),d=e.data&&e.data.due;return d&&d>=w[0]&&d<=w[1]}
 function fval(f,v){if(v==null||v===''||(Array.isArray(v)&&!v.length))return '';if(Array.isArray(v))return v.join(', ');if(f.t==='date')return md(v);return String(v)}
 function summary(t,e){
   var items=(t.fields&&t.fields.items)||[],parts=[];
@@ -169,7 +172,10 @@ function tabData(t){
     var fl=((S.day&&S.day.falls)||[]).filter(function(f){return f.date>=addDays(S.today,-7)}).map(fallLine);
     return {state:fl.length?'content':(c.status==='nothing'?'nothing':'todo'),sum:fl.length?fl.length+' falls in the last 7 days':'No falls in the last 7 days',rows:fl};
   }
-  var es=entries(k);
+  var es=entries(k),later=0;
+  if(k==='mds_due'){var all=es;es=all.filter(inThisWeek);later=all.length-es.length}
+  if(es.length&&k==='mds_due')return {state:'content',sum:es.length+' due this week'+(later?' · '+later+' later':''),rows:es.map(function(e){return {date:e.data.due,room:e.room?e.room+(e.bed?'-'+e.bed:''):'',title:[e.data.resident,e.data.type].filter(Boolean).join(' · '),detail:e.data.notes||''}})};
+  if(k==='mds_due'&&!es.length&&later)return {state:'quiet'};
   if(es.length)return {state:'content',sum:t.kind==='list'?es.length+' open':es.length+' today',rows:es.map(function(e){return {date:t.kind==='list'?null:e.entry_date,room:e.room?e.room+(e.bed?'-'+e.bed:''):'',title:summary(t,e),detail:t.kind==='list'?'since '+md(e.entry_date):(e.reporter?'by '+e.reporter:'')}})};
   if(c.status==='nothing'||t.cadence==='as_needed')return {state:'nothing'};
   if(c.status==='entered')return {state:'nothing'};
