@@ -259,7 +259,7 @@ function boardHtml(){
         var fl=(S.data.falls||[]).filter(function(f){return f.date>=addDays(S.today,-7)});
         lines=fl.length?fl.map(fallLine):['No falls logged in the last 7 days.'];
       } else {
-        var es=entriesFor(t.tab_key).filter(function(e){return e.status!=='closed'});
+        var es=entriesFor(t.tab_key).filter(function(e){return e.status!=='closed'&&(t.tab_key!=='mds_due'||inThisWeek(e))});
         lines=es.map(function(e){return esc([roomTag(e),summary(t,e)].filter(Boolean).join(' · '))});
         if(!lines.length)lines=[c.status==='nothing'?'Nothing new today ('+esc(c.by)+').':(t.kind==='list'?'No open items.':'Nothing entered yet.')];
       }
@@ -270,6 +270,9 @@ function boardHtml(){
   return h;
 }
 function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+// Current week = Sunday through Saturday (matches the MDS calendar).
+function weekBounds(){var t=new Date(S.today+'T12:00:00'),s=new Date(t);s.setDate(t.getDate()-t.getDay());var e=new Date(s);e.setDate(s.getDate()+6);return [s.toISOString().slice(0,10),e.toISOString().slice(0,10)]}
+function inThisWeek(e){var w=weekBounds(),d=e.data&&e.data.due;return d&&d>=w[0]&&d<=w[1]}
 
 // ---------- tab screen ----------
 function openTab(k){S.tab=k;S.editing=null;renderTab();window.scrollTo(0,0)}
@@ -311,10 +314,12 @@ function logScreen(t){
   return h;
 }
 function listScreen(t){
-  var es=entriesFor(t.tab_key),open=es.filter(function(e){return e.status==='open'}),closed=es.filter(function(e){return e.status==='closed'}),h='';
-  h+='<div class="h2">Open ('+open.length+')</div>';
+  var es=entriesFor(t.tab_key),open=es.filter(function(e){return e.status==='open'}),closed=es.filter(function(e){return e.status==='closed'}),h='',later=[];
+  if(t.tab_key==='mds_due'){later=open.filter(function(e){return !inThisWeek(e)});open=open.filter(inThisWeek)}
+  h+='<div class="h2">'+(t.tab_key==='mds_due'?'Due this week':'Open')+' ('+open.length+')</div>';
   if(!open.length)h+='<div class="card muted">Nothing open on this list.</div>';
   h+=open.map(function(e){return S.editing===e.id?'<div class="card">'+formHtml(t,e)+'<div class="row2" style="margin-top:12px"><button class="btn btn-quiet" onclick="S.editing=null;renderTab()">Cancel</button><button class="btn btn-primary" onclick="save(\''+t.tab_key+'\',\''+e.id+'\',\'update\')">Save changes</button></div></div>':itemHtml(t,e,'list')}).join('');
+  if(later.length)h+='<div class="h2">Later ('+later.length+')</div>'+later.sort(function(a,b){return (a.data.due||'')<(b.data.due||'')?-1:1}).map(function(e){return itemHtml(t,e,'list')}).join('');
   if(closed.length)h+='<div class="h2">Closed today</div>'+closed.map(function(e){return itemHtml(t,e,'closed')}).join('');
   if(!S.editing)h+='<div class="card" style="margin-top:12px"><div style="font-weight:800;color:var(--primary)">Add to the list</div>'+formHtml(t,null)+
      '<button class="btn btn-primary" style="margin-top:14px" onclick="save(\''+t.tab_key+'\',null,\'list\')">Add</button></div>';
