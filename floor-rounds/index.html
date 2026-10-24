@@ -70,12 +70,9 @@ var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Halls follow the PCC wings. One hall a day is the standard (suggested hall rotates); more is welcome.
-var HALLS=[
- {key:'East',rooms:'Rooms 1–7 · nurses station'},
- {key:'North',rooms:'Rooms 8–10 & 18'},
- {key:'West',rooms:'Rooms 11–16'}
-];
+// One round of the whole building each day (Stephen, 10/23/26 — "we're not that big").
+// Failed items become Asana tasks: a database trigger adds an action item, asana-sync pushes it M–F 10 AM.
+var HALLS=[{key:'Building',rooms:'All halls, nurses stations and common areas'}];
 // Mitchell's JERICHO-STANDUP "FLOOR ROUNDS" checklist (14 items). Keys appear on the standup screen, so keep them readable.
 var ITEMS=[
  {key:'fire_extinguisher_clear',label:'Nothing is in front of the fire extinguisher'},
@@ -105,7 +102,6 @@ function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)
 function firstName(n){return String(n||'').split(' ')[0]}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+firstName(me.name)):'Sign in'}
 function editIdentity(){view='identity';render()}
-function suggestedHall(){var d=new Date();var n=Math.floor(new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime()/86400000);return HALLS[n%HALLS.length].key}
 function counts(r){var p=0,f=0;ITEMS.forEach(function(i){var v=r.results&&r.results[i.key];if(v==='pass')p++;else if(v==='fail')f++});return {p:p,f:f}}
 function roundFor(hall,date){return rounds.find(function(r){return r.hall===hall&&r.round_date===date})||null}
 
@@ -138,15 +134,15 @@ function saveIdentity(){
 }
 
 function homeView(){
-  var t=today(),sug=suggestedHall();
+  var t=today();
   var dateTxt=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
   var h='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">Today · '+esc(dateTxt)+'</div>'+
-    '<div class="hint" style="margin-top:4px">Walk at least one hall a day before standup. Today\'s suggested hall is <b>'+sug+'</b>.</div></div>';
-  h+='<div class="section-title">Tap a hall to round it</div><div class="card" style="padding:4px 12px">';
+    '<div class="hint" style="margin-top:4px">Walk the whole building once a day before standup. Anything that fails becomes an Asana task for the right department.</div></div>';
+  h+='<div class="section-title">Today\'s round</div><div class="card" style="padding:4px 12px">';
   HALLS.forEach(function(hl){
     var r=roundFor(hl.key,t),cls='todo',st='Not yet';
     if(r){var c=counts(r);cls=c.f?'fails':'done';st=c.f?(c.f+' failed · '+firstName(r.rounded_by)):('✓ All '+c.p+' pass · '+firstName(r.rounded_by))}
-    h+='<div class="hall '+cls+'" onclick="openRound(\''+hl.key+'\')"><div class="nm"><b>'+hl.key+' hall'+(hl.key===sug?'<span class="suggest">TODAY</span>':'')+'</b><span>'+esc(hl.rooms)+'</span></div><div class="st">'+st+'</div></div>';
+    h+='<div class="hall '+cls+'" onclick="openRound(\''+hl.key+'\')"><div class="nm"><b>Whole building</b><span>'+esc(hl.rooms)+'</span></div><div class="st">'+st+'</div></div>';
   });
   h+='</div>';
   h+=monthGrid();
@@ -162,7 +158,7 @@ function monthGrid(){
   for(var i=1;i<=days;i++)h+='<th>'+i+'</th>';
   h+='</tr>';
   HALLS.forEach(function(hl){
-    h+='<tr><td class="h">'+hl.key+'</td>';
+    h+='<tr><td class="h">Building</td>';
     for(var i=1;i<=days;i++){
       var r=roundFor(hl.key,y+'-'+pad(m+1)+'-'+pad(i));
       if(r){var c=counts(r);h+=c.f?'<td class="bad">'+c.f+'</td>':'<td class="ok">✓</td>'}
@@ -184,8 +180,8 @@ function openRound(hall){
 function roundView(){
   var c=counts(form),hl=HALLS.find(function(x){return x.key===curHall});
   var h='<span class="back" onclick="view=\'home\';render()">‹ Halls</span>';
-  if(editing)h+='<div class="banner">Editing today\'s '+esc(curHall)+' round by '+esc(editing.rounded_by)+'</div>';
-  h+='<div class="card"><div style="font-size:24px;font-weight:800;color:var(--primary)">'+esc(curHall)+' hall</div><div class="hint">'+esc(hl.rooms)+'</div>'+
+  if(editing)h+='<div class="banner">Editing today\'s round by '+esc(editing.rounded_by)+'</div>';
+  h+='<div class="card"><div style="font-size:24px;font-weight:800;color:var(--primary)">Whole building</div><div class="hint">'+esc(hl.rooms)+'</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span style="font-weight:800;color:var(--primary)">'+(c.p+c.f)+'/'+ITEMS.length+' checked'+(c.f?' · <span style="color:var(--danger)">'+c.f+' failed</span>':'')+'</span>'+
     '<span style="font-size:13px;font-weight:700;color:var(--primary-light);cursor:pointer" onclick="allPass()">Mark the rest pass</span></div></div>';
   h+='<div class="card" style="padding:4px 16px">';
@@ -199,7 +195,7 @@ function roundView(){
   });
   h+='</div>';
   h+='<div class="card"><label style="margin-top:0">Notes (optional)</label><textarea rows="2" placeholder="Anything else for standup (no resident names)" oninput="form.notes=this.value">'+esc(form.notes)+'</textarea></div>';
-  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save '+esc(curHall)+' hall round')+'</button>';
+  h+='<button class="btn btn-success" id="saveBtn" onclick="save()">'+(editing?'Save changes':'✓ Save today\'s floor round')+'</button>';
   return h;
 }
 function setItem(k,v){form.results[k]=form.results[k]===v?undefined:v;if(form.results[k]===undefined)delete form.results[k];render()}
@@ -219,7 +215,7 @@ async function save(){
   saving=false;
   if(res.error){toast('Save failed: '+res.error.message);btn.disabled=false;btn.textContent='Save';return}
   await loadData();view='home';render();window.scrollTo(0,0);
-  toast(c.f?'Saved — '+c.f+' item'+(c.f>1?'s':'')+' flagged for standup':'✓ '+curHall+' hall — all pass');
+  toast(c.f?'Saved — '+c.f+' Asana task'+(c.f>1?'s':'')+' created':'✓ Floor round saved — all pass');
 }
 
 async function refresh(){await loadData();render()}
