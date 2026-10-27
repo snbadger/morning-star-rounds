@@ -6,60 +6,78 @@
 <title>Morning Star — Standup Screen</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--navy:#0d2137;--primary:#1a3c5e;--bg:#eef1f5;--card:#fff;--text:#1f2d3d;--muted:#5b6b7c;--border:#dfe5ec;
- --ok:#1f8a5b;--ok-bg:#e7f5ee;--warn:#9a6700;--warn-bg:#fdf3e0;--bad:#b3261e;--bad-bg:#fdeceb;--auto:#2d5d8a;--auto-bg:#e8f0f8}
+/* One-page card grid for a 65" TV at 10–15 ft (1920×1080). QAPI-dashboard look: white cards on grey,
+   large type, status by color + icon + word (never color alone), grey + clock when the data is stale. */
+:root{--bg:#eef0f3;--card:#fff;--text:#1d1d1f;--muted:#5c6470;--line:#e2e5ea;--navy:#052b49;--gold:#cf8c2a;
+ --series:#2d6cb5;--good:#1f8a5b;--good-bg:#e6f4ec;--warn:#b35900;--warn-bg:#fdf0dd;--bad:#c62828;--bad-bg:#fde8e8;
+ --stale:#6b7280;--stale-bg:#eceef1;--radius:18px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:17px}
-header{background:linear-gradient(135deg,var(--navy),var(--primary));color:#fff;padding:12px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
-header h1{font-size:20px;font-weight:800;white-space:nowrap}
-header .sub{font-size:12px;opacity:.75}
-.kpis{display:flex;gap:10px;flex-wrap:wrap;flex:1}
-.kpi{background:rgba(255,255,255,.11);border-radius:10px;padding:6px 14px;min-width:120px}
-.kpi b{display:block;font-size:24px;font-weight:800;line-height:1.1}
-.kpi span{font-size:11.5px;opacity:.85;text-transform:uppercase;letter-spacing:.4px}
-.kpi.red{background:rgba(255,120,110,.28)}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:20px;overflow:hidden}
+header{height:84px;background:var(--navy);color:#fff;padding:0 28px;display:flex;align-items:center;gap:28px}
+header h1{font-size:30px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+header .sub{font-size:17px;opacity:.78;margin-top:2px}
+.hk{display:flex;gap:12px;flex:1;justify-content:center}
+.hk div{background:rgba(255,255,255,.1);border-radius:12px;padding:6px 18px;text-align:center;min-width:140px}
+.hk b{display:block;font-size:30px;font-weight:800;line-height:1.05}
+.hk span{font-size:13px;letter-spacing:.5px;text-transform:uppercase;opacity:.8}
+.hk .bad{background:rgba(255,99,99,.32)}.hk .warn{background:rgba(207,140,42,.38)}
 .clock{text-align:right;white-space:nowrap}
-.clock b{font-size:24px;font-weight:800;display:block}
-.timer{font-variant-numeric:tabular-nums}
-.timer.over{color:#ffb4ab}
-nav{display:flex;gap:6px;padding:10px 22px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
-@media (min-width:900px) and (min-height:600px){.top{position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12)}}
-nav button{border:0;background:#eef1f4;color:var(--muted);font:inherit;font-size:14px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
-nav button.on{background:var(--primary);color:#fff}
-nav .sp{flex:1}
-nav .hint{font-size:12px;color:var(--muted)}
-.att{padding:10px 22px;background:#fff;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.att .lbl{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
-.att button{border:1.5px solid var(--border);background:#fff;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;padding:6px 11px;border-radius:18px;cursor:pointer}
-.att button.p{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.clock b{font-size:34px;font-weight:800;display:block;line-height:1}
+.timer{font-size:16px;opacity:.85;cursor:pointer;font-variant-numeric:tabular-nums}
+.timer.over{color:#ffb4ab;opacity:1}
+.att{height:46px;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;padding:0 28px;overflow:hidden}
+.att .lbl{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-right:8px}
+.att button{border:1.5px solid var(--line);background:#fff;color:var(--muted);font:inherit;font-size:15px;font-weight:600;padding:4px 12px;border-radius:18px;cursor:pointer;white-space:nowrap}
+.att button.p{background:var(--good-bg);border-color:var(--good);color:var(--good)}
 .att button.l{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
-main{padding:18px 22px 60px}
-h2.sec{font-size:24px;color:var(--primary);margin:6px 0 12px;display:flex;align-items:baseline;gap:12px}
-h2.sec small{font-size:13px;color:var(--muted);font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.card.alert{border-left:5px solid var(--bad)}
-.card h3{font-size:17px;display:flex;justify-content:space-between;gap:8px;align-items:center}
-.card h3 .own{font-size:12px;color:var(--muted);font-weight:600}
-.sum{font-size:14px;color:var(--muted);margin:4px 0 6px}
-.ln{font-size:15px;padding:6px 0;border-top:1px solid #f0f2f5;line-height:1.35}
-.ln:first-of-type{border-top:0}
-.ln.flag{color:var(--bad);font-weight:600}
-.ln .dt{display:inline-block;min-width:44px;color:var(--muted);font-size:13px;font-weight:600}
-.ln .rm{font-weight:700}
-.ln .det{color:var(--muted);font-size:13.5px}
-.pill{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap}
-.p-ok{background:var(--ok-bg);color:var(--ok)}.p-no{background:#eef1f4;color:var(--muted)}.p-todo{background:var(--warn-bg);color:var(--warn)}.p-auto{background:var(--auto-bg);color:var(--auto)}.p-bad{background:var(--bad-bg);color:var(--bad)}
-.more{font-size:13px;color:var(--muted);margin-top:4px}
-.quiet{margin-top:16px;background:#fff;border:1px dashed var(--border);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.6}
-.quiet b{color:var(--primary)}
-.quiet .todo b{color:var(--warn)}
+.att .sp{flex:1}.att .hint{font-size:13px;color:var(--muted)}
+main{height:calc(100vh - 130px);padding:16px 28px 18px;display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr;gap:14px}
+.card{background:var(--card);border-radius:var(--radius);padding:14px 18px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:8px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+.card.good{border-top-color:var(--good)}.card.warn{border-top-color:var(--warn)}.card.bad{border-top-color:var(--bad)}
+.card.stale{border-top-color:var(--stale);background:#f6f7f9}
+.card.stale .hero,.card.stale .chart{opacity:.55}
+.card.wide{grid-column:span 2}
+.ch{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ch h3{font-size:19px;font-weight:700;color:var(--muted);line-height:1.15}
+.ch h3 small{display:block;font-size:13px;font-weight:600;color:#8a93a0;margin-top:2px}
+.badge{font-size:14px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;line-height:1.1}
+.b-good{background:var(--good-bg);color:var(--good)}.b-warn{background:var(--warn-bg);color:var(--warn)}.b-bad{background:var(--bad-bg);color:var(--bad)}
+.b-stale{background:var(--stale-bg);color:var(--stale)}.b-none{background:#eef0f3;color:var(--muted)}
+.hero{display:flex;align-items:baseline;gap:10px;margin-top:6px;flex-wrap:wrap}
+.hero b{font-size:60px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.hero b.sm{font-size:44px}
+.hero span{font-size:19px;color:var(--muted);font-weight:600}
+.sub{font-size:17px;color:var(--muted);margin-top:4px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart{flex:1;min-height:0;margin-top:6px;display:flex;align-items:flex-end}
+.chart svg{width:100%;height:100%;display:block}
+.rows{margin-top:6px;overflow:hidden;flex:1;min-height:0}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:17px;padding:3px 0;border-top:1px solid #f0f2f5;line-height:1.25}
+.row:first-child{border-top:0}
+.row .l{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row .v{font-weight:700;white-space:nowrap}
+.row.flag .v,.row.flag .l{color:var(--bad)}
+.hb{display:grid;grid-template-columns:118px 1fr 54px;align-items:center;gap:8px;font-size:16px;padding:3px 0}
+.hb .l{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .bar{height:12px;background:#eef0f3;border-radius:6px;position:relative;overflow:visible}
+.hb .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--series)}
+.hb .bar i.over{background:var(--bad)}
+.hb .bar u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);opacity:.6}
+.hb .v{font-weight:700;text-align:right}
+.dept{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 12px;margin-top:8px;overflow:hidden;flex:1;min-height:0;align-content:start}
+.dept .d{display:flex;align-items:center;gap:7px;font-size:16px;padding:4px 0;border-bottom:1px solid #f0f2f5;min-width:0}
+.dept .ic{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.dept .ok .ic{background:var(--good-bg);color:var(--good)}.dept .miss .ic{background:var(--stale-bg);color:var(--stale)}.dept .part .ic{background:var(--warn-bg);color:var(--warn)}
+.dept .n{font-weight:700;white-space:nowrap}.dept .r{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dept .miss .n{color:var(--stale)}
+.foot{position:absolute;right:16px;bottom:8px;font-size:12px;color:#9aa3ae}
 .pinbox{max-width:360px;margin:12vh auto;background:#fff;border-radius:14px;padding:26px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.pinbox input{width:100%;font-size:24px;letter-spacing:5px;text-align:center;padding:10px;border:1.5px solid var(--border);border-radius:10px;margin:14px 0}
-.pinbox button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--primary);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.pinbox input{width:100%;font-size:24px;letter-spacing:5px;text-align:center;padding:10px;border:1.5px solid var(--line);border-radius:10px;margin:14px 0}
+.pinbox button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--navy);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
 .err{color:var(--bad);font-size:13px;margin-top:8px}
-.foot{font-size:12px;color:var(--muted);margin-top:24px}
-@media (max-width:700px){.grid{grid-template-columns:1fr}header{padding:10px 14px}main{padding:14px}.kpi{min-width:96px}}
+@media (max-width:1500px){main{grid-template-columns:repeat(4,1fr)}.hero b{font-size:48px}}
+@media (max-width:1000px){body{overflow:auto}main{height:auto;grid-template-columns:repeat(2,1fr);grid-auto-rows:260px}.card.wide{grid-column:span 2}header{height:auto;padding:12px 16px;flex-wrap:wrap}.hk{order:3;width:100%}.att{height:auto;flex-wrap:wrap;padding:8px 16px}}
+@media (max-width:600px){main{grid-template-columns:1fr}.card.wide{grid-column:span 1}}
 </style>
 </head>
 <body>
@@ -80,24 +98,16 @@ var ROSTER=[
 var ROLES={don:'DON',adon:'ADON',mds:'MDS',dsd:'DSD / IP',adm:'Admissions',bom:'Business Office',ssd:'Social Services',act:'Activities',
  diet:'Dietary',mr:'Medical Records',hr:'HR',mnt:'Maintenance / EVS',rehab:'Rehab',admin:'Administrator'};
 var FORM_KINDS=['log','count','list','falls'];
+var DEADLINE='09:15';   // department tabs are due before standup
 
-// Lean Alignment SWI v2.0 order: six sections, ~10 minutes.
-var SECTIONS=[
- {k:'safety',t:'Safety & Compliance',tabs:['falls','grievances','isolation','ebp','sitter','behaviors','at_risk_rta','fapu','wound_vac','immunizations','survey']},
- {k:'census',t:'Census & Admissions',tabs:['census','referral_response','prior_day_admissions','mini_packet','discharges','rta','ama','expirations','resident_at_hospital','bedholds','pending_admissions','tours','do_not_admit','room_changes','overnight_stays']},
- {k:'clinical',t:'Clinical Highlights',tabs:['mds_due','uda_overdue','poc_compliance','dc_assessments','appointments','care_conferences','cares_in_pairs','assisted_dining','therapy_initial','therapy_refusals','pasarr','bims_phq','nomnc','high_cost_meds','resident_council']},
- {k:'staffing',t:'Staffing & Scheduling',tabs:['nursing_ppd','staffing_ppd','overtime','call_offs','open_positions','hr_scorecard','pbj_accounting']},
- {k:'ops',t:'Operations & Revenue',tabs:['painting','resident_rounds','floor_rounds','mds_day4','auths_levels_payer','medi_cal_pending','non_payers','outstanding_auths','auths_due','therapy_part_b','respiratory_part_b','admission_packets','arbitration','bad_debt_cash','rentals','special_projects']},
- {k:'people',t:'People, Wins & Group Items',tabs:['shout_outs','anniversary','birthdays','inspirational_thought','google_review','group_items']}
-];
-var SEC_SECONDS=100;
-
-var S={pin:null,tabs:[],byKey:{},today:null,day:null,live:null,view:0,started:null,att:{},attId:null,busy:false,loadedAt:null};
+var S={pin:null,tabs:[],byKey:{},today:null,day:null,live:null,started:null,att:{},attId:null,busy:false,loadedAt:null};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function md(d){if(!d)return '';var p=String(d).slice(0,10).split('-');return (+p[1])+'/'+(+p[2])}
 function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+function num(v,dp){return v==null||isNaN(v)?'—':(+v).toFixed(dp==null?0:dp)}
+function pastDeadline(){var n=new Date(),h=n.getHours()*60+n.getMinutes();return h>=9*60+15}
 async function rpc(fn,args){
   if(!sb)throw new Error('offline');
   var r=await sb.rpc(fn,args);
@@ -107,7 +117,7 @@ async function rpc(fn,args){
 
 // ---------- start ----------
 function showPin(msg){
-  document.getElementById('root').innerHTML='<div class="pinbox"><div style="font-size:20px;font-weight:800;color:var(--primary)">Standup Screen</div>'+
+  document.getElementById('root').innerHTML='<div class="pinbox"><div style="font-size:20px;font-weight:800;color:var(--navy)">Standup Screen</div>'+
     '<div style="font-size:14px;color:var(--muted);margin-top:6px">Leadership PIN</div>'+
     '<input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button onclick="submitPin()">Open</button>'+(msg?'<div class="err">'+esc(msg)+'</div>':'')+'</div>';
   var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
@@ -119,9 +129,6 @@ async function submitPin(){
 async function boot(){
   var b=await rpc('standup_bootstrap',{p_pin:S.pin});
   S.tabs=b.tabs;S.today=b.today;S.byKey={};S.tabs.forEach(function(t){S.byKey[t.tab_key]=t});
-  var listed={};SECTIONS.forEach(function(s){s.tabs.forEach(function(k){listed[k]=1})});
-  S.tabs.forEach(function(t){if(!listed[t.tab_key]&&t.active!==false&&(FORM_KINDS.indexOf(t.kind)>=0||t.kind==='auto')&&t.tab_key!=='attendance')SECTIONS[SECTIONS.length-1].tabs.push(t.tab_key)});
-  var h=parseInt(ls('su_screen_view'),10);if(h>=-1&&h<SECTIONS.length)S.view=h;
   await load();render();
   setInterval(poll,60000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&(!S.loadedAt||Date.now()-S.loadedAt>60000))poll()});
@@ -142,110 +149,231 @@ async function load(){
   if(a){(a.data.present||[]).forEach(function(n){S.att[n]='p'});(a.data.late||[]).forEach(function(n){S.att[n]='l'})}
 }
 
-// ---------- data per tab ----------
+// ---------- data helpers ----------
 function auto(k){return S.live&&S.live.auto&&S.live.auto[k]}
+function trends(){return (S.live&&S.live.auto&&S.live.auto._trends)||{}}
 function cov(k){return (S.day&&S.day.coverage&&S.day.coverage[k])||{}}
 function entries(k){return ((S.day&&S.day.entries)||[]).filter(function(e){return e.tab_key===k&&e.status!=='closed'})}
-// Current week = Sunday through Saturday (matches the MDS calendar).
-function weekBounds(){var t=new Date(S.today+'T12:00:00'),s=new Date(t);s.setDate(t.getDate()-t.getDay());var e=new Date(s);e.setDate(s.getDate()+6);return [s.toISOString().slice(0,10),e.toISOString().slice(0,10)]}
-function inThisWeek(e){var w=weekBounds(),d=e.data&&e.data.due;return d&&d>=w[0]&&d<=w[1]}
-function fval(f,v){if(v==null||v===''||(Array.isArray(v)&&!v.length))return '';if(Array.isArray(v))return v.join(', ');if(f.t==='date')return md(v);return String(v)}
-function summary(t,e){
-  var items=(t.fields&&t.fields.items)||[],parts=[];
-  items.forEach(function(f){var v=fval(f,e.data[f.k]);if(v!=='')parts.push((f.t==='longtext'||f.t==='text')&&items.length>2?v:f.l+': '+v)});
-  return parts.join(' · ');
+function rowsOf(k){var a=auto(k);return a?(a.rows||[]).filter(function(r){return r.status!=='done'}):[]}
+// A feed is stale when its as_of is older than the tab's cadence allows (daily feeds may be from yesterday).
+function staleDate(k){
+  var a=auto(k),t=S.byKey[k];if(!a||!a.as_of)return null;
+  var grace={weekly:7,monthly:31}[t&&t.cadence]||1;
+  return a.as_of<addDays(S.today,-grace)?a.as_of:null;
 }
-function fallLine(f){
-  var w={staff:'witnessed',family_or_resident:'witnessed by family/resident',unwitnessed:'unwitnessed'}[f.witnessed]||'';
-  var inj={none:'no injury',minor:'minor injury',major:'MAJOR injury',pending:'injury pending'}[f.injury]||'';
-  return {date:f.date,room:f.room?f.room+(f.bed?'-'+f.bed:''):(f.location||''),title:[f.shift,w,inj,f.sent_out?'sent out':''].filter(Boolean).join(' · '),flag:f.injury==='major'||f.injury==='pending'||f.sent_out};
+// Manual tab freshness: covered today (entered or marked nothing-to-report) within its cadence window.
+function covered(k){var c=cov(k);return c.status==='entered'||c.status==='nothing'||(c.today_entries||0)>0}
+function leadNum(s){var m=String(s||'').match(/-?\d+(\.\d+)?/);return m?+m[0]:null}
+
+// ---------- tiny SVG charts (single series, one axis, goal line as reference) ----------
+function lineChart(pts,o){
+  o=o||{};var W=o.w||300,H=o.h||90,px=4,py=10;
+  var vals=pts.map(function(p){return p.v}).filter(function(v){return v!=null});
+  if(!vals.length)return '<div class="sub">No history yet</div>';
+  var lo=Math.min.apply(null,vals.concat(o.goal!=null?[o.goal]:[])),hi=Math.max.apply(null,vals.concat(o.goal!=null?[o.goal]:[]));
+  if(o.min!=null)lo=Math.min(lo,o.min);if(o.max!=null)hi=Math.max(hi,o.max);
+  if(hi===lo){hi+=1;lo-=1}
+  var n=pts.length,x=function(i){return px+(n>1?i*(W-2*px)/(n-1):(W-2*px)/2)},y=function(v){return py+(H-2*py)*(1-(v-lo)/(hi-lo))};
+  var d='',last=null;
+  pts.forEach(function(p,i){if(p.v==null)return;d+=(d?'L':'M')+x(i).toFixed(1)+' '+y(p.v).toFixed(1)+' ';last={i:i,v:p.v}});
+  var h='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  if(o.goal!=null)h+='<line x1="'+px+'" x2="'+(W-px)+'" y1="'+y(o.goal).toFixed(1)+'" y2="'+y(o.goal).toFixed(1)+'" stroke="#9aa3ae" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  if(o.floor!=null)h+='<line x1="'+px+'" x2="'+(W-px)+'" y1="'+y(o.floor).toFixed(1)+'" y2="'+y(o.floor).toFixed(1)+'" stroke="#c62828" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>';
+  h+='<path d="'+d+'" fill="none" stroke="var(--series)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  if(last)h+='<circle cx="'+x(last.i).toFixed(1)+'" cy="'+y(last.v).toFixed(1)+'" r="5" fill="var(--series)" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/>';
+  h+='</svg>';
+  return h;
 }
-// Returns {state:'content'|'nothing'|'todo'|'quiet', sum, rows:[{date,room,title,detail,flag,status}]}
-function tabData(t){
-  var k=t.tab_key,c=cov(k);
-  if(t.kind==='auto'){
-    var a=auto(k);if(!a)return {state:'quiet',sum:'No feed yet'};
-    var rows=(a.rows||[]).filter(function(r){return r.status!=='done'});
-    return {state:rows.length?'content':'quiet',sum:a.summary,rows:rows,stale:a.as_of&&a.as_of<addDays(S.today,-3)?a.as_of:null};
-  }
-  if(t.kind==='falls'){
-    var fl=((S.day&&S.day.falls)||[]).filter(function(f){return f.date>=addDays(S.today,-7)}).map(fallLine);
-    return {state:fl.length?'content':(c.status==='nothing'?'nothing':'todo'),sum:fl.length?fl.length+' falls in the last 7 days':'No falls in the last 7 days',rows:fl};
-  }
-  var es=entries(k),later=0;
-  if(k==='mds_due'){var all=es;es=all.filter(inThisWeek);later=all.length-es.length}
-  if(es.length&&k==='mds_due')return {state:'content',sum:es.length+' due this week'+(later?' · '+later+' later':''),rows:es.map(function(e){return {date:e.data.due,room:e.room?e.room+(e.bed?'-'+e.bed:''):'',title:[e.data.resident,e.data.type].filter(Boolean).join(' · '),detail:e.data.notes||''}})};
-  if(k==='mds_due'&&!es.length&&later)return {state:'quiet'};
-  if(es.length)return {state:'content',sum:t.kind==='list'?es.length+' open':es.length+' today',rows:es.map(function(e){return {date:t.kind==='list'?null:e.entry_date,room:e.room?e.room+(e.bed?'-'+e.bed:''):'',title:summary(t,e),detail:t.kind==='list'?'since '+md(e.entry_date):(e.reporter?'by '+e.reporter:'')}})};
-  if(c.status==='nothing'||t.cadence==='as_needed')return {state:'nothing'};
-  if(c.status==='entered')return {state:'nothing'};
-  return {state:'todo'};
+function barChart(pts,o){
+  o=o||{};var W=o.w||300,H=o.h||90,py=6,gap=2;
+  var hi=Math.max.apply(null,pts.map(function(p){return p.v||0}).concat([o.max||1]));
+  var n=pts.length,bw=(W-gap*(n-1))/n;
+  var h='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  pts.forEach(function(p,i){
+    var v=p.v||0,bh=Math.max(v?3:0,(H-py)*v/hi),x0=i*(bw+gap);
+    if(v)h+='<rect x="'+x0.toFixed(1)+'" y="'+(H-bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="'+(p.hl?'var(--bad)':'var(--series)')+'"/>';
+    else h+='<rect x="'+x0.toFixed(1)+'" y="'+(H-1.5)+'" width="'+bw.toFixed(1)+'" height="1.5" fill="#d7dbe1"/>';
+  });
+  h+='</svg>';
+  return h;
+}
+function hbars(rows){
+  return rows.map(function(r){
+    var pct=r.max?Math.min(100,100*r.v/r.max):0,tick=r.max&&r.std!=null?Math.min(100,100*r.std/r.max):null;
+    return '<div class="hb"><span class="l">'+esc(r.l)+'</span><span class="bar"><i class="'+(r.over?'over':'')+'" style="width:'+pct.toFixed(1)+'%"></i>'+(tick!=null?'<u style="left:'+tick.toFixed(1)+'%"></u>':'')+'</span><span class="v">'+esc(r.txt!=null?r.txt:num(r.v,2))+'</span></div>';
+  }).join('');
+}
+
+// ---------- cards ----------
+// Each card: {title, sub(small under title), status:'good'|'warn'|'bad'|null, label, hero:[big, unit], line, body(html), stale:date|null, missing:bool}
+function badge(c){
+  if(c.stale)return '<span class="badge b-stale">⏱ data from '+md(c.stale)+'</span>';
+  if(c.missing)return '<span class="badge b-stale">⏱ not updated</span>';
+  var m={good:['✓','On track'],warn:['▲','Watch'],bad:['✕','Action']}[c.status];
+  return m?'<span class="badge b-'+c.status+'">'+m[0]+' '+esc(c.label||m[1])+'</span>':'';
+}
+function cardHtml(c){
+  var cls='card'+(c.wide?' wide':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
+  var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
+  return '<div class="'+cls+'"><div class="ch"><h3>'+esc(c.title)+(c.sub?'<small>'+esc(c.sub)+'</small>':'')+'</h3>'+badge(c)+'</div>'+hero+
+    (c.line?'<div class="sub">'+c.line+'</div>':'')+(c.chart?'<div class="chart">'+c.chart+'</div>':'')+(c.body?'<div class="rows">'+c.body+'</div>':'')+
+    (c.foot?'<div class="foot">'+esc(c.foot)+'</div>':'')+'</div>';
+}
+function statusBy(v,good,warn,higherIsBetter){
+  if(v==null)return null;
+  if(higherIsBetter)return v>=good?'good':v>=warn?'warn':'bad';
+  return v<=good?'good':v<=warn?'warn':'bad';
+}
+
+function buildCards(){
+  var L=S.live||{},T=trends(),cards=[];
+  var cen=(L.census||[])[0]||{},mtd=L.census_mtd||{},bud=L.budget_adc||T.budget_adc;
+  var day7=addDays(S.today,-7),day30=addDays(S.today,-30);
+
+  // 1 Census — ADC vs budget (SQCDP C)
+  var cser=(T.census||[]).map(function(p){return {v:p.v}});
+  var adcDelta=bud!=null&&mtd.avg_total!=null?mtd.avg_total-bud:null;
+  cards.push({title:'Census',sub:'PCC · '+md(cen.date),status:adcDelta==null?null:adcDelta>=0?'good':adcDelta>=-1?'warn':'bad',
+    label:adcDelta==null?'':'ADC '+num(mtd.avg_total,1)+' vs '+num(bud,1),
+    hero:[cen.total_census!=null?cen.total_census:'—','in house · '+(cen.empty_beds!=null?cen.empty_beds+' open':'')],
+    line:'Medicare A '+num(cen.mcra_count)+' · HMO '+num(cen.hmo_count)+' · Medi-Cal '+num(cen.mcal_count)+(cen.holds?' · '+cen.holds+' hold':''),
+    chart:lineChart(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,foot:'30 days · dashed = budget ADC'});
+
+  // 2 Admissions & discharges — census workbook + PCC ADT
+  var pa=auto('pending_admissions')||{},dc=auto('discharges')||{},pend=rowsOf('pending_admissions'),plan=rowsOf('discharges').filter(function(r){return r.status==='planned'});
+  var awaiting=pend.filter(function(r){return r.status==='pending'}).length,dcFlag=plan.filter(function(r){return r.flag}).length;
+  cards.push({title:'Admissions & Discharges',sub:'Jericho Census workbook',status:dcFlag?'bad':awaiting?'warn':'good',label:dcFlag?dcFlag+' DC past date':awaiting?awaiting+' awaiting auth':'Clear',
+    hero:[pend.length,'pending admits'],line:plan.length+' planned discharges / LCDs',
+    body:pend.slice(0,2).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+
+      plan.slice(0,3).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">Rm '+esc(r.room)+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),
+    stale:staleDate('pending_admissions')});
+
+  // 3 Falls — any injury / send-out in 7 days = red (SQCDP S)
+  var falls=(S.day&&S.day.falls)||[],f7=falls.filter(function(f){return f.date>=day7}),inj7=f7.filter(function(f){return f.injury==='major'||f.injury==='pending'||f.injury==='minor'||f.sent_out}).length;
+  var fmap={};(T.falls||[]).forEach(function(p){fmap[p.d]=p});
+  var fser=[];for(var i=29;i>=0;i--){var d=addDays(S.today,-i),p=fmap[d];fser.push({v:p?p.n:0,hl:p&&p.inj>0})}
+  var f30=(T.falls||[]).reduce(function(a,p){return a+p.n},0),inj30=(T.falls||[]).reduce(function(a,p){return a+p.inj},0);
+  cards.push({title:'Falls',sub:'incident log',status:inj7?'bad':f7.length?'warn':'good',label:inj7?inj7+' with injury':f7.length?'no injury':'None in 7 days',
+    hero:[f7.length,'last 7 days'],line:f30+' in 30 days · '+inj30+' with injury or sent out',chart:barChart(fser,{max:2}),foot:'30 days · red = injury / sent out'});
+
+  // 4 Send-outs & AMA
+  var rta=rowsOf('rta'),ama=rowsOf('ama');
+  cards.push({title:'Hospital Send-outs',sub:'RTA · 7 days',status:rta.length>=3?'bad':rta.length?'warn':'good',label:rta.length>=3?'Review':rta.length?'Watch':'None',
+    hero:[rta.length,'send-outs'],line:ama.length+' AMA in 30 days · '+(auto('resident_at_hospital')?'':'')+(entries('resident_at_hospital').length+' at hospital'),
+    body:rta.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('rta')});
+
+  // 5 Nursing PPD — goal 3.6, floor 3.5 (SQCDP P)
+  var ppd=(T.ppd||[]),past=ppd.filter(function(p){return p.d<=S.today&&p.act!=null}),lastP=past[past.length-1]||{},todayP=ppd.filter(function(p){return p.d===S.today})[0]||{};
+  var openAhead=ppd.filter(function(p){return p.d>=S.today}).reduce(function(a,p){return a+(p.open||0)},0);
+  cards.push({title:'Nursing Hours PPD',sub:'Veras + Paycom · goal 3.6 / CNA 2.4',status:statusBy(lastP.act,3.6,3.5,true),label:lastP.act!=null?num(lastP.act,2)+' on '+md(lastP.d):'',
+    hero:[num(lastP.act,2),'actual · CNA '+num(lastP.cna,2)],line:'Today sched '+num(todayP.sched,2)+' · '+openAhead+' open shifts ahead',
+    chart:lineChart(past.map(function(p){return {v:p.act}}),{goal:3.6,floor:3.5,min:2.8,max:4}),foot:'14 days · dashed = goal · red = floor 3.5'});
+
+  // 6 Overtime — premium hours by day (daily 8-hour rule)
+  var ot=auto('overtime')||{},otser=(T.ot||[]),lastO=otser[otser.length-1]||{};
+  cards.push({title:'Overtime',sub:'Paycom · 8-hr daily rule',status:statusBy(lastO.prem,4,8,false),label:lastO.prem!=null?num(lastO.prem,1)+' hrs '+md(lastO.d):'',
+    hero:[ot.mtd!=null?num(ot.mtd,0):'—','premium hrs MTD'],line:(lastO.n||0)+' staff over 8¼ hrs on '+md(lastO.d),
+    chart:barChart(otser.map(function(p){return {v:p.prem,hl:p.prem>8}}),{max:8}),stale:staleDate('overtime'),foot:'14 days · red = over 8 hrs'});
+
+  // 7 Staffing PPD by department vs standard
+  var sp=rowsOf('staffing_ppd'),spRows=sp.map(function(r){var m=r.title.match(/^(.*?) — ([\d.]+|—) PPD/),s=(r.detail||'').match(/standard ([\d.]+)/);return {l:m?m[1]:r.title,v:m&&m[2]!=='—'?+m[2]:0,std:s?+s[1]:null,over:r.flag}})
+    .filter(function(r){return r.std!=null}).map(function(r){r.max=Math.max(r.v,r.std)*1.25;r.txt=num(r.v,2);return r});
+  var spOver=spRows.filter(function(r){return r.over}).length;
+  cards.push({title:'Hours PPD by Dept',sub:'Paycom ÷ census · tick = standard',status:spOver?'warn':'good',label:spOver?spOver+' over standard':'At standard',
+    body:hbars(spRows.slice(0,6)),stale:staleDate('staffing_ppd')});
+
+  // 8 Mini packets
+  var mp=auto('mini_packet')||{},mpRows=rowsOf('mini_packet'),mpMissing=mpRows.filter(function(r){return r.status==='missing'}).length,mpTot=leadNum(mp.summary);
+  cards.push({title:'Admission Mini Packets',sub:'Business Office audit tracker',status:mpMissing?'bad':'good',label:mpMissing?mpMissing+' not received':'All in',
+    hero:[mpMissing,'of '+(mpTot!=null?mpTot:'—')+' admits · 14 days'],line:'Oldest: '+(mpRows.length?'Rm '+esc(mpRows[mpRows.length-1].room)+' admitted '+md(mpRows[mpRows.length-1].date):'—'),
+    body:mpRows.slice(0,4).map(function(r){return '<div class="row flag"><span class="l">Rm '+esc(r.room)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('mini_packet')});
+
+  // 9 PCC forms due (UDA)
+  var ud=rowsOf('uda_overdue'),udRows=ud.map(function(r){var m=(r.detail||'').match(/(\d+) due · (\d+) in progress/);return {l:r.title,due:m?+m[1]:0,ip:m?+m[2]:0,flag:r.flag}}),udDue=udRows.reduce(function(a,r){return a+r.due},0);
+  cards.push({title:'PCC Forms Due',sub:'HIM board · UDAs',status:udDue>5?'bad':udDue?'warn':'good',label:udDue?udDue+' due':'None due',
+    hero:[leadNum((auto('uda_overdue')||{}).summary),'due or in progress'],
+    body:hbars(udRows.sort(function(a,b){return (b.due+b.ip)-(a.due+a.ip)}).slice(0,5).map(function(r){return {l:r.l,v:r.due+r.ip,max:Math.max.apply(null,udRows.map(function(x){return x.due+x.ip}))*1.1,over:r.due>0,txt:r.due+' / '+r.ip}})),stale:staleDate('uda_overdue'),foot:'due / in progress'});
+
+  // 10 POC compliance (weekly)
+  var poc=rowsOf('poc_compliance')[0]||{},pocV=leadNum((auto('poc_compliance')||{}).summary);
+  cards.push({title:'Care Plan (POC) Compliance',sub:'HIM board · weekly',status:statusBy(pocV,95,90,true),label:pocV!=null?(pocV>=95?'Goal 95%':'Below 95%'):'',
+    hero:[pocV!=null?num(pocV,1)+'%':'—',(auto('poc_compliance')||{}).summary?String((auto('poc_compliance')||{}).summary).replace(/^[\d.]+% /,''):''],stale:staleDate('poc_compliance')});
+
+  // 11 MDS day-4 rates
+  var m4=auto('mds_day4')||{},m4s=String(m4.summary||''),under=(m4s.match(/(\d+) under \$900/)||[])[1],notPosted=(m4s.match(/(\d+) MDS not posted/)||[])[1];
+  cards.push({title:'Medicare Day-4 Rates',sub:'PDPM · $900 rule',status:+under>0?'bad':'good',label:+under>0?under+' under $900':'All over $900',
+    hero:[under!=null?under:'—','under $900 · 14 days'],line:(notPosted||0)+' MDS not posted yet',
+    body:rowsOf('mds_day4').filter(function(r){return r.flag}).slice(0,3).map(function(r){return '<div class="row flag"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('mds_day4')});
+
+  // 12 Google reviews
+  var gr=rowsOf('google_review'),g0=gr[0]||{},stars=leadNum(g0.title),grser=gr.slice().reverse().map(function(r){return {v:leadNum(r.title)}});
+  cards.push({title:'Google Rating',sub:'goal 4.6',status:statusBy(stars,4.6,4.0,true),label:stars!=null?(stars>=4.6?'At goal':'Below goal'):'',
+    hero:[stars!=null?num(stars,1)+' ★':'—',String(g0.title||'').replace(/^.*· /,'')],line:g0.detail||'',chart:lineChart(grser,{goal:4.6,min:3,max:5}),stale:staleDate('google_review'),foot:'recent checks · dashed = goal'});
+
+  // 13 Grievances
+  var gv=rowsOf('grievances'),gvOpen=leadNum((auto('grievances')||{}).summary),gvNew=(String((auto('grievances')||{}).summary||'').match(/(\d+) received/)||[])[1];
+  cards.push({title:'Grievances',sub:'tracker · open',status:gvOpen>=5?'bad':gvOpen?'warn':'good',label:gvOpen>=5?'Backlog':gvOpen?'Open':'None open',
+    hero:[gvOpen!=null?gvOpen:'—','open'],line:(gvNew||0)+' received in the last 7 days',
+    body:gv.slice(0,3).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')});
+
+  // 14 Environment — floor rounds, painting, room changes
+  var fr=auto('floor_rounds')||{},frs=String(fr.summary||''),frDays=(frs.match(/(\d+) of the last 7 days/)||[])[1],roundedToday=/^Rounded/i.test(frs);
+  var paintOpen=leadNum((auto('painting')||{}).summary),rcOpen=leadNum((auto('room_changes')||{}).summary);
+  cards.push({title:'Floor Rounds & Environment',sub:'Maintenance / EVS',status:roundedToday?'good':+frDays>=5?'warn':'bad',label:roundedToday?'Rounded today':'Not rounded today',
+    hero:[frDays!=null?frDays+'/7':'—','days rounded'],line:frs,
+    body:'<div class="row"><span class="l">Painting items open</span><span class="v">'+num(paintOpen)+'</span></div><div class="row"><span class="l">Room changes open</span><span class="v">'+num(rcOpen)+'</span></div>'+
+      rowsOf('floor_rounds').filter(function(r){return r.flag}).slice(0,2).map(function(r){return '<div class="row flag"><span class="l">'+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')});
+
+  // 15 Leader rounds today
+  var rr=rowsOf('resident_rounds'),rToday=rr.filter(function(r){return r.date===S.today}),rYest=rr.filter(function(r){return r.date===addDays(S.today,-1)});
+  var after10=new Date().getHours()>=10;
+  cards.push({title:'Leader Resident Rounds',sub:'Room Rounds app · today',status:rToday.length>=3?'good':rToday.length?'warn':(after10?'bad':'warn'),label:rToday.length?rToday.length+' rounding':'Nobody yet',
+    hero:[rToday.length,'rounders today'],line:rYest.length+' yesterday',
+    body:rToday.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')});
+
+  // 16 Clinical lists — open items from the nursing / IP tabs
+  var lists=[['isolation','Isolation'],['ebp','Enhanced barrier'],['sitter','Sitters'],['behaviors','Behaviors'],['wound_vac','Wound VAC'],['at_risk_rta','At risk of send-out'],['bedholds','Bed holds'],['medi_cal_pending','Medi-Cal pending']];
+  var lrows=lists.map(function(x){var t=S.byKey[x[0]];return {k:x[0],l:x[1],n:entries(x[0]).length,miss:t&&!covered(x[0])}});
+  var lmiss=lrows.filter(function(r){return r.miss}).length;
+  cards.push({title:'Open Clinical & BO Lists',sub:'Standup Log entries',status:lmiss?null:'good',label:'Updated',missing:lmiss>0&&pastDeadline(),
+    body:lrows.map(function(r){return '<div class="row"><span class="l">'+esc(r.l)+(r.miss?' <span style="color:var(--stale);font-size:13px">not updated</span>':'')+'</span><span class="v">'+r.n+'</span></div>'}).join('')});
+
+  // 17 Department updates (wide) — who has updated their tabs today
+  var byRole={};
+  S.tabs.forEach(function(t){
+    if(FORM_KINDS.indexOf(t.kind)<0||t.cadence==='as_needed'||t.tab_key==='attendance'||t.active===false)return;
+    var r=byRole[t.owner_role]=byRole[t.owner_role]||{total:0,done:0,last:null};
+    r.total++;var c=cov(t.tab_key);if(covered(t.tab_key))r.done++;if(c.check_date&&(!r.last||c.check_date>r.last))r.last=c.check_date;
+  });
+  var roles=Object.keys(byRole).filter(function(r){return r!=='admin'}).sort(function(a,b){return (ROLES[a]||a)<(ROLES[b]||b)?-1:1});
+  var upd=roles.filter(function(r){return byRole[r].done===byRole[r].total}).length,none=roles.filter(function(r){return !byRole[r].done}).length;
+  cards.push({title:'Department Updates',sub:'Standup Log · due before '+DEADLINE,wide:true,status:none===0?'good':upd>=roles.length/2?'warn':'bad',label:upd+' of '+roles.length+' complete',
+    body:'<div class="dept">'+roles.map(function(r){
+      var x=byRole[r],who=ROSTER.filter(function(p){return p.role===r}).map(function(p){return p.name.split(' ')[0]}).join(' & '),cls=x.done===x.total?'ok':x.done?'part':'miss';
+      return '<div class="d '+cls+'"><span class="ic">'+(cls==='ok'?'✓':cls==='part'?'…':'○')+'</span><span class="n">'+esc(who)+'</span><span class="r">'+esc(ROLES[r]||r)+' · '+x.done+'/'+x.total+(cls==='miss'?(x.last?' · last '+md(x.last):' · nothing today'):'')+'</span></div>'}).join('')+'</div>'});
+  return cards;
 }
 
 // ---------- render ----------
-function kpiHtml(){
-  var L=S.live||{},cen=(L.census||[])[0]||{},mtd=L.census_mtd||{},bud=L.budget_adc;
-  var falls7=((S.day&&S.day.falls)||[]).filter(function(f){return f.date>=addDays(S.today,-7)}).length;
-  var rta=auto('rta'),rtaN=rta?(rta.rows||[]).length:0;
-  var form=S.tabs.filter(function(t){return FORM_KINDS.indexOf(t.kind)>=0&&t.cadence!=='as_needed'&&t.tab_key!=='attendance'});
-  var done=form.filter(function(t){var c=cov(t.tab_key);return c.status==='entered'||c.status==='nothing'}).length;
-  var present=Object.keys(S.att).length;
-  var rr=auto('resident_rounds'),rToday=rr?(rr.rows||[]).filter(function(r){return r.date===S.today}).length:0;
-  var k=function(v,l,red){return '<div class="kpi'+(red?' red':'')+'"><b>'+esc(v)+'</b><span>'+esc(l)+'</span></div>'};
-  return k(cen.total_census!=null?cen.total_census:'—','Census '+md(cen.date),bud&&cen.total_census<bud)+
-    k(mtd.avg_total!=null?mtd.avg_total:'—','MTD ADC'+(bud?' · budget '+bud:''),bud&&mtd.avg_total<bud)+
-    k(falls7,'Falls · 7 days',falls7>0)+k(rtaN,'Send-outs · 7 days',rtaN>0)+
-    k(done+'/'+form.length,'Tabs covered',done<form.length*0.6)+k(rToday,'Rounders today',false)+k(present+'/'+ROSTER.length,'Present',false);
+function headerKpis(cards){
+  var stale=cards.filter(function(c){return c.stale||c.missing}).length,action=cards.filter(function(c){return !c.stale&&!c.missing&&c.status==='bad'}).length,watch=cards.filter(function(c){return !c.stale&&!c.missing&&c.status==='warn'}).length;
+  var dept=cards.filter(function(c){return c.wide})[0],present=Object.keys(S.att).length;
+  var k=function(v,l,cls){return '<div class="'+(cls||'')+'"><b>'+esc(v)+'</b><span>'+esc(l)+'</span></div>'};
+  return k(action,'Need action',action?'bad':'')+k(watch,'Watch',watch?'warn':'')+k(stale,'Stale / not updated',stale?'warn':'')+k(dept?dept.label.replace(' complete',''):'—','Depts updated','')+k(present+'/'+ROSTER.length,'Present','');
 }
 function attHtml(){
   return '<div class="att"><span class="lbl">Attendance</span>'+ROSTER.map(function(p,i){
-    var s=S.att[p.name];return '<button class="'+(s||'')+'" onclick="toggleAtt('+i+')" title="Tap: on time → late → absent">'+esc(p.name.split(' ')[0])+(s==='l'?' · late':'')+'</button>'}).join('')+'</div>';
-}
-function lineHtml(r){
-  return '<div class="ln'+(r.flag?' flag':'')+'">'+(r.date?'<span class="dt">'+md(r.date)+'</span>':'')+(r.room?'<span class="rm">Rm '+esc(r.room)+'</span> · ':'')+esc(r.title||'')+
-    (r.status&&r.status!=='done'?' <span class="pill '+(r.flag?'p-bad':'p-todo')+'">'+esc(r.status)+'</span>':'')+(r.detail?' <span class="det">'+esc(r.detail)+'</span>':'')+'</div>';
-}
-function cardHtml(t,d){
-  var rows=d.rows||[],show=rows.slice(0,8),flagged=rows.some(function(r){return r.flag});
-  var pill=t.kind==='auto'||t.kind==='falls'?'<span class="pill p-auto">Live</span>':cov(t.tab_key).status==='entered'?'<span class="pill p-ok">Updated</span>':'<span class="pill p-todo">Standing list</span>';
-  return '<div class="card'+(flagged?' alert':'')+'"><h3><span>'+esc(t.label)+'</span>'+pill+'</h3>'+
-    '<div class="sum">'+esc(ROLES[t.owner_role]||'')+(d.sum?' · '+esc(d.sum):'')+(d.stale?' · <b style="color:var(--bad)">data from '+md(d.stale)+'</b>':'')+'</div>'+
-    show.map(lineHtml).join('')+(rows.length>show.length?'<div class="more">+ '+(rows.length-show.length)+' more in the app</div>':'')+'</div>';
-}
-function sectionHtml(sec,i){
-  var content=[],nothing=[],todo=[],quiet=[];
-  sec.tabs.forEach(function(k){
-    var t=S.byKey[k];if(!t||t.active===false||t.kind==='keep'||t.kind==='ref')return;
-    var d=tabData(t);
-    if(d.state==='content')content.push(cardHtml(t,d));
-    else if(d.state==='todo')todo.push(t);
-    else if(d.state==='nothing')nothing.push(t);
-    else quiet.push(t);
-  });
-  var h='<h2 class="sec">'+(i+1)+' · '+esc(sec.t)+' <small>'+content.length+' with something to say</small></h2>';
-  h+=content.length?'<div class="grid">'+content.join('')+'</div>':'<div class="quiet">Nothing to report in this section.</div>';
-  if(todo.length||nothing.length||quiet.length){
-    h+='<div class="quiet">';
-    if(todo.length)h+='<div class="todo"><b>Not reported yet:</b> '+todo.map(function(t){return esc(t.label)+' ('+esc(ROLES[t.owner_role]||'')+')'}).join(' · ')+'</div>';
-    if(nothing.length)h+='<div><b>Nothing new:</b> '+nothing.map(function(t){return esc(t.label)}).join(' · ')+'</div>';
-    if(quiet.length)h+='<div><b>Quiet:</b> '+quiet.map(function(t){return esc(t.label)}).join(' · ')+'</div>';
-    h+='</div>';
-  }
-  return h;
+    var s=S.att[p.name];return '<button class="'+(s||'')+'" onclick="toggleAtt('+i+')" title="Tap: on time → late → absent">'+esc(p.name.split(' ')[0])+(s==='l'?' · late':'')+'</button>'}).join('')+
+    '<span class="sp"></span><span class="hint">S timer · R refresh · rooms by room-bed only</span></div>';
 }
 function render(){
-  var nav='<nav>'+SECTIONS.map(function(s,i){return '<button class="'+(S.view===i?'on':'')+'" onclick="go('+i+')">'+(i+1)+' · '+esc(s.t)+'</button>'}).join('')+
-    '<button class="'+(S.view===-1?'on':'')+'" onclick="go(-1)">All</button><span class="sp"></span><span class="hint">← → sections · A all · S timer · R refresh</span></nav>';
+  var cards=buildCards();
   var head='<header><div><h1>Morning Star Standup</h1><div class="sub">'+new Date(S.today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+
-    ' · updated '+(S.loadedAt?S.loadedAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'')+'</div></div><div class="kpis">'+kpiHtml()+'</div>'+
-    '<div class="clock"><b id="clk"></b><span class="timer" id="tmr" onclick="toggleTimer()" style="cursor:pointer">▶ Start 10:00</span></div></header>';
-  var body=S.view===-1?SECTIONS.map(sectionHtml).join('<div style="height:22px"></div>'):sectionHtml(SECTIONS[S.view],S.view);
-  var y=window.scrollY;
-  document.getElementById('root').innerHTML='<div class="top">'+head+nav+'</div>'+attHtml()+'<main>'+body+
-    '<div class="foot">Residents shown by room-bed only. Enter updates in the Standup Log app; this screen refreshes every minute.</div></main>';
-  window.scrollTo(0,y);tick();
+    ' · refreshed '+(S.loadedAt?S.loadedAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'')+'</div></div><div class="hk">'+headerKpis(cards)+'</div>'+
+    '<div class="clock"><b id="clk"></b><span class="timer" id="tmr" onclick="toggleTimer()">▶ Start 10:00</span></div></header>';
+  document.getElementById('root').innerHTML=head+attHtml()+'<main>'+cards.map(cardHtml).join('')+'</main>';
+  tick();
 }
-function go(i){S.view=i;ls('su_screen_view',String(i));render();window.scrollTo(0,0)}
 
 // ---------- timer / clock ----------
 function toggleTimer(){S.started=S.started?null:Date.now();tick()}
@@ -254,8 +382,7 @@ function tick(){
   var t=document.getElementById('tmr');if(!t)return;
   if(!S.started){t.textContent='▶ Start 10:00';t.className='timer';return}
   var el=Math.floor((Date.now()-S.started)/1000),left=600-el,a=Math.abs(left);
-  var sec=Math.min(SECTIONS.length,Math.floor(el/SEC_SECONDS)+1);
-  t.textContent=(left<0?'+':'')+Math.floor(a/60)+':'+('0'+a%60).slice(-2)+' · section '+sec+' pace';
+  t.textContent=(left<0?'+':'')+Math.floor(a/60)+':'+('0'+a%60).slice(-2);
   t.className='timer'+(left<0?' over':'');
 }
 
@@ -279,12 +406,8 @@ async function saveAtt(){
 
 document.addEventListener('keydown',function(e){
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
-  if(e.key==='ArrowRight')go(S.view===-1?0:Math.min(SECTIONS.length-1,S.view+1));
-  else if(e.key==='ArrowLeft')go(S.view<=0?0:S.view-1);
-  else if(e.key==='a'||e.key==='A')go(-1);
-  else if(e.key==='s'||e.key==='S')toggleTimer();
+  if(e.key==='s'||e.key==='S')toggleTimer();
   else if(e.key==='r'||e.key==='R')load().then(render);
-  else if(e.key>='1'&&e.key<='6')go(+e.key-1);
 });
 
 (async function(){
