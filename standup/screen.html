@@ -156,9 +156,11 @@ function cov(k){return (S.day&&S.day.coverage&&S.day.coverage[k])||{}}
 function entries(k){return ((S.day&&S.day.entries)||[]).filter(function(e){return e.tab_key===k&&e.status!=='closed'})}
 function rowsOf(k){var a=auto(k);return a?(a.rows||[]).filter(function(r){return r.status!=='done'}):[]}
 // A feed is stale when its as_of is older than the tab's cadence allows (daily feeds may be from yesterday).
+// STRICT feeds carry the data date (not the run date) and must be from today: the HIM workbook's PCC forms row.
+var STRICT={uda_overdue:1};
 function staleDate(k){
   var a=auto(k),t=S.byKey[k];if(!a||!a.as_of)return null;
-  var grace={weekly:7,monthly:31}[t&&t.cadence]||1;
+  var grace=STRICT[k]?0:({weekly:7,monthly:31}[t&&t.cadence]||1);
   return a.as_of<addDays(S.today,-grace)?a.as_of:null;
 }
 // Manual tab freshness: covered today (entered or marked nothing-to-report) within its cadence window.
