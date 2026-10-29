@@ -13,6 +13,7 @@
  --stale:#6b7280;--stale-bg:#eceef1;--radius:18px}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
+#root{height:100vh;display:flex;flex-direction:column}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:20px;overflow:hidden}
 header{height:84px;background:var(--navy);color:#fff;padding:0 28px;display:flex;align-items:center;gap:28px}
 header h1{font-size:30px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
@@ -32,7 +33,7 @@ header .sub{font-size:17px;opacity:.78;margin-top:2px}
 .att button.p{background:var(--good-bg);border-color:var(--good);color:var(--good)}
 .att button.l{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
 .att .sp{flex:1}.att .hint{font-size:13px;color:var(--muted)}
-main{height:calc(100vh - 130px);padding:16px 28px 18px;display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr;gap:14px}
+main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr;gap:14px}
 .card{background:var(--card);border-radius:var(--radius);padding:14px 18px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:8px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
 .card.good{border-top-color:var(--good)}.card.warn{border-top-color:var(--warn)}.card.bad{border-top-color:var(--bad)}
 .card.stale{border-top-color:var(--stale);background:#f6f7f9}
@@ -71,12 +72,40 @@ main{height:calc(100vh - 130px);padding:16px 28px 18px;display:grid;grid-templat
 .dept .n{font-weight:700;white-space:nowrap}.dept .r{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dept .miss .n{color:var(--stale)}
 .foot{position:absolute;right:16px;bottom:8px;font-size:12px;color:#9aa3ae}
+.sp{flex:1}
+/* Flow view: the SWI's six sections one at a time, in meeting order (← → / 1–6 / clicker PageUp-PageDown). */
+.steps{display:flex;gap:8px;padding:12px 28px 0}
+.steps .st{flex:1;display:flex;align-items:center;gap:10px;border:0;background:#fff;border-radius:14px;padding:10px 14px;font:inherit;color:var(--muted);cursor:pointer;text-align:left;min-width:0;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.steps .st.done{opacity:.55}
+.steps .st.on{background:var(--navy);color:#fff}
+.steps .num{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;background:var(--stale-bg);color:var(--stale)}
+.steps .s-good{background:var(--good-bg);color:var(--good)}.steps .s-warn{background:var(--warn-bg);color:var(--warn)}.steps .s-bad{background:var(--bad-bg);color:var(--bad)}
+.steps .t{font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.steps .et{font-size:16px;font-variant-numeric:tabular-nums;opacity:.85}.steps .et.over{color:#ffb4ab;opacity:1}
+.flow main{grid-template-columns:repeat(var(--n),1fr);grid-auto-rows:1fr;gap:20px;padding:16px 28px}
+.flow .card{padding:22px 26px 18px;border-top-width:10px}
+.flow .card.wide{grid-column:auto}
+.flow .ch h3{font-size:26px;color:var(--text)}.flow .ch h3 small{font-size:16px}
+.flow .badge{font-size:17px;padding:6px 14px}
+.flow .hero b{font-size:104px}.flow .hero b.sm{font-size:76px}.flow .hero span{font-size:23px}
+.flow .sub{font-size:21px;white-space:normal}
+.flow .row{font-size:21px;padding:6px 0}
+.flow .hb{font-size:20px;grid-template-columns:170px 1fr 70px;padding:6px 0}.flow .hb .bar{height:16px}
+.flow .dept{grid-template-columns:repeat(2,1fr)}.flow .dept .d{font-size:19px;padding:6px 0}
+.flow .foot{font-size:14px}
+.row .ei{display:inline-block;width:1.4em;font-weight:800}.row.k-warn .ei{color:var(--warn)}.row.k-stale .ei,.row.k-stale .v{color:var(--stale)}
+.row small{color:var(--muted);font-size:.75em;font-weight:600;margin-left:6px}
+.fb{height:56px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 28px 12px}
+.fb button{border:0;background:none;font:inherit;font-size:18px;font-weight:700;color:var(--navy);cursor:pointer;padding:8px 4px}
+.fb button.nx{margin-left:auto;background:var(--navy);color:#fff;border-radius:12px;padding:10px 22px}
+.fb .hint{font-size:14px;color:var(--muted)}
+.vt{background:rgba(255,255,255,.12);border:0;color:#fff;font:inherit;font-size:14px;font-weight:700;padding:6px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .pinbox{max-width:360px;margin:12vh auto;background:#fff;border-radius:14px;padding:26px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08)}
 .pinbox input{width:100%;font-size:24px;letter-spacing:5px;text-align:center;padding:10px;border:1.5px solid var(--line);border-radius:10px;margin:14px 0}
 .pinbox button{width:100%;padding:12px;border:0;border-radius:10px;background:var(--navy);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
 .err{color:var(--bad);font-size:13px;margin-top:8px}
-@media (max-width:1500px){main{grid-template-columns:repeat(4,1fr)}.hero b{font-size:48px}}
-@media (max-width:1000px){body{overflow:auto}main{height:auto;grid-template-columns:repeat(2,1fr);grid-auto-rows:260px}.card.wide{grid-column:span 2}header{height:auto;padding:12px 16px;flex-wrap:wrap}.hk{order:3;width:100%}.att{height:auto;flex-wrap:wrap;padding:8px 16px}}
+@media (max-width:1500px){main{grid-template-columns:repeat(4,1fr)}.hero b{font-size:48px}.flow .hero b{font-size:80px}.flow .hero b.sm{font-size:60px}.steps .t{font-size:15px}}
+@media (max-width:1000px){body{overflow:auto}#root{height:auto;min-height:100vh}.flow main{grid-template-columns:1fr;grid-auto-rows:minmax(300px,auto)}.steps{flex-wrap:wrap}.steps .st{flex:1 1 30%}main{height:auto;grid-template-columns:repeat(2,1fr);grid-auto-rows:260px}.card.wide{grid-column:span 2}header{height:auto;padding:12px 16px;flex-wrap:wrap}.hk{order:3;width:100%}.att{height:auto;flex-wrap:wrap;padding:8px 16px}}
 @media (max-width:600px){main{grid-template-columns:1fr}.card.wide{grid-column:span 1}}
 </style>
 </head>
@@ -100,7 +129,7 @@ var ROLES={don:'DON',adon:'ADON',mds:'MDS',dsd:'DSD / IP',adm:'Admissions',bom:'
 var FORM_KINDS=['log','count','list','falls'];
 var DEADLINE='09:15';   // department tabs are due before standup
 
-var S={pin:null,tabs:[],byKey:{},today:null,day:null,live:null,started:null,att:{},attId:null,busy:false,loadedAt:null};
+var S={view:ls('su_view')||'flow',sec:0,secStart:null,pin:null,tabs:[],byKey:{},today:null,day:null,live:null,started:null,att:{},attId:null,busy:false,loadedAt:null};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -356,6 +385,54 @@ function buildCards(){
   return cards;
 }
 
+// ---------- flow: SWI v2.0 sections in meeting order ----------
+var SECTIONS=[
+ {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
+ {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Admission Mini Packets','Medicare Day-4 Rates']},
+ {t:'Clinical Highlights',cards:['Hospital Send-outs','Open Clinical & BO Lists','Leader Resident Rounds']},
+ {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Hours PPD by Dept']},
+ {t:'Operational Updates',cards:['Floor Rounds & Environment','Google Rating']},
+ {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']}
+];
+var SEC_SECS=100;   // 10 minutes ÷ 6 sections
+var ESC='Needs an Owner Today';
+function kindOf(c){return c.stale||c.missing?'stale':c.status||'none'}
+function cardBy(cards,t){return cards.filter(function(c){return c.title===t})[0]}
+function secStatus(cards,i){
+  var k=SECTIONS[i].cards.map(function(t){var c=cardBy(cards,t);return c?kindOf(c):'none'});
+  return k.indexOf('bad')>=0?'bad':k.indexOf('warn')>=0?'warn':k.indexOf('stale')>=0?'stale':'good';
+}
+// Recap for the last section: everything red, then watch, then stale, with the section it came from.
+function escalationCard(cards){
+  var rank={bad:0,warn:1,stale:2},items=[];
+  SECTIONS.slice(0,5).forEach(function(s){s.cards.forEach(function(t){
+    var c=cardBy(cards,t),k=c&&kindOf(c);
+    if(k in rank)items.push({k:k,t:t,s:s.t,l:k==='stale'?(c.stale?'data from '+md(c.stale):'not updated'):c.label});
+  })});
+  items.sort(function(a,b){return rank[a.k]-rank[b.k]});
+  var nb=items.filter(function(i){return i.k==='bad'}).length,nw=items.filter(function(i){return i.k==='warn'}).length;
+  return {title:ESC,sub:'red first, then watch, then stale feeds',status:nb?'bad':nw?'warn':'good',label:nb?nb+' need action':nw?nw+' to watch':'Nothing open',
+    body:items.length?items.map(function(i){return '<div class="row k-'+i.k+(i.k==='bad'?' flag':'')+'"><span class="l"><span class="ei">'+({bad:'✕',warn:'▲',stale:'⏱'}[i.k])+'</span>'+esc(i.t)+'<small>'+esc(i.s)+'</small></span><span class="v">'+esc(i.l||'')+'</span></div>'}).join('')
+      :'<div class="sub">Every section is on track.</div>'};
+}
+function stepsHtml(cards){
+  return '<nav class="steps">'+SECTIONS.map(function(s,i){
+    var st=secStatus(cards,i),on=i===S.sec;
+    return '<button class="st'+(on?' on':'')+(i<S.sec?' done':'')+'" onclick="go('+i+')"><span class="num s-'+st+'">'+(i+1)+'</span><span class="t">'+esc(s.t)+
+      (st==='bad'?' ✕':st==='warn'?' ▲':'')+'</span>'+(on?'<span class="et" id="secT"></span>':'')+'</button>'}).join('')+'</nav>';
+}
+function footHtml(){
+  var nx=SECTIONS[S.sec+1];
+  return '<div class="fb">'+(S.sec>0?'<button onclick="go('+(S.sec-1)+')">← '+esc(SECTIONS[S.sec-1].t)+'</button>':'')+
+    '<span class="hint">← → or 1–6 to move · S timer · O all cards</span>'+
+    (nx?'<button class="nx" onclick="go('+(S.sec+1)+')">Next: '+esc(nx.t)+' →</button>':'<button class="nx" onclick="toggleTimer()">'+(S.started?'End standup':'Start timer')+'</button>')+'</div>';
+}
+function go(i){
+  if(i<0||i>=SECTIONS.length||i===S.sec)return;
+  S.sec=i;if(S.started)S.secStart=Date.now();render();
+}
+function setView(v){S.view=v;ls('su_view',v);render()}
+
 // ---------- render ----------
 function headerKpis(cards){
   var stale=cards.filter(function(c){return c.stale||c.missing}).length,action=cards.filter(function(c){return !c.stale&&!c.missing&&c.status==='bad'}).length,watch=cards.filter(function(c){return !c.stale&&!c.missing&&c.status==='warn'}).length;
@@ -369,18 +446,27 @@ function attHtml(){
     '<span class="sp"></span><span class="hint">S timer · R refresh · rooms by room-bed only</span></div>';
 }
 function render(){
-  var cards=buildCards();
+  var cards=buildCards(),flow=S.view==='flow',root=document.getElementById('root');
+  cards.push(escalationCard(cards));
   var head='<header><div><h1>Morning Star Standup</h1><div class="sub">'+new Date(S.today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+
-    ' · refreshed '+(S.loadedAt?S.loadedAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'')+'</div></div><div class="hk">'+headerKpis(cards)+'</div>'+
+    ' · refreshed '+(S.loadedAt?S.loadedAt.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'')+'</div></div>'+
+    (flow?'<span class="sp"></span>':'<div class="hk">'+headerKpis(cards.filter(function(c){return c.title!==ESC}))+'</div>')+
+    '<button class="vt" onclick="setView(\''+(flow?'all':'flow')+'\')">'+(flow?'All cards':'Section view')+'</button>'+
     '<div class="clock"><b id="clk"></b><span class="timer" id="tmr" onclick="toggleTimer()">▶ Start 10:00</span></div></header>';
-  document.getElementById('root').innerHTML=head+attHtml()+'<main>'+cards.map(cardHtml).join('')+'</main>';
+  root.className=flow?'flow':'';
+  if(flow){
+    var sc=SECTIONS[S.sec].cards.map(function(t){return cardBy(cards,t)}).filter(Boolean);
+    root.innerHTML=head+stepsHtml(cards)+(S.sec===0?attHtml():'')+'<main style="--n:'+sc.length+'">'+sc.map(cardHtml).join('')+'</main>'+footHtml();
+  }else root.innerHTML=head+attHtml()+'<main>'+cards.filter(function(c){return c.title!==ESC}).map(cardHtml).join('')+'</main>';
   tick();
 }
 
 // ---------- timer / clock ----------
-function toggleTimer(){S.started=S.started?null:Date.now();tick()}
+function toggleTimer(){S.started=S.started?null:Date.now();S.secStart=S.started;if(S.view==='flow')render();else tick()}
 function tick(){
   var c=document.getElementById('clk');if(c)c.textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  var st=document.getElementById('secT');
+  if(st){if(S.started&&S.secStart){var se=Math.floor((Date.now()-S.secStart)/1000);st.textContent=Math.floor(se/60)+':'+('0'+se%60).slice(-2);st.className='et'+(se>SEC_SECS?' over':'')}else st.textContent=''}
   var t=document.getElementById('tmr');if(!t)return;
   if(!S.started){t.textContent='▶ Start 10:00';t.className='timer';return}
   var el=Math.floor((Date.now()-S.started)/1000),left=600-el,a=Math.abs(left);
@@ -410,6 +496,10 @@ document.addEventListener('keydown',function(e){
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(e.key==='s'||e.key==='S')toggleTimer();
   else if(e.key==='r'||e.key==='R')load().then(render);
+  else if(e.key==='o'||e.key==='O')setView(S.view==='flow'?'all':'flow');
+  else if(S.view==='flow'&&(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')){e.preventDefault();go(S.sec+1)}
+  else if(S.view==='flow'&&(e.key==='ArrowLeft'||e.key==='PageUp')){e.preventDefault();go(S.sec-1)}
+  else if(S.view==='flow'&&e.key>='1'&&e.key<='6')go(+e.key-1);
 });
 
 (async function(){
