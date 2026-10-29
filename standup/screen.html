@@ -52,7 +52,7 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .sub{font-size:17px;color:var(--muted);margin-top:4px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chart{flex:1;min-height:0;margin-top:6px;display:flex;align-items:flex-end}
 .chart svg{width:100%;height:100%;display:block}
-.dc{width:100%;height:100%;display:flex;flex-direction:column;padding-bottom:14px}
+.dc{width:100%;align-self:stretch;display:flex;flex-direction:column;padding-bottom:14px}
 .dp{position:relative;flex:1;min-height:0}.dp svg{position:absolute;inset:0}
 .vd{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--series);border:2px solid #fff;transform:translate(-50%,-50%)}
 .vl{position:absolute;transform:translate(-50%,-140%);font-size:13px;font-weight:700;display:none}.vl.last{display:block}
@@ -239,7 +239,7 @@ function datedLine(pts,o){
   h+='<path d="'+d+'" fill="none" stroke="var(--series)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
   pts.forEach(function(p,i){if(p.v==null)return;
     h+='<span class="vd" style="left:'+xp(i)+';top:'+yp(p.v)+'"></span><span class="vl'+(i===lastI?' last':'')+'" style="left:'+xp(i)+';top:'+yp(p.v)+'">'+esc(p.v)+'</span>'});
-  h+='</div><div class="dl">'+pts.map(function(p,i){return '<span style="left:'+xp(i)+'">'+md(p.d)+'</span>'}).join('')+'</div></div>';
+  h+='</div><div class="dl">'+pts.map(function(p,i){return '<span style="left:'+xp(i)+'">'+(i===0||String(p.d).slice(8)==='01'?md(p.d):+String(p.d).slice(8))+'</span>'}).join('')+'</div></div>';
   return h;
 }
 function barChart(pts,o){
