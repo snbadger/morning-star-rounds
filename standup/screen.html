@@ -293,7 +293,7 @@ function buildCards(){
   var adcDelta=bud!=null&&mtd.avg_total!=null?mtd.avg_total-bud:null;
   cards.push({title:'Census',sub:'PCC · '+md(cen.date),status:adcDelta==null?null:adcDelta>=0?'good':adcDelta>=-1?'warn':'bad',
     label:adcDelta==null?'':'ADC '+num(mtd.avg_total,1)+' vs '+num(bud,1),
-    hero:[cen.total_census!=null?cen.total_census:'—','in house · '+(cen.empty_beds!=null?cen.empty_beds+' open':'')],
+    hero:[cen.total_census!=null?cen.total_census:'—','census incl. '+(cen.holds||0)+' bed hold'+(cen.holds==1?'':'s')+' · '+(cen.empty_beds!=null?cen.empty_beds+' open':'')],
     line:'Medicare A '+num(cen.mcra_count)+' · HMO '+num(cen.hmo_count)+' · Medi-Cal '+num(cen.mcal_count)+(cen.holds?' · '+cen.holds+' hold':''),
     chart:datedLine(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,foot:'14 days · dashed = budget ADC'});
 
