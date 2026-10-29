@@ -395,7 +395,7 @@ function buildCards(){
     hero:[gvOpen!=null?gvOpen:'—','open'],
     line:gv.length?Object.keys(gBy).map(function(k){return gBy[k]+' '+esc(k)}).join(' · '):(gvNew||0)+' received in the last 7 days · all resolved',
     body:gv.slice(0,5).map(function(r){return gRow(r,true)}).join('')+more(gv.length,5)+
-      (gDone.length?'<div class="bh2">Resolved this week</div>'+gDone.slice(0,4).map(function(r){return gRow(r,false)}).join('')+more(gDone.length,4):'')});
+      (gDone.length?'<div class="bh2">Received this week · resolved</div>'+gDone.slice(0,4).map(function(r){return gRow(r,false)}).join('')+more(gDone.length,4):'')});
 
   // 14 Environment — floor rounds, painting, room changes
   var fr=auto('floor_rounds')||{},frs=String(fr.summary||''),frDays=(frs.match(/(\d+) of the last 7 days/)||[])[1],roundedToday=/^Rounded/i.test(frs);
