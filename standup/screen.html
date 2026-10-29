@@ -103,6 +103,13 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .flow .vl{display:block;font-size:17px}.flow .dl{height:24px;font-size:15px}
 .row .ei{display:inline-block;width:1.4em;font-weight:800}.row.k-warn .ei{color:var(--warn)}.row.k-stale .ei,.row.k-stale .v{color:var(--stale)}
 .row small{color:var(--muted);font-size:.75em;font-weight:600;margin-left:6px}
+.rows.split{display:flex;flex-direction:column}.split .blk{flex:1;min-height:0;overflow:hidden}
+.blk+.blk{border-top:2px solid var(--line);margin-top:8px;padding-top:10px}
+.bh{display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);margin-bottom:4px}
+.bh b{font-size:44px;letter-spacing:-1px;color:var(--text)}.bh small{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0;text-transform:none}
+.bh2{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:2px solid var(--line)}
+.more{font-size:14px;color:var(--muted);padding-top:2px}
+.flow .bh{font-size:20px}.flow .bh b{font-size:72px}.flow .bh small{font-size:16px}.flow .bh2{font-size:16px}.flow .more{font-size:17px}
 .fb{height:56px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 28px 12px}
 .fb button{border:0;background:none;font:inherit;font-size:18px;font-weight:700;color:var(--navy);cursor:pointer;padding:8px 4px}
 .fb button.nx{margin-left:auto;background:var(--navy);color:#fff;border-radius:12px;padding:10px 22px}
@@ -274,7 +281,7 @@ function cardHtml(c){
   var cls='card'+(c.wide?' wide':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
   var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
   return '<div class="'+cls+'"><div class="ch"><h3>'+esc(c.title)+(c.sub?'<small>'+esc(c.sub)+'</small>':'')+'</h3>'+badge(c)+'</div>'+hero+
-    (c.line?'<div class="sub">'+c.line+'</div>':'')+(c.chart?'<div class="chart">'+c.chart+'</div>':'')+(c.body?'<div class="rows">'+c.body+'</div>':'')+
+    (c.line?'<div class="sub">'+c.line+'</div>':'')+(c.chart?'<div class="chart">'+c.chart+'</div>':'')+(c.body?'<div class="rows'+(c.split?' split':'')+'">'+c.body+'</div>':'')+
     (c.foot?'<div class="foot">'+esc(c.foot)+'</div>':'')+'</div>';
 }
 function statusBy(v,good,warn,higherIsBetter){
@@ -300,11 +307,17 @@ function buildCards(){
   // 2 Admissions & discharges — census workbook + PCC ADT
   var pa=auto('pending_admissions')||{},dc=auto('discharges')||{},pend=rowsOf('pending_admissions'),plan=rowsOf('discharges').filter(function(r){return r.status==='planned'});
   var awaiting=pend.filter(function(r){return r.status==='pending'}).length,dcFlag=plan.filter(function(r){return r.flag}).length;
+  var more=function(n,shown){return n>shown?'<div class="more">+'+(n-shown)+' more</div>':''};
+  var admRecent=(String((auto('prior_day_admissions')||{}).summary||'').match(/(\d+) admissions? in the last (\d+) days/)||[]),dcRecent=(String(dc.summary||'').match(/(\d+) discharges? in the last (\d+) days/)||[]);
+  // Two stacked blocks — admissions on top, discharges below — so each gets its own count and list.
+  var admBlk='<div class="blk"><div class="bh"><b>'+pend.length+'</b>Admissions<small>pending'+(awaiting?' · '+awaiting+' awaiting auth':'')+'</small></div>'+
+    (pend.length?pend.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+more(pend.length,4):'<div class="sub">None pending</div>')+
+    (admRecent[1]!=null?'<div class="more">'+admRecent[1]+' admitted in the last '+admRecent[2]+' days</div>':'')+'</div>';
+  var dcBlk='<div class="blk"><div class="bh"><b>'+plan.length+'</b>Discharges<small>planned / LCD</small></div>'+
+    (plan.length?plan.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">Rm '+esc(r.room)+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(plan.length,4):'<div class="sub">None planned</div>')+
+    (dcRecent[1]!=null?'<div class="more">'+dcRecent[1]+' discharged in the last '+dcRecent[2]+' days</div>':'')+'</div>';
   cards.push({title:'Admissions & Discharges',sub:'Jericho Census workbook',status:dcFlag?'bad':awaiting?'warn':'good',label:dcFlag?dcFlag+' DC past date':awaiting?awaiting+' awaiting auth':'Clear',
-    hero:[pend.length,'pending admits'],line:plan.length+' planned discharges / LCDs',
-    body:pend.slice(0,2).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+
-      plan.slice(0,3).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">Rm '+esc(r.room)+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),
-    stale:staleDate('pending_admissions')});
+    split:true,body:admBlk+dcBlk,stale:staleDate('pending_admissions')});
 
   // 3 Falls — any injury / send-out in 7 days = red (SQCDP S)
   var falls=(S.day&&S.day.falls)||[],f7=falls.filter(function(f){return f.date>=day7}),inj7=f7.filter(function(f){return f.injury==='major'||f.injury==='pending'||f.injury==='minor'||f.sent_out}).length;
@@ -369,10 +382,20 @@ function buildCards(){
     hero:[stars!=null?num(stars,1)+' ★':'—',String(g0.title||'').replace(/^.*· /,'')],line:g0.detail||'',chart:lineChart(grser,{goal:4.6,min:3,max:5}),stale:staleDate('google_review'),foot:'recent checks · dashed = goal'});
 
   // 13 Grievances
-  var gv=rowsOf('grievances'),gvOpen=leadNum((auto('grievances')||{}).summary),gvNew=(String((auto('grievances')||{}).summary||'').match(/(\d+) received/)||[])[1];
+  // Summary from structured fields only (department, type, who raised it, owner, days) — descriptions name staff and carry allegations, so they stay off this shared screen.
+  var gAll=(auto('grievances')||{}).rows||[],gv=gAll.filter(function(r){return r.status!=='done'}),gDone=gAll.filter(function(r){return r.status==='done'});
+  var gvOpen=leadNum((auto('grievances')||{}).summary),gvNew=(String((auto('grievances')||{}).summary||'').match(/(\d+) received/)||[])[1];
+  var cap=function(t){t=String(t||'grievance');return t.charAt(0).toUpperCase()+t.slice(1)};
+  var gWhat=function(r){return r.dept&&r.dept!=='Other / not sure'?r.dept:cap(r.category)};
+  var gSmall=function(r){var w=gWhat(r)===cap(r.category)?'':cap(r.category);return [w,r.raised?'from '+String(r.raised).toLowerCase():''].filter(Boolean).join(' · ')};
+  var gBy={};gv.forEach(function(r){var k=gWhat(r);gBy[k]=(gBy[k]||0)+1});
+  var gRow=function(r,open){return '<div class="row'+(open&&r.flag?' flag':'')+'"><span class="l">'+(open&&r.urgent?'⚑ ':'')+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(gWhat(r))+(gSmall(r)?'<small>'+esc(gSmall(r))+'</small>':'')+'</span>'+
+    '<span class="v">'+(open?(r.days!=null?r.days+'d':md(r.date))+(r.owner?' · '+esc(r.owner):''):'resolved in '+(r.days!=null?r.days+'d':'—'))+'</span></div>'};
   cards.push({title:'Grievances',sub:'tracker · open',status:gvOpen>=5?'bad':gvOpen?'warn':'good',label:gvOpen>=5?'Backlog':gvOpen?'Open':'None open',
-    hero:[gvOpen!=null?gvOpen:'—','open'],line:(gvNew||0)+' received in the last 7 days',
-    body:gv.slice(0,3).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')});
+    hero:[gvOpen!=null?gvOpen:'—','open'],
+    line:gv.length?Object.keys(gBy).map(function(k){return gBy[k]+' '+esc(k)}).join(' · '):(gvNew||0)+' received in the last 7 days · all resolved',
+    body:gv.slice(0,5).map(function(r){return gRow(r,true)}).join('')+more(gv.length,5)+
+      (gDone.length?'<div class="bh2">Resolved this week</div>'+gDone.slice(0,4).map(function(r){return gRow(r,false)}).join('')+more(gDone.length,4):'')});
 
   // 14 Environment — floor rounds, painting, room changes
   var fr=auto('floor_rounds')||{},frs=String(fr.summary||''),frDays=(frs.match(/(\d+) of the last 7 days/)||[])[1],roundedToday=/^Rounded/i.test(frs);
