@@ -103,7 +103,7 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 var ROSTER=[
  {name:'Donna Rogers',role:'Director of Nursing',depts:'*'},{name:'Savanna McCormick',role:'ADON',depts:['Nursing','Respiratory']},{name:'Amandeep Brar',role:'MDS',depts:['Nursing']},
  {name:'Yessi Flores',role:'DSD / Infection Prevention',depts:['Nursing']},{name:'Randy Bago',role:'Admissions',depts:[]},{name:'Belem Gonzalez',role:'Business Office',depts:[]},
- {name:'Valerie Estrada',role:'Social Services',depts:[]},{name:'Michael Miller',role:'Activities',depts:[]},{name:'Lucy Malcolm',role:'Activities',depts:['Activities']},
+ {name:'Valerie Estrada',role:'Social Services',depts:[]},{name:'Michael Miller',role:'Activities',depts:[]},{name:'Lucy Malcolm',role:'Activities',depts:[]},
  {name:'Kim Beatrez',role:'Dietary',depts:['Dietary']},{name:'Annie Vang',role:'Medical Records',depts:[]},{name:'Kelsey Kennington',role:'HR / AP / Payroll',depts:'*'},
  {name:'Sebastian Lopez',role:'Maintenance / EVS',depts:['Housekeeping / Maintenance']},{name:'Joe Fronteras',role:'Rehab',depts:['Rehab']},{name:'Stephen Badger',role:'Administrator',depts:'*'}
 ];
@@ -281,7 +281,7 @@ var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dmd(d){var p=String(d).slice(0,10).split('-');return DOW[new Date(+p[0],p[1]-1,+p[2]).getDay()]+' '+(+p[1])+'/'+(+p[2])}
 function hm(t){if(!t)return '?';var a=t.split(':'),h=+a[0];return ((h+11)%12+1)+':'+a[1]+(h<12?'a':'p')}
 function renderOT(){
-  if(!canApprove())return '<div class="card"><div class="big" style="font-size:20px">Overtime review</div><p class="muted" style="margin-top:6px">You don\'t approve OT. Donna, Kelsey, or Stephen review OT for your department.</p></div>';
+  if(!canApprove())return '<div class="card"><div class="big" style="font-size:20px">Overtime review</div><p class="muted" style="margin-top:6px">You don\'t approve OT. Stephen, Donna, or Kelsey review OT for your department.</p></div>';
   var q=S.queue||{pending:[],recent:[]},list=myPending(),recent=(q.recent||[]).filter(function(i){return inScope(i.dept)});
   var h='<div class="card"><div class="big" style="font-size:20px">Overtime to review'+(list.length?' — '+list.length:'')+'</div>'+
     '<p class="muted" style="margin-top:4px">OT from Paycom punches, the morning after. Tap a reason to approve, or <b>Not approved</b>. OT left here or marked not approved keeps the employee off the clean-month list.</p>';
