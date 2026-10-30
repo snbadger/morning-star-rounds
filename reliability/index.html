@@ -107,7 +107,7 @@ var ROSTER=[
  {name:'Kim Beatrez',role:'Dietary',depts:['Dietary']},{name:'Annie Vang',role:'Medical Records',depts:[]},{name:'Kelsey Kennington',role:'HR / AP / Payroll',depts:'*'},
  {name:'Sebastian Lopez',role:'Maintenance / EVS',depts:['Housekeeping / Maintenance']},{name:'Joe Fronteras',role:'Rehab',depts:['Rehab']},{name:'Stephen Badger',role:'Administrator',depts:'*'}
 ];
-// Excusing a call-out (protected leave, schedule error) is limited to DON / HR / Administrator.
+// Excusing a call-out (schedule error, approved swap) is limited to DON / HR / Administrator. Sick time is never an excuse.
 var EXCUSERS=['Donna Rogers','Kelsey Kennington','Stephen Badger'];
 var REASONS=['Short-staffed / call-off coverage','Census or acuity','Admission or discharge','Meeting or training','Finishing care / report'];
 
@@ -234,7 +234,7 @@ function renderMonth(){
   list.forEach(function(r){h+=personRow(r)});
   h+='</div></div>';
   h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'). '+
-     'Call-outs count only for staff scheduled in Veras; shifts covered by sick, vacation, or other Paycom time-off codes never count.</div>';
+     'A call-out is a Veras shift with no punch, or a Paycom sick, unpaid, or bereavement day with no punch. Any missed shift counts, whatever the reason, including protected sick, unpaid, and bereavement time; only pre-approved vacation or holiday does not.</div>';
   return h;
 }
 function mark(ok,label,scored){if(scored===false)return '<span class="pill p-no">'+label+' n/a</span>';return '<span class="pill '+(ok?'p-ok':'p-red')+'">'+label+'</span>'}
@@ -254,11 +254,12 @@ function detail(r){
   r.ot_list.forEach(function(o){h+='<div class="ln"><span>'+md(o.date)+' · '+o.hours+' hrs</span>'+(o.approved?'<span class="pill p-ok">Approved</span>':'<span class="pill '+(r.ot_scored?'p-red':'p-no')+'">Not approved</span>')+'</div>'});
   h+='<h4>Call-outs</h4>';
   if(!r.co_scored)h+='<div class="muted">Not scheduled in Veras — not measured.</div>';
-  else if(!r.co_list.length)h+='<div class="muted">None of '+(r.shifts||0)+' scheduled shifts.</div>';
+  else if(!r.co_list.length)h+='<div class="muted">None'+(r.shifts?' of '+r.shifts+' scheduled shifts':'')+'.</div>';
   var canEx=EXCUSERS.indexOf(S.name)>=0;
   r.co_list.forEach(function(c){
-    if(c.excuse_id)h+='<div class="ln"><span>'+md(c.date)+' '+esc(c.start)+' · <i>excused: '+esc(c.excuse)+'</i> ('+esc(c.excused_by)+')</span>'+(canEx?'<button class="btn btn-quiet btn-sm" onclick="unexcuse('+c.excuse_id+')">Undo</button>':'')+'</div>';
-    else h+='<div class="ln"><span>'+md(c.date)+' '+esc(c.start)+' · scheduled, no punch, no time-off code</span>'+(canEx?'<button class="btn btn-quiet btn-sm" onclick="excuse(\''+c.shift_id+'\')">Excuse</button>':'')+'</div>'});
+    if(c.paycom)h+='<div class="ln"><span>'+md(c.date)+' · '+esc(codeName(c.codes))+' in Paycom, no punch</span></div>';
+    else if(c.excuse_id)h+='<div class="ln"><span>'+md(c.date)+' '+esc(c.start)+' · <i>excused: '+esc(c.excuse)+'</i> ('+esc(c.excused_by)+')</span>'+(canEx?'<button class="btn btn-quiet btn-sm" onclick="unexcuse('+c.excuse_id+')">Undo</button>':'')+'</div>';
+    else h+='<div class="ln"><span>'+md(c.date)+' '+esc(c.start)+' · scheduled, no punch'+(c.codes?' ('+esc(codeName(c.codes))+')':', no time-off code')+'</span>'+(canEx?'<button class="btn btn-quiet btn-sm" onclick="excuse(\''+c.shift_id+'\')">Excuse</button>':'')+'</div>'});
   h+='<h4>Meal penalties</h4>';
   if(!r.meal_list.length)h+='<div class="muted">None.</div>';
   r.meal_list.forEach(function(m){h+='<div class="ln"><span>'+md(m.date)+' · '+esc(m.reason)+'</span></div>'});
@@ -269,8 +270,10 @@ function detail(r){
 function toggle(id){S.open[id]=!S.open[id];render()}
 function setF(k,v){S[k]=v;render()}
 function pickMonth(m){guard(async function(){S.month=m;S.open={};await loadMonth();render()})}
+var CODE_NAMES={S:'sick',P:'sick',SIC:'sick',CSK:'sick',CSC:'sick',UPT:'unpaid',BER:'bereavement',JUR:'jury duty'};
+function codeName(c){return c.split(',').map(function(x){return CODE_NAMES[x]||x}).join(', ')}
 function excuse(shiftId){
-  var n=prompt('Why is this call-out excused?\n(for example: protected sick leave, schedule error, approved swap, on leave)','');
+  var n=prompt('Why is this call-out excused?\n(for example: schedule error, approved swap. Sick time, including protected sick, still counts.)','');
   if(!n||!n.trim())return;
   guard(async function(){await rpc('reliability_excuse_callout',{p_pin:S.pin,p_shift_id:shiftId,p_reason:n,p_by:S.name});await loadMonth();render();toast('Excused')})
 }
