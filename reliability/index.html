@@ -175,7 +175,7 @@ function renderMonth(){
   var d=S.data,rows=d.rows||[],cfg=S.boot.config;
   var el=rows.filter(function(r){return r.eligible}),clean=el.filter(function(r){return r.clean});
   var zeroMiss=el.filter(function(r){return +r.missed===0}).length;
-  var otScored=rows.length&&rows[0].ot_scored;
+  var otScored=rows.length&&rows[0].ot_scored,missScored=rows.length&&rows[0].missed_scored,maxMiss=+cfg.max_missed_punches;
   var h='<div class="card"><div style="display:flex;gap:10px;align-items:center;justify-content:space-between">'+
     '<select style="width:auto;flex:1" onchange="pickMonth(this.value)">'+(d.months||[]).map(function(m){return '<option value="'+m+'"'+(m===d.month?' selected':'')+'>'+monLabel(m)+'</option>'}).join('')+'</select></div>'+
     '<div class="tiles" style="margin-top:12px">'+
@@ -185,6 +185,7 @@ function renderMonth(){
     '<div class="tile"><b>'+zeroMiss+'</b><span>0 missed punches</span></div></div>'+
     (d.month>=S.boot.today.slice(0,8)+'01'?'<div class="note">This month is still in progress. The list can change until the month closes.</div>':'')+
     (!otScored?'<div class="note">Unapproved OT is not scored for this month. The approval log starts '+md(cfg.ot_scoring_start)+'.</div>':'')+
+    (!missScored?'<div class="note">Missed punches are not scored for this month. Starting '+md(cfg.missed_scoring_start)+', more than '+maxMiss+' missed punch'+(maxMiss===1?'':'es')+' in a month costs the clean month.</div>':'')+
     '</div>';
 
   // the clean list, by department
@@ -212,16 +213,17 @@ function renderMonth(){
   if(!list.length)h+='<div class="muted" style="padding:10px 0">No one matches.</div>';
   list.forEach(function(r){h+=personRow(r)});
   h+='</div></div>';
-  h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, and zero meal penalties. '+
-     'Call-outs count only for staff scheduled in Veras; shifts covered by sick, vacation, or other Paycom time-off codes never count. Missed punches are tracked but not scored.</div>';
+  h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'). '+
+     'Call-outs count only for staff scheduled in Veras; shifts covered by sick, vacation, or other Paycom time-off codes never count.</div>';
   return h;
 }
 function mark(ok,label,scored){if(scored===false)return '<span class="pill p-no">'+label+' n/a</span>';return '<span class="pill '+(ok?'p-ok':'p-red')+'">'+label+'</span>'}
+function missClass(r){if(+r.missed===0)return 'p-ok';if(!r.missed_scored)return 'p-warn';return +r.missed<=+S.boot.config.max_missed_punches?'p-warn':'p-red'}
 function personRow(r){
   var st=!r.eligible?'<span class="pill p-no">'+r.days+' days</span>':r.clean?'<span class="pill p-ok">⭐ Clean</span>':'';
   var h='<div class="person"><div class="top" onclick="toggle(\''+r.eecode+'\')"><div class="nm"><b>'+esc(nice(r.name))+' '+st+'</b><span>'+esc(r.dept||'')+(r.position?' · '+esc(r.position):'')+' · '+r.days+' days</span></div>'+
     '<div class="marks">'+mark(+r.ot_unapproved===0,'OT',r.ot_scored)+mark(+r.callouts===0,'Call-outs',r.co_scored)+mark(+r.meal===0,'Meals')+
-    '<span class="pill '+(+r.missed===0?'p-ok':'p-warn')+'">'+r.missed+' missed</span></div></div>';
+    '<span class="pill '+missClass(r)+'">'+r.missed+' missed</span></div></div>';
   if(S.open[r.eecode])h+=detail(r);
   return h+'</div>';
 }
@@ -240,7 +242,8 @@ function detail(r){
   h+='<h4>Meal penalties</h4>';
   if(!r.meal_list.length)h+='<div class="muted">None.</div>';
   r.meal_list.forEach(function(m){h+='<div class="ln"><span>'+md(m.date)+' · '+esc(m.reason)+'</span></div>'});
-  h+='<h4>Missed punches</h4><div>'+(+r.missed===0?'None — every punch on the clock. 👏':r.missed+' "Forgot Punch" edits this month.')+'</div>';
+  var mx=+S.boot.config.max_missed_punches;
+  h+='<h4>Missed punches'+(r.missed_scored?' ('+mx+' allowed)':' (tracked, not scored this month)')+'</h4><div>'+(+r.missed===0?'None — every punch on the clock. 👏':r.missed+' "Forgot Punch" edits this month.'+(r.missed_scored&&+r.missed>mx?' Over the limit of '+mx+'.':''))+'</div>';
   return h+'</div>';
 }
 function toggle(id){S.open[id]=!S.open[id];render()}
