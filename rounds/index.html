@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Morning Star Post Acute - Daily Management Board</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>Morning Star Post Acute - Room Rounds</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:10px}
@@ -194,34 +193,9 @@ textarea{resize:vertical;min-height:70px}
 <div id="app"></div>
 <script>
 // ====================================================================
-// MORNING STAR POST ACUTE - DAILY MANAGEMENT BOARD
-// Includes: Census, OT, Rounding, Showers, Asana Actions,
-// Survey Compliance, Revenue Rates, Standup Agenda,
-// + Room Rounds Form
+// MORNING STAR POST ACUTE - ROOM ROUNDS
+// Summary (rounds completed %, rounding compliance) + Room Rounds form
 // ====================================================================
-// -- CONFIG: Populated by the daily-management-board skill each morning --
-// These values are placeholders. The skill replaces them with live data.
-var BOARD_DATA = {
- generatedAt: new Date().toLocaleString(),
- // Census
- census: { current: '--', beds: 57, budgetADC: '--', admitsToday: '--', dischargesToday: '--', pending: '--', occupancyPct: '--' },
- // OT
- ot: { yesterdayHrs: '--', wtdHrs: '--', mtdHrs: '--', budgetMtd: '--', topEmployees: [] },
- // Showers
- showers: { yesterdayRate: '--', refusals: '--', mtdRefusalRate: '--', flaggedResidents: [] },
- // Action Items (Asana)
- asanaActions: { open: [], overdue: 0, dueToday: 0, dueThisWeek: 0, criticalOverdue: 0 },
- // Survey Compliance
- surveyTags: [],
- // Revenue Rates
- rates: { mcrPPD: '$823.17', hmoPPD: '$704.48', mcalPPD: '$258.54', mgmtFee: '5.5%', badDebt: '3%' },
- // Payer Mix
- payerMix: [],
- // Safety (for standup)
- safety: { falls24h: '--', incidents: '--', infections: '--' },
- // Staffing
- staffing: { callOffs: '--', agencyUse: '--' }
-};
 // -- ROSTER --
 var ROSTER=[
 {name:"Randy Bago",dept:"Admissions",rooms:["1","2","3","4"],assigned:true},
@@ -252,7 +226,10 @@ function auditRoomForDate(dateStr){
  for(var i=order.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=order[i];order[i]=order[j];order[j]=t}
  return order[days%n];
 }
-var DEPTS=["Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
+var DEPTS=["CNA Care","Nursing","Dietary","Maintenance/EVS","Activities","Social Services","Admissions","HR","Business Office","Rehab","Administration","MDS","DSD/IP"];
+// CNA care issues go to Yessi (DSD/IP), not the DON; licensed-nurse items stay with Nursing (Donna)
+var DEPT_ROUTE={'CNA Care':'DSD/IP'};
+var DEPT_LABEL={'CNA Care':'CNA Care (showers, ADLs, linens) - Yessi','Nursing':'Nursing - licensed nurse items - Donna'};
 var APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwTJb1q-fSB42x_3iX06KBIK_tZ3D-MM162gV3D_ht-6EXrN7ScaO6Zx0OyS86Zi__X6A/exec';
 // -- SUPABASE CLIENT --
 var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
@@ -269,8 +246,6 @@ var newUuid=function(){
 // -- DATA STORE --
 var store={rounds:[]};
 var supabaseLoaded=false;
-function exportJSON(){var b=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rounds-'+today()+'.json';a.click()}
-function importJSON(file,cb){var r=new FileReader();r.onload=function(e){try{var d=JSON.parse(e.target.result);if(d.rounds){store=d;cb(d.rounds.length)}else cb(-1)}catch(x){cb(-1)}};r.readAsText(file)}
 // -- LOAD ROUNDS FROM SUPABASE --
 async function loadRounds(){
  if(!sb)return;
@@ -326,10 +301,9 @@ async function loadRounds(){
  }catch(e){console.error('loadRounds error:',e)}
 }
 // -- APP STATE --
-var currentTab='board';
+var currentView='summary';
 var formState=null;
 var toastMsg='';var toastTimer=null;
-var actionFilter='all';
 function showToast(m){toastMsg=m;render();clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastMsg='';render()},2500)}
 // -- DOM HELPER --
 function h(tag,a){
@@ -415,114 +389,26 @@ function getWeekDates(refDate){
  return dates;
 }
 // ====================================================================
-// TAB 1: MAIN BOARD (all metrics)
+// SUMMARY VIEW: rounds completed % + rounding compliance
 // ====================================================================
-function renderBoard(){
- var D=BOARD_DATA;
+// Week-to-date completion: assigned rounder-days done, Mon through today
+function getWeekCompletion(){
+ var days=getWeekDates().filter(function(d){return d<=today()});
+ var assigned=ROSTER.filter(function(r){return r.assigned});
+ var done=0;
+ days.forEach(function(date){assigned.forEach(function(p){if(store.rounds.some(function(r){return r.roundDate===date&&r.rounderName===p.name}))done++})});
+ var total=days.length*assigned.length;
+ return{done:done,total:total,pct:total?Math.round(done/total*100):0};
+}
+function renderSummary(){
  var rs=getRoundingStats(today());
- var roundComp=rs.assigned.length?rs.rounded+'/'+rs.assigned.length:'--';
- var roundPct=rs.comp;
- var highActions=rs.actions.filter(function(a){return a.priority==='high'}).length;
- // KPI color logic
- var censusClass=D.census.current==='--'?'blue':D.census.current>=D.census.budgetADC?'green':D.census.current>=D.census.budgetADC-2?'amber':'red';
- var otClass=D.ot.mtdHrs==='--'?'blue':'blue';
- var roundClass=roundPct===100?'green':roundPct>=80?'amber':roundPct>0?'red':'blue';
- var showerClass=D.showers.yesterdayRate==='--'?'blue':parseFloat(D.showers.yesterdayRate)>=90?'green':parseFloat(D.showers.yesterdayRate)>=80?'amber':'red';
- var actionClass=(D.asanaActions.overdue>3||D.asanaActions.criticalOverdue>0)?'red':D.asanaActions.overdue>0?'amber':'green';
- var alerts=[];
- if(rs.missing.length>0)alerts.push({type:rs.missing.length>2?'alert-red':'alert-amber',msg:'[!] Missing rounders ('+rs.missing.length+'): '+rs.missing.map(function(m){return m.name}).join(', ')});
- if(highActions>0)alerts.push({type:'alert-red',msg:'[!!] '+highActions+' HIGH priority action item'+(highActions>1?'s':'')+' from today\'s rounds'});
- if(D.asanaActions.criticalOverdue>0)alerts.push({type:'alert-red',msg:'[OVERDUE] '+D.asanaActions.criticalOverdue+' Asana task'+(D.asanaActions.criticalOverdue>1?'s':'')+' overdue > 7 days'});
- if(dayOfWeek()==='Monday')alerts.push({type:'alert-amber',msg:'[NOTE] Monday - Weekly 2 PM huddle announcement goes out today'});
+ var wk=getWeekCompletion();
+ var cls=function(p){return p===100?'green':p>=80?'amber':p>0?'red':'blue'};
  return h('div',{className:'page'},
- // KPI Strip
- h('div',{className:'kpi-strip'},
- h('div',{className:'kpi '+censusClass},h('div',{className:'kpi-val'},String(D.census.current)),h('div',{className:'kpi-label'},'Census / '+D.census.beds),h('div',{className:'kpi-sub'},'Budget ADC: '+D.census.budgetADC)),
- h('div',{className:'kpi '+otClass},h('div',{className:'kpi-val'},String(D.ot.mtdHrs)),h('div',{className:'kpi-label'},'OT Hrs (MTD)'),h('div',{className:'kpi-sub'},'Budget: '+D.ot.budgetMtd)),
- h('div',{className:'kpi '+roundClass},h('div',{className:'kpi-val'},roundComp),h('div',{className:'kpi-label'},'Rounding'),h('div',{className:'kpi-sub'},roundPct+'% compliance')),
- h('div',{className:'kpi '+showerClass},h('div',{className:'kpi-val'},String(D.showers.yesterdayRate)),h('div',{className:'kpi-label'},'Showers (Yest)'),h('div',{className:'kpi-sub'},'Refusals: '+D.showers.refusals)),
- h('div',{className:'kpi '+(D.asanaActions.open.length?actionClass:'green')},h('div',{className:'kpi-val'},String(D.asanaActions.open.length||'0')),h('div',{className:'kpi-label'},'Open Actions'),h('div',{className:'kpi-sub'},'Overdue: '+D.asanaActions.overdue))
- ),
- // Alerts
- alerts.map(function(a){return h('div',{className:'alert '+a.type},a.msg)}),
- // Row 2: Two columns
- h('div',{className:'two-col'},
- // LEFT: Standup Agenda + Census
- h('div',null,
- // Standup Agenda (compact)
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[AGENDA]'),' Standup Agenda - SWI v2.0'),
- [
- {n:1,t:'Connect with Purpose',tm:'1 min',d:'Culture moment - quote, value, shout-out'},
- {n:2,t:'Safety & Quality',tm:'2 min',d:D.safety.falls24h!=='--'?'Falls (24h): '+D.safety.falls24h+' | Incidents: '+D.safety.incidents:'Exception-only - report if any'},
- {n:3,t:'Census & Flow',tm:'2 min',d:'Census: '+D.census.current+'/'+D.census.beds+' | Admits: '+D.census.admitsToday+' | DC: '+D.census.dischargesToday+' | Pending: '+D.census.pending},
- {n:4,t:'Staffing & Labor',tm:'1 min',d:'Call-offs: '+D.staffing.callOffs+' | OT flags: '+D.ot.mtdHrs+' MTD'},
- {n:5,t:'Escalations & Blockers',tm:'3 min',d:highActions?highActions+' HIGH items from rounds - '+rs.actions.filter(function(a){return a.priority==='high'}).map(function(a){return 'Rm '+a.room}).join(', '):'No escalations from rounds'},
- {n:6,t:'Commitments & Close',tm:'1 min',d:'Each DH states one commitment'}
- ].map(function(s){return h('div',{className:'agenda-item'},
- h('div',{className:'agenda-num'},String(s.n)),
- h('div',null,
- h('div',{style:{display:'flex',alignItems:'center'}},h('span',{className:'agenda-title'},s.t),h('span',{className:'agenda-time'},s.tm)),
- h('div',{className:'agenda-data'},s.d)
- )
- )})
- ),
- // Census Detail
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[CENSUS]'),' Census & Flow'),
- h('table',null,
- h('tbody',null,
- [['Current Census',D.census.current+' / '+D.census.beds],['Occupancy',D.census.occupancyPct],['Budget ADC',D.census.budgetADC],['Admits Today',D.census.admitsToday],['Discharges Today',D.census.dischargesToday],['Pending Admits',D.census.pending]].map(function(pair){
- return h('tr',null,h('td',{style:{fontWeight:'600',width:'50%'}},pair[0]),h('td',null,String(pair[1])))
- })
- )
- )
- )
- ),
- // RIGHT: Revenue, OT, Rounding, Showers
- h('div',null,
- // Revenue Rates
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[$]'),' Revenue Rate Reference'),
- h('table',null,
- h('thead',null,h('tr',null,h('th',null,'Payer'),h('th',null,'PPD Rate'))),
- h('tbody',null,
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Medicare A (MCR)'),h('td',null,D.rates.mcrPPD)),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'HMO'),h('td',null,D.rates.hmoPPD)),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Medi-Cal'),h('td',null,D.rates.mcalPPD))
- )
- ),
- h('div',{style:{fontSize:'11px',color:'var(--text-light)',marginTop:'8px'}},'Mgmt Fee: '+D.rates.mgmtFee+' | Bad Debt: '+D.rates.badDebt)
- ),
- // OT Breakdown
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[OT]'),' Overtime Breakdown'),
- h('table',null,
- h('tbody',null,
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday'),h('td',null,String(D.ot.yesterdayHrs)+' hrs')),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Week-to-Date'),h('td',null,String(D.ot.wtdHrs)+' hrs')),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Month-to-Date'),h('td',null,String(D.ot.mtdHrs)+' hrs'))
- )
- ),
- D.ot.topEmployees.length?h('div',{style:{marginTop:'10px'}},
- h('div',{style:{fontSize:'12px',fontWeight:'700',color:'var(--text-light)',marginBottom:'6px'}},'TOP OT EMPLOYEES'),
- h('table',null,h('thead',null,h('tr',null,h('th',null,'Name'),h('th',null,'Dept'),h('th',null,'Hours'))),
- h('tbody',null,D.ot.topEmployees.map(function(e){return h('tr',null,h('td',null,e.name),h('td',null,e.dept),h('td',null,String(e.hours)))})))
- ):null
- ),
- // Shower Snapshot
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[SHOWER]'),' Shower Compliance'),
- h('table',null,h('tbody',null,
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Yesterday Rate'),h('td',null,String(D.showers.yesterdayRate))),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'Refusals'),h('td',null,String(D.showers.refusals))),
- h('tr',null,h('td',{style:{fontWeight:'600'}},'MTD Refusal Rate'),h('td',null,String(D.showers.mtdRefusalRate)))
- )),
- D.showers.flaggedResidents.length?h('div',{style:{marginTop:'8px',fontSize:'13px'}},
- h('strong',null,'Flagged: '),D.showers.flaggedResidents.join(', ')
- ):null
- )
- )
+ // Rounds Completed %
+ h('div',{className:'kpi-strip',style:{gridTemplateColumns:'repeat(2,1fr)'}},
+ h('div',{className:'kpi '+cls(rs.comp)},h('div',{className:'kpi-val'},rs.comp+'%'),h('div',{className:'kpi-label'},'Rounds Completed Today'),h('div',{className:'kpi-sub'},rs.rounded+' of '+rs.assigned.length+' rounders')),
+ h('div',{className:'kpi '+cls(wk.pct)},h('div',{className:'kpi-val'},wk.pct+'%'),h('div',{className:'kpi-label'},'Rounds Completed This Week'),h('div',{className:'kpi-sub'},wk.done+' of '+wk.total+' rounds'))
  ),
  // Rounding Compliance Grid
  h('div',{className:'card'},
@@ -555,58 +441,12 @@ function renderBoard(){
  ));
  })()
  ),
- // Rounding Issues (from today)
- (rs.envIssues.length||rs.resConcerns.length||rs.staffConcerns.length)?h('div',{className:'two-col'},
- rs.envIssues.length?h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[ENV]'),' Environment Issues ('+rs.envIssues.length+')'),
- h('ul',{className:'issue-list'},rs.envIssues.map(function(i){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+i.room),h('span',{className:'issue-text'},i.issue))}))
- ):h('div'),
- (rs.resConcerns.length||rs.staffConcerns.length)?h('div',null,
- rs.resConcerns.length?h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[RES]'),' Resident Concerns ('+rs.resConcerns.length+')'),
- h('ul',{className:'issue-list'},rs.resConcerns.map(function(c){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))}))
- ):null,
- rs.staffConcerns.length?h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[STAFF]'),' Staff Concerns ('+rs.staffConcerns.length+')'),
- h('ul',{className:'issue-list'},rs.staffConcerns.map(function(c){return h('li',{className:'issue-item'},h('span',{className:'issue-room'},'Rm '+c.room),h('span',{className:'issue-text'},c.detail||'No details'))}))
- ):null
- ):h('div')
- ):null,
- // Survey Compliance
- D.surveyTags.length?h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[SURVEY]'),' Survey Monitoring Status'),
- h('table',null,
- h('thead',null,h('tr',null,h('th',null,'Tag'),h('th',null,'Description'),h('th',null,'Through'),h('th',null,'Days Left'),h('th',null,'Status'))),
- h('tbody',null,D.surveyTags.map(function(t){
- var cls=t.daysLeft>30?'b-green':t.daysLeft>14?'b-amber':'b-red';
- return h('tr',null,h('td',{style:{fontWeight:'700'}},t.code),h('td',null,t.description),h('td',null,t.through),h('td',null,String(t.daysLeft)),h('td',null,h('span',{className:'badge '+cls},t.daysLeft>30?'On Track':t.daysLeft>14?'Approaching':'Urgent')));
- }))
- )
- ):null,
- // Action Items (Rounding + Asana combined)
- (rs.actions.length||D.asanaActions.open.length)?h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[ACTION]'),' Action Items'),
- h('div',{className:'filter-tabs'},
- ['all','high','rounding','asana'].map(function(f){return h('button',{className:'ftab'+(actionFilter===f?' active':''),onClick:function(){actionFilter=f;render()}},f==='all'?'All':f==='high'?'High Priority':f==='rounding'?'From Rounds':'From Asana')})
- ),
- h('table',null,
- h('thead',null,h('tr',null,h('th',null,'Item'),h('th',null,'Source'),h('th',null,'Priority'),h('th',null,'Dept/Assignee'))),
- h('tbody',null,
- rs.actions.filter(function(a){return actionFilter==='all'||actionFilter==='rounding'||(actionFilter==='high'&&a.priority==='high')}).map(function(a){
- return h('tr',null,h('td',null,'Rm '+a.room+': '+a.description),h('td',null,h('span',{className:'badge b-blue'},'Rounds')),h('td',null,h('span',{className:'ip ip-'+(a.priority||'low')},(a.priority||'low').toUpperCase())),h('td',null,a.department||'-'))
- }),
- D.asanaActions.open.filter(function(a){return actionFilter==='all'||actionFilter==='asana'||(actionFilter==='high'&&a.overdueDays>7)}).map(function(a){
- return h('tr',{style:a.overdueDays>0?{background:'#fff5f5'}:{}},h('td',null,a.name),h('td',null,h('span',{className:'badge b-gray'},'Asana')),h('td',null,a.overdueDays>0?h('span',{className:'badge b-red'},a.overdueDays+'d overdue'):h('span',{className:'badge b-green'},'On track')),h('td',null,a.assignee||'-'))
- })
- )
- )
- ):null,
- // Footer
- h('div',{className:'footer'},'Generated by Claude for Morning Star Post Acute - '+BOARD_DATA.generatedAt)
+ h('button',{className:'btn btn-p',style:{marginTop:'8px'},onClick:function(){currentView='form';render();window.scrollTo({top:0})}},'Room Rounds'),
+ h('div',{className:'footer'},'Morning Star Post Acute - '+(supabaseLoaded?'live from Supabase':'loading...'))
  );
 }
 // ====================================================================
-// TAB 2: ROOM ROUNDS FORM
+// FORM VIEW: ROOM ROUNDS
 // ====================================================================
 // Room bed configuration
 var ROOM_BEDS={
@@ -695,7 +535,8 @@ function renderRoundsForm(){
  return h('div',{className:'page'},h('div',{className:'form-wrap'},h('div',{className:'card success-screen'},
  h('div',{className:'success-icon'},CHK_MARK),h('div',{className:'success-title'},'Room '+f.room+' Submitted'),
  h('div',{className:'success-sub'},'Logged at '+new Date().toLocaleTimeString()),
- h('button',{className:'btn btn-p',onClick:function(){resetForm(f.name);render()}},'Round Another Room')
+ h('button',{className:'btn btn-p',onClick:function(){resetForm(f.name);render()}},'Round Another Room'),
+ h('button',{className:'btn btn-o',style:{marginTop:'10px'},onClick:function(){resetForm(f.name);currentView='summary';render()}},'Back to Summary')
  )));
  }
  var steps=[];
@@ -964,7 +805,7 @@ function renderRoundsForm(){
  h('div',{className:'field'},h('label',null,'What needs to happen?'),
  h('textarea',{placeholder:'Describe the action item clearly - who, what, by when...',value:a1.description,rows:'2',onInput:function(e){a1.description=e.target.value}})),
  h('div',{className:'field'},h('label',null,'Which department owns this?'),
- h('select',{value:a1.department,onChange:function(e){a1.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},d)}))),
+ h('select',{value:a1.department,onChange:function(e){a1.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},DEPT_LABEL[d]||d)}))),
  h('div',{className:'field'},h('label',null,'Priority'),
  h('div',{className:'pri-row'},[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(function(arr){
  return h('button',{className:'pri-btn'+(a1.priority===arr[1]?' '+arr[2]:''),onClick:function(){a1.priority=arr[1];render()}},arr[0])})))
@@ -979,7 +820,7 @@ function renderRoundsForm(){
  h('div',{className:'field'},h('label',null,'What needs to happen?'),
  h('textarea',{placeholder:'Describe the second action item...',value:a2.description,rows:'2',onInput:function(e){a2.description=e.target.value}})),
  h('div',{className:'field'},h('label',null,'Which department owns this?'),
- h('select',{value:a2.department,onChange:function(e){a2.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},d)}))),
+ h('select',{value:a2.department,onChange:function(e){a2.department=e.target.value;render()}},h('option',{value:''},'Select department...'),DEPTS.map(function(d){return h('option',{value:d},DEPT_LABEL[d]||d)}))),
  h('div',{className:'field'},h('label',null,'Priority'),
  h('div',{className:'pri-row'},[['Low','low','pl'],['Medium','medium','pm'],['High','high','ph'],['Urgent','urgent','pu']].map(function(arr){
  return h('button',{className:'pri-btn'+(a2.priority===arr[1]?' '+arr[2]:''),onClick:function(){a2.priority=arr[1];render()}},arr[0])})))
@@ -1188,11 +1029,11 @@ async function submitRound(){
  if(actionItems.length>0&&obsData&&obsData.length>0){
  var aiRows=actionItems.map(function(a){return{
  title:a.description,
- description:'Room '+entry.roomNumber+': '+a.description,
- category:a.department==='Nursing'?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
+ description:(a.department==='CNA Care'?'[CNA] ':'')+'Room '+entry.roomNumber+': '+a.description,
+ category:(a.department==='Nursing'||a.department==='CNA Care')?'quality':a.department==='Maintenance/EVS'?'safety':'delivery',
  source_type:'rounding',
  source_id:obsData[0].id,
- assigned_to:a.department,
+ assigned_to:DEPT_ROUTE[a.department]||a.department,
  due_date:new Date(Date.now()+3*86400000).toISOString().split('T')[0],
  status:'open',
  priority:a.priority==='urgent'?'high':a.priority==='high'?'high':a.priority==='low'?'low':'normal'
@@ -1229,59 +1070,15 @@ async function submitRound(){
  if(APPS_SCRIPT_URL){fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)}).catch(function(){});}
 }
 // ====================================================================
-// TAB 3: DATA MANAGEMENT
-// ====================================================================
-function renderDataTab(){
- var fileInput=h('input',{type:'file',accept:'.json',className:'hidden'});
- fileInput.addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;importJSON(f,function(n){if(n>0)showToast('Imported '+n+' rounds');else showToast('Import failed')});e.target.value='';});
- var rs=getRoundingStats(today());
- return h('div',{className:'page'},
- h('div',{className:'card'},
- h('div',{className:'card-hdr'},h('span',{className:'icon'},'[DATA]'),' Rounds Data Management'),
- h('div',{style:{fontSize:'14px',marginBottom:'16px'}},'Total rounds in store: ',h('strong',null,String(store.rounds.length)),
- ' | Today: ',h('strong',null,String(rs.dr.length)),
- ' | Unique dates: ',h('strong',null,String(new Set(store.rounds.map(function(r){return r.roundDate})).size))
- ),
- h('div',{className:'data-actions'},
- h('button',{className:'data-btn',onClick:exportJSON},'Export All Data (JSON)'),
- h('button',{className:'data-btn',onClick:function(){fileInput.click()}},'Import Data (JSON)'),
- fileInput
- ),
- h('div',{style:{fontSize:'12px',color:'var(--text-light)',marginTop:'12px'}},'Export your rounds data as JSON to commit to a GitHub repo, or import previous data to restore history.')
- ),
- store.rounds.length?h('div',{className:'card'},
- h('div',{className:'card-hdr'},'Recent Submissions'),
- h('table',null,
- h('thead',null,h('tr',null,h('th',null,'Date'),h('th',null,'Rounder'),h('th',null,'Room'),h('th',null,'Issues'),h('th',null,'Actions'))),
- h('tbody',null,store.rounds.slice(-20).reverse().map(function(r){
- var env=r.environment||{};
- var envCount=['roomClean','odorFree','bathroomStocked','tempOk','nameOnDoorCorrect'].filter(function(f){return env[f]==='no'}).length;
- return h('tr',null,h('td',null,r.roundDate),h('td',null,r.rounderName),h('td',null,'Rm '+r.roomNumber),
- h('td',null,envCount?h('span',{className:'badge b-amber'},envCount+' env'):h('span',{className:'badge b-green'},'Clean')),
- h('td',null,(r.actions||[]).length?h('span',{className:'badge b-blue'},(r.actions||[]).length):h('span',{className:'badge b-gray'},'None')));
- }))
- )
- ):null
- );
-}
-// ====================================================================
 // MAIN RENDER
 // ====================================================================
 function render(){
  var app=document.getElementById('app');app.innerHTML='';
- var rs=getRoundingStats(today());
- var roundBadge=rs.missing.length?h('span',{className:'tab-badge'},String(rs.missing.length)):null;
  app.appendChild(h('div',{className:'header'},
- h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Daily Management Board - '+fmtDate(today()))),
- h('div',{className:'tabs'},
- h('button',{className:'tab'+(currentTab==='board'?' active':''),onClick:function(){currentTab='board';render()}},'Board'),
- h('button',{className:'tab'+(currentTab==='rounds'?' active':''),onClick:function(){currentTab='rounds';render()}},'Room Rounds',roundBadge),
- h('button',{className:'tab'+(currentTab==='data'?' active':''),onClick:function(){currentTab='data';render()}},'Data')
- )
+ h('div',{className:'hdr-left'},h('h1',null,'MORNING STAR POST ACUTE'),h('div',{className:'sub'},'Room Rounds - '+fmtDate(today()))),
+ currentView==='form'?h('div',{className:'tabs'},h('button',{className:'tab',onClick:function(){currentView='summary';render()}},'\u2190 Summary')):null
  ));
- if(currentTab==='board')app.appendChild(renderBoard());
- else if(currentTab==='rounds')app.appendChild(renderRoundsForm());
- else if(currentTab==='data')app.appendChild(renderDataTab());
+ app.appendChild(currentView==='form'?renderRoundsForm():renderSummary());
  if(toastMsg)app.appendChild(h('div',{className:'toast'},toastMsg));
 }
 resetForm();render();loadRounds();
