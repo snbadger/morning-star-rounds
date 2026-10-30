@@ -102,9 +102,9 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 // OT approvers = department heads + DON (Room Rounds ROSTER is the source of truth).
 var ROSTER=[
  {name:'Donna Rogers',role:'Director of Nursing',depts:'*'},{name:'Savanna McCormick',role:'ADON',depts:['Nursing','Respiratory']},{name:'Amandeep Brar',role:'MDS',depts:['Nursing']},
- {name:'Yessi Flores',role:'DSD / Infection Prevention',depts:['Nursing']},{name:'Randy Bago',role:'Admissions',depts:['Administration']},{name:'Belem Gonzalez',role:'Business Office',depts:['Administration']},
- {name:'Valerie Estrada',role:'Social Services',depts:['Social Services']},{name:'Michael Miller',role:'Activities',depts:['Activities']},{name:'Lucy Malcolm',role:'Activities',depts:['Activities']},
- {name:'Kim Beatrez',role:'Dietary',depts:['Dietary']},{name:'Annie Vang',role:'Medical Records',depts:['Administration']},{name:'Kelsey Kennington',role:'HR / AP / Payroll',depts:'*'},
+ {name:'Yessi Flores',role:'DSD / Infection Prevention',depts:['Nursing']},{name:'Randy Bago',role:'Admissions',depts:[]},{name:'Belem Gonzalez',role:'Business Office',depts:[]},
+ {name:'Valerie Estrada',role:'Social Services',depts:[]},{name:'Michael Miller',role:'Activities',depts:[]},{name:'Lucy Malcolm',role:'Activities',depts:['Activities']},
+ {name:'Kim Beatrez',role:'Dietary',depts:['Dietary']},{name:'Annie Vang',role:'Medical Records',depts:[]},{name:'Kelsey Kennington',role:'HR / AP / Payroll',depts:'*'},
  {name:'Sebastian Lopez',role:'Maintenance / EVS',depts:['Housekeeping / Maintenance']},{name:'Joe Fronteras',role:'Rehab',depts:['Rehab']},{name:'Stephen Badger',role:'Administrator',depts:'*'}
 ];
 // Excusing a call-out (protected leave, schedule error) is limited to DON / HR / Administrator.
@@ -174,8 +174,10 @@ function logOut(){ls('rl_name',null);ls('su_pin',null);location.href=new URL('..
 
 async function loadMonth(){S.data=await rpc('reliability_month',{p_pin:S.pin,p_month:S.month})}
 async function loadQueue(){S.queue=await rpc('reliability_ot_queue',{p_pin:S.pin})}
-// each reviewer sees their own department's OT; DON, HR/payroll, and the Administrator see all
+// each reviewer sees their own department's OT; DON, HR/payroll, and the Administrator see all.
+// depts:[] = views the clean-month list only (the database also enforces the approver list in reliability_config.ot_approvers)
 function inScope(dept){var p=ROSTER.filter(function(x){return x.name===S.name})[0];if(!p)return false;return p.depts==='*'||p.depts.indexOf(dept||'')>=0}
+function canApprove(){var p=ROSTER.filter(function(x){return x.name===S.name})[0];return !!p&&(p.depts==='*'||p.depts.length>0)}
 function myPending(){return ((S.queue&&S.queue.pending)||[]).filter(function(i){return inScope(i.dept)})}
 
 // ---------- render ----------
@@ -279,6 +281,7 @@ var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dmd(d){var p=String(d).slice(0,10).split('-');return DOW[new Date(+p[0],p[1]-1,+p[2]).getDay()]+' '+(+p[1])+'/'+(+p[2])}
 function hm(t){if(!t)return '?';var a=t.split(':'),h=+a[0];return ((h+11)%12+1)+':'+a[1]+(h<12?'a':'p')}
 function renderOT(){
+  if(!canApprove())return '<div class="card"><div class="big" style="font-size:20px">Overtime review</div><p class="muted" style="margin-top:6px">You don\'t approve OT. Donna, Kelsey, or Stephen review OT for your department.</p></div>';
   var q=S.queue||{pending:[],recent:[]},list=myPending(),recent=(q.recent||[]).filter(function(i){return inScope(i.dept)});
   var h='<div class="card"><div class="big" style="font-size:20px">Overtime to review'+(list.length?' — '+list.length:'')+'</div>'+
     '<p class="muted" style="margin-top:4px">OT from Paycom punches, the morning after. Tap a reason to approve, or <b>Not approved</b>. OT left here or marked not approved keeps the employee off the clean-month list.</p>';
