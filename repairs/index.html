@@ -55,6 +55,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .tag.hot{background:#fdecea;color:var(--danger)}
 .tag.done{background:#eafaf1;color:var(--success)}
 .load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
+.rep.pickup{border-left-color:var(--primary-light)}
+.rep.long{border-left-color:var(--danger)}
+.rep .acts{display:flex;gap:8px;margin-top:10px}
+.mini{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;font-family:inherit}
+.mini.go{background:var(--success);border-color:var(--success);color:#fff}
+.sumrow{display:flex;gap:8px;margin-bottom:12px}
+.sum{flex:1;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.sum .n{font-size:22px;font-weight:800;color:var(--primary)}
+.sum .l{font-size:10.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px}
+.twocol{display:flex;gap:10px}.twocol>div{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -97,7 +107,7 @@ function esc(s){var d=document.createElement('div');d.textContent=s==null?'':Str
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
 function editIdentity(){view='identity';render()}
-function go(v){view=v;render();window.scrollTo(0,0);if(v==='open'&&!openLoaded)loadOpen()}
+function go(v){view=v;render();window.scrollTo(0,0);if(v==='open'&&!openLoaded)loadOpen();if(v==='rentals'&&!rentLoaded)loadRentals()}
 function fmtDate(s){if(!s)return'';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})}
 function issueLabel(v){var f=ISSUES.filter(function(i){return i.v===v})[0];return f?f.l.replace('⚠️ ',''):v}
 
@@ -131,6 +141,7 @@ function tabs(active){
   return '<div class="tabs">'+
    '<div class="tab'+(active==='submit'?' on':'')+'" onclick="go(\'submit\')">Report It</div>'+
    '<div class="tab'+(active==='open'?' on':'')+'" onclick="go(\'open\')">Open Repairs</div>'+
+   '<div class="tab'+(active==='rentals'?' on':'')+'" onclick="go(\'rentals\')">Rentals</div>'+
    '</div>';
 }
 function submitView(){
@@ -237,6 +248,158 @@ function repCard(r){
    '</div></div>';
 }
 
+// ── Rentals: rented equipment on the floor, so nothing stays on rent after it's needed.
+// Room/location only — never a resident name.
+var RENT_CATS=[
+ {v:'bed_mattress',l:'Bed / mattress'},
+ {v:'wound_vac',l:'Wound vac'},
+ {v:'respiratory',l:'Oxygen / respiratory'},
+ {v:'mobility_lift',l:'Lift / mobility'},
+ {v:'iv_pump',l:'IV / feeding pump'},
+ {v:'bariatric',l:'Bariatric'},
+ {v:'other',l:'Other'}
+];
+var LONG_DAYS=30;
+var rentals=[], rentLoaded=false, rentAdding=false, rentForm=blankRent();
+function blankRent(){return{item:'',cat:'',vendor:'',location:'',rented_on:todayISO(),rate:'',ref:'',notes:''}}
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function catLabel(v){var f=RENT_CATS.filter(function(c){return c.v===v})[0];return f?f.l:v}
+function daysOn(r){
+  var a=new Date(r.rented_on+'T00:00:00'), b=r.returned_on?new Date(r.returned_on+'T00:00:00'):new Date(todayISO()+'T00:00:00');
+  return Math.max(0,Math.round((b-a)/864e5));
+}
+function money(n){return '$'+Math.round(n).toLocaleString('en-US')}
+function fmtDay(s){return s?fmtDate(s+'T00:00:00'):''}
+
+async function loadRentals(){
+  var since=new Date(Date.now()-864e5*30).toISOString().slice(0,10);
+  var res=await sb.from('equipment_rentals').select('*')
+    .or('status.in.(on_rent,pickup_requested),returned_on.gte.'+since)
+    .order('rented_on',{ascending:true}).limit(200);
+  rentals=res.data||[];rentLoaded=true;render();
+}
+function rentalsView(){
+  var h=tabs('rentals');
+  if(rentAdding)return h+rentFormView();
+  if(!rentLoaded)return h+'<div class="load">Loading…</div>';
+  var act=rentals.filter(function(r){return r.status!=='returned'});
+  var back=rentals.filter(function(r){return r.status==='returned'}).reverse();
+  var perDay=act.reduce(function(s,r){return s+(Number(r.daily_rate)||0)},0);
+  var long=act.filter(function(r){return daysOn(r)>=LONG_DAYS}).length;
+  h+='<div class="sumrow">'+
+     '<div class="sum"><div class="n">'+act.length+'</div><div class="l">On rent</div></div>'+
+     '<div class="sum"><div class="n"'+(long?' style="color:var(--danger)"':'')+'>'+long+'</div><div class="l">'+LONG_DAYS+'+ days</div></div>'+
+     '<div class="sum"><div class="n">'+(perDay?'$'+perDay.toFixed(2):'—')+'</div><div class="l">Per day</div></div>'+
+     '</div>';
+  h+='<button class="btn btn-accent" onclick="startRent()">+ Log a Rental</button><div style="height:12px"></div>';
+  h+='<div class="card">';
+  if(!act.length)h+='<div class="empty">No rented equipment on the floor.</div>';
+  else h+=act.map(rentCard).join('');
+  h+='</div>';
+  h+='<div class="hint" style="margin:-4px 2px 4px">Still need it? Leave it. Not needed anymore? Tap <b>Call for pickup</b> — every day on rent is billed until the vendor takes it back.</div>';
+  if(back.length){
+    h+='<div style="font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 8px">Returned — last 30 days</div>'+
+       '<div class="card">'+back.map(rentCard).join('')+'</div>';
+  }
+  h+='<div style="text-align:center;margin-top:14px"><button class="btn btn-ghost" onclick="rentLoaded=false;loadRentals()">Refresh</button></div>';
+  return h;
+}
+function rentCard(r){
+  var d=daysOn(r), ret=r.status==='returned';
+  var cls=ret?'fixed':r.status==='pickup_requested'?'pickup':d>=LONG_DAYS?'long':'';
+  var cost=r.daily_rate?money(Number(r.daily_rate)*d):'';
+  var h='<div class="rep '+cls+'">'+
+   '<div class="txt">'+esc(r.item)+(r.location?' <span style="font-weight:400;color:var(--text-light)">· '+esc(r.location)+'</span>':'')+'</div>'+
+   '<div class="meta">'+
+   (ret?'<span class="tag done">Returned '+fmtDay(r.returned_on)+'</span>'
+       :r.status==='pickup_requested'?'<span class="tag">Pickup called '+fmtDate(r.pickup_requested_at)+'</span>'
+       :'<span class="tag'+(d>=LONG_DAYS?' hot':'')+'">'+d+' day'+(d===1?'':'s')+' on rent</span>')+
+   '<span class="tag">'+esc(catLabel(r.category))+'</span>'+
+   (r.vendor?'<span>· '+esc(r.vendor)+'</span>':'')+
+   '<span>· since '+fmtDay(r.rented_on)+'</span>'+
+   (cost?'<span>· '+cost+(ret?'':' so far')+'</span>':'')+
+   (r.order_ref?'<span>· #'+esc(r.order_ref)+'</span>':'')+
+   '</div>'+
+   (r.notes?'<div class="hint" style="margin-top:5px">'+esc(r.notes)+'</div>':'');
+  if(!ret){
+    h+='<div class="acts">'+
+      (r.status==='on_rent'?'<button class="mini" onclick="setRent(\''+r.id+'\',\'pickup_requested\')">📞 Call for pickup</button>'
+                           :'<button class="mini" onclick="setRent(\''+r.id+'\',\'on_rent\')">Undo pickup</button>')+
+      '<button class="mini go" onclick="setRent(\''+r.id+'\',\'returned\')">✓ Picked up</button></div>';
+  }else{
+    h+='<div class="acts"><button class="mini" onclick="setRent(\''+r.id+'\',\'on_rent\')">Undo — still here</button></div>';
+  }
+  return h+'</div>';
+}
+function startRent(){
+  if(!me.name){view='identity';render();return}
+  rentAdding=true;rentForm=blankRent();render();window.scrollTo(0,0);
+}
+function rentFormView(){
+  var vendors=[];rentals.forEach(function(r){if(r.vendor&&vendors.indexOf(r.vendor)<0)vendors.push(r.vendor)});
+  return '<div class="card">'+
+   '<div style="font-size:15px;line-height:1.55"><b>Log rented equipment</b> so we can track it and send it back as soon as it\'s not needed.</div>'+
+   '<label>What equipment?</label>'+
+   '<input id="rItem" value="'+esc(rentForm.item)+'" placeholder="e.g. low air loss mattress, wound vac, Hoyer lift">'+
+   '<label>Type</label>'+
+   '<div class="cats">'+RENT_CATS.map(function(c){
+     return '<div class="cat'+(rentForm.cat===c.v?' on':'')+'" onclick="pickRentCat(\''+c.v+'\')">'+c.l+'</div>';
+   }).join('')+'</div>'+
+   '<label>Where is it?</label>'+
+   '<input id="rLoc" value="'+esc(rentForm.location)+'" placeholder="Room number or area — no resident names">'+
+   '<label>Rental company <span class="opt">— optional</span></label>'+
+   '<input id="rVendor" list="vendorList" value="'+esc(rentForm.vendor)+'" placeholder="Who we rented it from">'+
+   '<datalist id="vendorList">'+vendors.map(function(v){return '<option value="'+esc(v)+'">'}).join('')+'</datalist>'+
+   '<div class="twocol">'+
+   '<div><label>Delivered on</label><input id="rDate" type="date" max="'+todayISO()+'" value="'+esc(rentForm.rented_on)+'"></div>'+
+   '<div><label>Daily rate <span class="opt">— opt.</span></label><input id="rRate" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(rentForm.rate)+'" placeholder="$ / day"></div>'+
+   '</div>'+
+   '<label>Order / ticket # <span class="opt">— optional</span></label>'+
+   '<input id="rRef" value="'+esc(rentForm.ref)+'" placeholder="From the delivery slip">'+
+   '<label>Notes <span class="opt">— optional</span></label>'+
+   '<textarea id="rNotes" placeholder="Why it was ordered, who to call for pickup… (no resident names)">'+esc(rentForm.notes)+'</textarea>'+
+   '<div style="height:20px"></div>'+
+   '<button class="btn btn-accent" id="rentBtn" onclick="submitRent()">Save Rental</button>'+
+   '<div style="height:9px"></div>'+
+   '<button class="btn btn-ghost" onclick="rentAdding=false;render()">Cancel</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">Logging as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+'</div>'+
+   '</div>';
+}
+function readRent(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+  rentForm.item=g('rItem');rentForm.location=g('rLoc');rentForm.vendor=g('rVendor');
+  rentForm.rented_on=g('rDate');rentForm.rate=g('rRate');rentForm.ref=g('rRef');rentForm.notes=g('rNotes');
+}
+function pickRentCat(v){readRent();rentForm.cat=(rentForm.cat===v?'':v);render()}
+async function submitRent(){
+  if(busy)return;
+  readRent();
+  if(rentForm.item.trim().length<2){toast('Tell us what equipment');return}
+  if(!rentForm.cat){toast('Pick the type of equipment');return}
+  if(!rentForm.location.trim()){toast('Tell us where it is');return}
+  var rate=rentForm.rate===''?null:Number(rentForm.rate);
+  if(rate!==null&&(isNaN(rate)||rate<0)){toast('Daily rate should be a dollar amount');return}
+  busy=true;
+  var b=document.getElementById('rentBtn');b.disabled=true;b.textContent='Saving…';
+  var r=await sb.rpc('submit_equipment_rental',{
+    p_name:me.name,p_dept:me.dept,
+    p_item:rentForm.item.trim(),p_category:rentForm.cat,
+    p_vendor:rentForm.vendor.trim()||null,p_location:rentForm.location.trim(),
+    p_rented_on:rentForm.rented_on||null,p_daily_rate:rate,
+    p_order_ref:rentForm.ref.trim()||null,p_notes:rentForm.notes.trim()||null
+  });
+  busy=false;b.disabled=false;b.textContent='Save Rental';
+  if(r.error||!r.data){toast('Could not save — '+((r.error&&r.error.message)||'please try again'));return}
+  rentAdding=false;rentLoaded=false;toast('Rental logged');loadRentals();render();
+}
+async function setRent(id,status){
+  if(!me.name){view='identity';render();return}
+  var r=await sb.rpc('set_equipment_rental_status',{p_id:id,p_status:status,p_name:me.name});
+  if(r.error){toast('Could not update — '+r.error.message);return}
+  toast(status==='returned'?'Marked picked up':status==='pickup_requested'?'Marked — pickup called':'Back on rent');
+  loadRentals();
+}
+
 // Shared phone: hand the app back to the next person. Clears the identity shared by
 // the Ideas / Repairs / Shout Outs / Supply apps and returns to the sign-in screen.
 function logout(){
@@ -247,6 +410,7 @@ function render(){
   whoChip();
   var el=document.getElementById('app');
   if(view==='open'){el.innerHTML=openView();return}
+  if(view==='rentals'){el.innerHTML=rentalsView();return}
   if(!me.name||view==='identity'){el.innerHTML=identityView();return}
   if(view==='thanks'){el.innerHTML=thanksView();return}
   el.innerHTML=submitView();
