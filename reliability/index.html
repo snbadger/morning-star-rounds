@@ -66,6 +66,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .roster button{padding:12px 10px;border-radius:10px;border:1.5px solid var(--border);background:#fff;text-align:left;cursor:pointer;font-family:inherit}
 .roster button b{display:block;font-size:14.5px;color:var(--text)}
 .roster button span{font-size:12px;color:var(--text-light)}
+.toast button{margin-left:14px;background:none;border:0;color:#7fd3ff;font:inherit;font-weight:800;cursor:pointer;padding:0}
+.toast.act{pointer-events:auto}
+.otc{border-top:1px solid var(--border);padding:12px 2px}
+.otc:first-child{border-top:0}
+.otc .hd{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.otc .hd b{font-size:15px}
+.otc .hd .sub2{font-size:12.5px;color:var(--text-light);margin-top:2px}
+.otc .hrs{font-size:15px;font-weight:800;color:var(--warn);white-space:nowrap}
+.otc .chips{margin-top:9px}
+.otc .no{margin-top:8px;background:none;border:1.5px solid var(--danger);color:var(--danger);border-radius:18px;padding:6px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.badge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:10px;background:var(--danger);color:#fff;font-size:11.5px;font-weight:800}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13.5px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
@@ -90,21 +101,24 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 
 // OT approvers = department heads + DON (Room Rounds ROSTER is the source of truth).
 var ROSTER=[
- {name:'Donna Rogers',role:'Director of Nursing'},{name:'Savanna McCormick',role:'ADON'},{name:'Amandeep Brar',role:'MDS'},
- {name:'Yessi Flores',role:'DSD / Infection Prevention'},{name:'Randy Bago',role:'Admissions'},{name:'Belem Gonzalez',role:'Business Office'},
- {name:'Valerie Estrada',role:'Social Services'},{name:'Michael Miller',role:'Activities'},{name:'Lucy Malcolm',role:'Activities'},
- {name:'Kim Beatrez',role:'Dietary'},{name:'Annie Vang',role:'Medical Records'},{name:'Kelsey Kennington',role:'HR / AP / Payroll'},
- {name:'Sebastian Lopez',role:'Maintenance / EVS'},{name:'Joe Fronteras',role:'Rehab'},{name:'Stephen Badger',role:'Administrator'}
+ {name:'Donna Rogers',role:'Director of Nursing',depts:'*'},{name:'Savanna McCormick',role:'ADON',depts:['Nursing','Respiratory']},{name:'Amandeep Brar',role:'MDS',depts:['Nursing']},
+ {name:'Yessi Flores',role:'DSD / Infection Prevention',depts:['Nursing']},{name:'Randy Bago',role:'Admissions',depts:['Administration']},{name:'Belem Gonzalez',role:'Business Office',depts:['Administration']},
+ {name:'Valerie Estrada',role:'Social Services',depts:['Social Services']},{name:'Michael Miller',role:'Activities',depts:['Activities']},{name:'Lucy Malcolm',role:'Activities',depts:['Activities']},
+ {name:'Kim Beatrez',role:'Dietary',depts:['Dietary']},{name:'Annie Vang',role:'Medical Records',depts:['Administration']},{name:'Kelsey Kennington',role:'HR / AP / Payroll',depts:'*'},
+ {name:'Sebastian Lopez',role:'Maintenance / EVS',depts:['Housekeeping / Maintenance']},{name:'Joe Fronteras',role:'Rehab',depts:['Rehab']},{name:'Stephen Badger',role:'Administrator',depts:'*'}
 ];
 // Excusing a call-out (protected leave, schedule error) is limited to DON / HR / Administrator.
 var EXCUSERS=['Donna Rogers','Kelsey Kennington','Stephen Badger'];
 var REASONS=['Short-staffed / call-off coverage','Census or acuity','Admission or discharge','Meeting or training','Finishing care / report'];
 
-var S={pin:null,name:null,role:null,boot:null,tab:'month',month:null,data:null,open:{},filter:'all',dept:'',sort:'name',form:{eecode:'',date:'',hours:'',reason:'',note:''},busy:false};
+var UNDO_MS=6000;
+var S={queue:null,showAhead:false,pin:null,name:null,role:null,boot:null,tab:'month',month:null,data:null,open:{},filter:'all',dept:'',sort:'name',form:{eecode:'',date:'',hours:'',reason:'',note:''},busy:false};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},2600)}
+function toast(m,btn,fn,ms){var t=document.getElementById('toast');t.textContent=m;t.classList.toggle('act',!!btn);
+  if(btn){var b=document.createElement('button');b.textContent=btn;b.onclick=function(){t.classList.remove('show','act');fn()};t.appendChild(b)}
+  t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show','act')},ms||2600)}
 function md(d){if(!d)return '';var p=String(d).slice(0,10).split('-');return (+p[1])+'/'+(+p[2])}
 function monLabel(d){var p=String(d).slice(0,10).split('-');return ['January','February','March','April','May','June','July','August','September','October','November','December'][+p[1]-1]+' '+p[0]}
 // Paycom names are "LAST, FIRST M" → "First Last"
@@ -136,7 +150,7 @@ async function boot(){
   if(!S.name||!S.role)return showWho();
   if(!S.form.date)S.form.date=S.boot.today;
   if(!S.month){var t=S.boot.today.slice(0,8)+'01';S.month=t}
-  await loadMonth();render();
+  await Promise.all([loadMonth(),loadQueue()]);render();
 }
 function showPin(msg){
   app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Leadership PIN</div><p class="muted" style="margin-top:6px">Same PIN as the leadership tools on the hub.</p>'+
@@ -159,11 +173,15 @@ function switchUser(){if(!S.pin)return;S.name=null;S.role=null;ls('rl_name',null
 function logOut(){ls('rl_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
 
 async function loadMonth(){S.data=await rpc('reliability_month',{p_pin:S.pin,p_month:S.month})}
+async function loadQueue(){S.queue=await rpc('reliability_ot_queue',{p_pin:S.pin})}
+// each reviewer sees their own department's OT; DON, HR/payroll, and the Administrator see all
+function inScope(dept){var p=ROSTER.filter(function(x){return x.name===S.name})[0];if(!p)return false;return p.depts==='*'||p.depts.indexOf(dept||'')>=0}
+function myPending(){return ((S.queue&&S.queue.pending)||[]).filter(function(i){return inScope(i.dept)})}
 
 // ---------- render ----------
 function render(){
   var h='<div class="seg"><button class="'+(S.tab==='month'?'on':'')+'" onclick="go(\'month\')">Clean Month</button>'+
-        '<button class="'+(S.tab==='ot'?'on':'')+'" onclick="go(\'ot\')">Approve OT</button></div>';
+        '<button class="'+(S.tab==='ot'?'on':'')+'" onclick="go(\'ot\')">Approve OT'+(myPending().length?'<span class="badge">'+myPending().length+'</span>':'')+'</button></div>';
   h+=S.tab==='ot'?renderOT():renderMonth();
   h+='<button class="btn btn-quiet" style="margin-top:18px" onclick="logOut()">Done — log out</button>';
   app().innerHTML=h;
@@ -257,11 +275,48 @@ function excuse(shiftId){
 function unexcuse(id){guard(async function(){await rpc('reliability_unexcuse',{p_pin:S.pin,p_id:id,p_by:S.name});await loadMonth();render();toast('Excuse removed')})}
 
 // ----- Approve OT -----
+var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function dmd(d){var p=String(d).slice(0,10).split('-');return DOW[new Date(+p[0],p[1]-1,+p[2]).getDay()]+' '+(+p[1])+'/'+(+p[2])}
+function hm(t){if(!t)return '?';var a=t.split(':'),h=+a[0];return ((h+11)%12+1)+':'+a[1]+(h<12?'a':'p')}
 function renderOT(){
+  var q=S.queue||{pending:[],recent:[]},list=myPending(),recent=(q.recent||[]).filter(function(i){return inScope(i.dept)});
+  var h='<div class="card"><div class="big" style="font-size:20px">Overtime to review'+(list.length?' — '+list.length:'')+'</div>'+
+    '<p class="muted" style="margin-top:4px">OT from Paycom punches, the morning after. Tap a reason to approve, or <b>Not approved</b>. OT left here or marked not approved keeps the employee off the clean-month list.</p>';
+  if(!list.length)h+='<div class="muted" style="padding:14px 0 4px">Nothing to review. 🎉'+(q.from>S.boot.today?' OT from '+md(q.from)+' on shows up here the morning after.':'')+'</div>';
+  list.forEach(function(i,n){
+    h+='<div class="otc"><div class="hd"><div><b>'+esc(nice(i.name))+'</b><div class="sub2">'+esc(i.position||i.dept||'')+' · '+dmd(i.date)+' · '+hm(i.in)+'–'+hm(i.out)+(i.out_date&&i.out_date!==i.date?' (next day)':'')+' · '+i.worked_hours+' hrs worked</div></div>'+
+      '<div class="hrs">+'+i.ot_hours+' OT</div></div>'+
+      '<div class="chips">'+REASONS.map(function(r,k){return '<button class="chip" onclick="decide('+n+',\'approved\','+k+')">'+esc(r)+'</button>'}).join('')+'</div>'+
+      '<button class="no" onclick="decide('+n+',\'declined\')">Not approved</button></div>'});
+  h+='</div>';
+  if(recent.length){
+    h+='<div class="h2">Reviewed this week</div><div class="card">';
+    recent.forEach(function(a){h+='<div class="appr"><div class="nm"><b>'+esc(nice(a.name))+'</b> · '+dmd(a.date)+(a.ot_hours!=null?' · '+a.ot_hours+' hrs':'')+
+      '<div>'+(a.status==='approved'?'<span class="pill p-ok">Approved</span> '+esc(a.reason||''):'<span class="pill p-red">Not approved</span>')+' — '+esc(a.by)+'</div></div>'+
+      '<button class="btn btn-quiet btn-sm" onclick="undoDecision('+a.id+')">Undo</button></div>'});
+    h+='</div>';
+  }
+  h+='<button class="btn btn-quiet" style="margin-top:14px" onclick="S.showAhead=!S.showAhead;render()">'+(S.showAhead?'Hide':'Approve OT ahead of time')+'</button>';
+  if(S.showAhead)h+=renderAhead();
+  return h;
+}
+function decide(n,status,k){
+  var i=myPending()[n];if(!i)return;
+  guard(async function(){
+    var id=await rpc('reliability_decide_ot',{p_pin:S.pin,p_eecode:i.eecode,p_work_date:i.date,p_status:status,p_reason:status==='approved'?REASONS[k]:null,p_by:S.name,p_role:S.role});
+    S.queue.pending=S.queue.pending.filter(function(x){return x!==i});render();
+    toast((status==='approved'?'Approved':'Not approved')+' — '+nice(i.name)+' '+md(i.date),'Undo',function(){undoDecision(id)},UNDO_MS);
+    loadQueue().then(function(){return loadMonth()}).then(render).catch(function(){});
+  })
+}
+function undoDecision(id){
+  guard(async function(){await rpc('reliability_void_ot',{p_pin:S.pin,p_id:id,p_by:S.name});await Promise.all([loadQueue(),loadMonth()]);render();toast('Undone — back in the list')})
+}
+function renderAhead(){
   var f=S.form,staff=S.boot.staff||[];
   var byDept={};staff.forEach(function(s){(byDept[s.dept||'Other']=byDept[s.dept||'Other']||[]).push(s)});
-  var h='<div class="card"><div class="big" style="font-size:20px">Approve overtime</div>'+
-    '<p class="muted" style="margin-top:4px">Log it before the shift (or the same day). OT without an approval here keeps the employee off the clean-month list.</p>'+
+  var h='<div class="card" style="margin-top:10px"><div class="big" style="font-size:20px">Approve ahead of time</div>'+
+    '<p class="muted" style="margin-top:4px">Already know someone will stay late? Approve it here and it won\'t show up for review.</p>'+
     '<label>Employee</label><select id="f_ee" onchange="S.form.eecode=this.value"><option value="">Choose…</option>'+
     Object.keys(byDept).sort().map(function(k){return '<optgroup label="'+esc(k)+'">'+byDept[k].slice().sort(function(a,b){return nice(a.name).localeCompare(nice(b.name))}).map(function(s){return '<option value="'+esc(s.eecode)+'"'+(f.eecode===s.eecode?' selected':'')+'>'+esc(nice(s.name))+(s.position?' — '+esc(s.position):'')+'</option>'}).join('')+'</optgroup>'}).join('')+'</select>'+
     '<div class="row2"><div><label>Date of the shift</label><input id="f_date" type="date" value="'+esc(f.date)+'" onchange="S.form.date=this.value"></div>'+
@@ -270,7 +325,7 @@ function renderOT(){
     '<input id="f_note" style="margin-top:8px" placeholder="Details (optional)" value="'+esc(f.note)+'" oninput="S.form.note=this.value">'+
     '<button class="btn btn-primary" style="margin-top:14px" onclick="approve()">Approve OT as '+esc(S.name)+'</button></div>';
   var ap=S.boot.approvals||[];
-  h+='<div class="h2">Approvals — last 30 days and upcoming</div><div class="card">';
+  h+='<div class="h2">Approved ahead — last 30 days and upcoming</div><div class="card">';
   if(!ap.length)h+='<div class="muted">No approvals yet.</div>';
   ap.forEach(function(a){h+='<div class="appr"><div class="nm"><b>'+esc(nice(a.ee_name))+'</b> · '+md(a.work_date)+(a.hours?' · '+a.hours+' hrs':'')+
     '<div>'+esc(a.reason)+' — approved by '+esc(a.approved_by)+'</div></div><button class="btn btn-quiet btn-sm" onclick="voidOT('+a.id+')">Remove</button></div>'});
@@ -286,7 +341,7 @@ function approve(){
   guard(async function(){
     await rpc('reliability_approve_ot',{p_pin:S.pin,p_eecode:f.eecode,p_work_date:f.date,p_hours:f.hours?+f.hours:null,p_reason:reason,p_by:S.name,p_role:S.role});
     S.form={eecode:'',date:S.boot.today,hours:'',reason:'',note:''};
-    S.boot=await rpc('reliability_bootstrap',{p_pin:S.pin});await loadMonth();render();toast('OT approved')
+    S.boot=await rpc('reliability_bootstrap',{p_pin:S.pin});await Promise.all([loadMonth(),loadQueue()]);render();toast('OT approved')
   })
 }
 function voidOT(id){
