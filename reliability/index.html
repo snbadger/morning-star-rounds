@@ -205,6 +205,7 @@ function renderMonth(){
     '<div class="tile"><b>'+zeroMiss+'</b><span>0 missed punches</span></div></div>'+
     (d.month>=S.boot.today.slice(0,8)+'01'?'<div class="note">This month is still in progress. The list can change until the month closes.</div>':'')+
     (!otScored?'<div class="note">Unapproved OT is not scored for this month. The approval log starts '+md(cfg.ot_scoring_start)+'.</div>':'')+
+    (d.month<cfg.timecard_scoring_start?'<div class="note">Timecard approval is not scored for this month. It starts '+md(cfg.timecard_scoring_start)+'.</div>':'')+
     (!missScored?'<div class="note">Missed punches are not scored for this month. Starting '+md(cfg.missed_scoring_start)+', more than '+maxMiss+' missed punch'+(maxMiss===1?'':'es')+' in a month costs the clean month.</div>':'')+
     '</div>';
 
@@ -233,7 +234,8 @@ function renderMonth(){
   if(!list.length)h+='<div class="muted" style="padding:10px 0">No one matches.</div>';
   list.forEach(function(r){h+=personRow(r)});
   h+='</div></div>';
-  h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'). '+
+  h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'), and every timecard approved in Paycom by the end of each pay period (from '+md(cfg.timecard_scoring_start)+'). '+
+     'Approval is checked once, about 2 days after the pay period closes (1st–15th and 16th–end of month); approving later does not change it. '+
      'A call-out is a Veras shift with no punch, or a Paycom sick, unpaid, or bereavement day with no punch. Any missed shift counts, whatever the reason, including protected sick, unpaid, and bereavement time; only pre-approved vacation or holiday does not.</div>';
   return h;
 }
@@ -242,7 +244,7 @@ function missClass(r){if(+r.missed===0)return 'p-ok';if(!r.missed_scored)return 
 function personRow(r){
   var st=!r.eligible?'<span class="pill p-no">'+r.days+' days</span>':r.clean?'<span class="pill p-ok">⭐ Clean</span>':'';
   var h='<div class="person"><div class="top" onclick="toggle(\''+r.eecode+'\')"><div class="nm"><b>'+esc(nice(r.name))+' '+st+'</b><span>'+esc(r.dept||'')+(r.position?' · '+esc(r.position):'')+' · '+r.days+' days</span></div>'+
-    '<div class="marks">'+mark(+r.ot_unapproved===0,'OT',r.ot_scored)+mark(+r.callouts===0,'Call-outs',r.co_scored)+mark(+r.meal===0,'Meals')+
+    '<div class="marks">'+mark(+r.ot_unapproved===0,'OT',r.ot_scored)+mark(+r.callouts===0,'Call-outs',r.co_scored)+mark(+r.meal===0,'Meals')+mark(+r.tc_unapproved===0,'Timecards',r.tc_scored)+
     '<span class="pill '+missClass(r)+'">'+r.missed+' missed</span></div></div>';
   if(S.open[r.eecode])h+=detail(r);
   return h+'</div>';
@@ -265,6 +267,10 @@ function detail(r){
   r.meal_list.forEach(function(m){h+='<div class="ln"><span>'+md(m.date)+' · '+esc(m.reason)+'</span></div>'});
   var mx=+S.boot.config.max_missed_punches;
   h+='<h4>Missed punches'+(r.missed_scored?' ('+mx+' allowed)':' (tracked, not scored this month)')+'</h4><div>'+(+r.missed===0?'None — every punch on the clock. 👏':r.missed+' "Forgot Punch" edits this month.'+(r.missed_scored&&+r.missed>mx?' Over the limit of '+mx+'.':''))+'</div>';
+  h+='<h4>Timecard approval'+(r.tc_scored?'':' (tracked, not scored this month)')+'</h4>';
+  if(!r.tc_list.length)h+='<div class="muted">No pay period checked yet. Checked about 2 days after each pay period closes.</div>';
+  r.tc_list.forEach(function(t){h+='<div class="ln"><span>Pay period '+md(t.start)+'–'+md(t.end)+(+t.unapproved?' · '+t.unapproved+' day'+(+t.unapproved===1?'':'s')+' not approved'+(t.dates&&t.dates.length?' ('+t.dates.map(md).join(', ')+')':''):'')+'</span>'+
+    (+t.unapproved?'<span class="pill '+(r.tc_scored?'p-red':'p-no')+'">Not approved</span>':'<span class="pill p-ok">Approved</span>')+'</div>'});
   return h+'</div>';
 }
 function toggle(id){S.open[id]=!S.open[id];render()}
