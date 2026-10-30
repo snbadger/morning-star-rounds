@@ -408,7 +408,7 @@ function renderSummary(){
  // Rounds Completed %
  h('div',{className:'kpi-strip',style:{gridTemplateColumns:'repeat(2,1fr)'}},
  h('div',{className:'kpi '+cls(rs.comp)},h('div',{className:'kpi-val'},rs.comp+'%'),h('div',{className:'kpi-label'},'Rounds Completed Today'),h('div',{className:'kpi-sub'},rs.rounded+' of '+rs.assigned.length+' rounders')),
- h('div',{className:'kpi '+cls(wk.pct)},h('div',{className:'kpi-val'},wk.pct+'%'),h('div',{className:'kpi-label'},'Rounds Completed This Week'),h('div',{className:'kpi-sub'},wk.done+' of '+wk.total+' rounds'))
+ h('div',{className:'kpi '+cls(wk.pct),style:{gridColumn:'auto'}},h('div',{className:'kpi-val'},wk.pct+'%'),h('div',{className:'kpi-label'},'Rounds Completed This Week'),h('div',{className:'kpi-sub'},wk.done+' of '+wk.total+' rounds'))
  ),
  // Rounding Compliance Grid
  h('div',{className:'card'},
