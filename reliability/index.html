@@ -227,14 +227,14 @@ function renderMonth(){
   if(S.sort==='missed')list=list.slice().sort(function(a,b){return (+a.missed)-(+b.missed)||nice(a.name).localeCompare(nice(b.name))});
   else list=list.slice().sort(function(a,b){return nice(a.name).localeCompare(nice(b.name))});
   h+='<div class="h2">Everyone</div><div class="card">'+
-    '<div class="chips">'+[['all','All'],['clean','Clean'],['notclean','Not clean'],['inelig','Under '+cfg.min_days_worked+' days']].map(function(f){return '<button class="chip'+(S.filter===f[0]?' on':'')+'" onclick="setF(\'filter\',\''+f[0]+'\')">'+f[1]+'</button>'}).join('')+'</div>'+
+    '<div class="chips">'+[['all','All'],['clean','Clean'],['notclean','Not clean']].concat(+cfg.min_days_worked>1?[['inelig','Under '+cfg.min_days_worked+' days']]:[]).map(function(f){return '<button class="chip'+(S.filter===f[0]?' on':'')+'" onclick="setF(\'filter\',\''+f[0]+'\')">'+f[1]+'</button>'}).join('')+'</div>'+
     '<div class="row2" style="margin-top:10px"><select onchange="setF(\'dept\',this.value)"><option value="">All departments</option>'+depts.map(function(x){return '<option'+(S.dept===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select>'+
     '<select onchange="setF(\'sort\',this.value)"><option value="name"'+(S.sort==='name'?' selected':'')+'>Sort by name</option><option value="missed"'+(S.sort==='missed'?' selected':'')+'>Fewest missed punches</option></select></div>'+
     '<div style="margin-top:8px">';
   if(!list.length)h+='<div class="muted" style="padding:10px 0">No one matches.</div>';
   list.forEach(function(r){h+=personRow(r)});
   h+='</div></div>';
-  h+='<div class="note">A <b>clean month</b> means at least '+cfg.min_days_worked+' days worked, with zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'), and every timecard approved in Paycom by the end of each pay period (from '+md(cfg.timecard_scoring_start)+'). '+
+  h+='<div class="note">A <b>clean month</b> means '+(+cfg.min_days_worked>1?'at least '+cfg.min_days_worked+' days worked, with ':'')+'zero unapproved OT, zero unexcused call-outs, zero meal penalties, and no more than '+cfg.max_missed_punches+' missed punch'+(+cfg.max_missed_punches===1?'':'es')+' (from '+md(cfg.missed_scoring_start)+'), and every timecard approved in Paycom by the end of each pay period (from '+md(cfg.timecard_scoring_start)+'). '+
      'Approval is checked once, about 2 days after the pay period closes (1st–15th and 16th–end of month); approving later does not change it. '+
      'A call-out is a Veras shift with no punch, or a Paycom sick, unpaid, or bereavement day with no punch. Any missed shift counts, whatever the reason, including protected sick, unpaid, and bereavement time; only pre-approved vacation or holiday does not.</div>';
   return h;
