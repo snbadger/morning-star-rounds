@@ -292,17 +292,22 @@ function statusBy(v,good,warn,higherIsBetter){
 
 function buildCards(){
   var L=S.live||{},T=trends(),cards=[];
-  var cen=(L.census||[])[0]||{},mtd=L.census_mtd||{},bud=L.budget_adc||T.budget_adc;
+  var cen=L.census_now||(L.census||[])[0]||{},mtd=L.census_mtd||{},bud=L.budget_adc||T.budget_adc;
   var day7=addDays(S.today,-7),day30=addDays(S.today,-30);
 
   // 1 Census — ADC vs budget (SQCDP C)
   var cser=(T.census||[]).slice(-14);
   var adcDelta=bud!=null&&mtd.avg_total!=null?mtd.avg_total-bud:null;
-  cards.push({title:'Census',sub:'PCC · '+md(cen.date),status:adcDelta==null?null:adcDelta>=0?'good':adcDelta>=-1?'warn':'bad',
+  // census_now = latest PCC census (or newer census board) moved forward by later 24-hr reports; open = 57 - total
+  var cOpen=cen.open_beds!=null?cen.open_beds:cen.total_census!=null?57-cen.total_census:null,cEmpty=cen.beds_empty||[];
+  cards.push({title:'Census',sub:cen.estimate?'PCC '+md(cen.base_date)+' + 24-hr report '+md(cen.report_date)+' · estimate'
+      :(cen.base_source==='Jericho Census board'?'Census board':'PCC')+' · '+md(cen.date),
+    status:adcDelta==null?null:adcDelta>=0?'good':adcDelta>=-1?'warn':'bad',
     label:adcDelta==null?'':'ADC '+num(mtd.avg_total,1)+' vs '+num(bud,1),
-    hero:[cen.total_census!=null?cen.total_census:'—','census incl. '+(cen.holds||0)+' bed hold'+(cen.holds==1?'':'s')+' · '+(cen.empty_beds!=null?cen.empty_beds+' open':'')],
-    line:'Medicare A '+num(cen.mcra_count)+' · HMO '+num(cen.hmo_count)+' · Medi-Cal '+num(cen.mcal_count)+(cen.holds?' · '+cen.holds+' hold':''),
-    chart:datedLine(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,foot:'14 days · dashed = budget ADC'});
+    hero:[cen.total_census!=null?(cen.estimate?'≈':'')+cen.total_census:'—','census incl. '+(cen.holds||0)+' bed hold'+(cen.holds==1?'':'s')+(cOpen!=null?' · '+cOpen+' open':'')],
+    line:'Medicare A '+num(cen.mcra_count)+' · HMO '+num(cen.hmo_count)+' · Medi-Cal '+num(cen.mcal_count)+(cen.payer_date&&cen.payer_date!==cen.date?' ('+md(cen.payer_date)+')':''),
+    chart:datedLine(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,
+    foot:(cEmpty.length?'Empty: '+cEmpty.join(', ')+' · ':'')+'14 days · dashed = budget ADC'});
 
   // 2 Admissions & discharges — census workbook + PCC ADT
   var pa=auto('pending_admissions')||{},dc=auto('discharges')||{},pend=rowsOf('pending_admissions'),plan=rowsOf('discharges').filter(function(r){return r.status==='planned'});
