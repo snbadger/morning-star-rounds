@@ -233,7 +233,7 @@ function lineChart(pts,o){
 // Line with the count above each point and its date underneath (labels are HTML so the stretched SVG doesn't distort them).
 function datedLine(pts,o){
   o=o||{};var W=300,H=100,px=18,py=18;
-  var vals=pts.map(function(p){return p.v}).filter(function(v){return v!=null});
+  var vals=pts.map(function(p){return p.v}).concat(o.ref||[]).filter(function(v){return v!=null});
   if(!vals.length)return '<div class="sub">No history yet</div>';
   var lo=Math.min.apply(null,vals.concat(o.goal!=null?[o.goal]:[])),hi=Math.max.apply(null,vals.concat(o.goal!=null?[o.goal]:[]));
   if(o.min!=null)lo=Math.min(lo,o.min);if(o.max!=null)hi=Math.max(hi,o.max);
@@ -243,6 +243,8 @@ function datedLine(pts,o){
   var d='',lastI=-1;pts.forEach(function(p,i){if(p.v==null)return;d+=(d?'L':'M')+x(i).toFixed(1)+' '+y(p.v).toFixed(1)+' ';lastI=i});
   var h='<div class="dc"><div class="dp"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
   if(o.goal!=null)h+='<line x1="0" x2="'+W+'" y1="'+y(o.goal).toFixed(1)+'" y2="'+y(o.goal).toFixed(1)+'" stroke="#9aa3ae" stroke-width="1.5" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>';
+  if(o.ref){var rd='';o.ref.forEach(function(v,i){if(v==null)return;rd+=(rd?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' '});
+    h+='<path d="'+rd+'" fill="none" stroke="#9aa3ae" stroke-width="2" stroke-dasharray="2 4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'}
   h+='<path d="'+d+'" fill="none" stroke="var(--series)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
   pts.forEach(function(p,i){if(p.v==null)return;
     h+='<span class="vd" style="left:'+xp(i)+';top:'+yp(p.v)+'"></span><span class="vl'+(i===lastI?' last':'')+'" style="left:'+xp(i)+';top:'+yp(p.v)+'">'+esc(p.v)+'</span>'});
@@ -338,25 +340,21 @@ function buildCards(){
     hero:[rta.length,'send-outs'],line:ama.length+' AMA in 30 days · '+(auto('resident_at_hospital')?'':'')+(entries('resident_at_hospital').length+' at hospital'),
     body:rta.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('rta')});
 
-  // 5 Nursing PPD — goal 3.6, floor 3.5 (SQCDP P)
-  var ppd=(T.ppd||[]),past=ppd.filter(function(p){return p.d<=S.today&&p.act!=null}),lastP=past[past.length-1]||{},todayP=ppd.filter(function(p){return p.d===S.today})[0]||{};
+  // 5 Nursing PPD — last 14 days, Veras scheduled vs actual (Paycom punches matched to Veras PPD shifts; salaried = scheduled)
+  var ppd=(T.ppd||[]),win=ppd.filter(function(p){return p.d<S.today&&p.d>=addDays(S.today,-14)}),past=win.filter(function(p){return p.act!=null&&!p.prov});
+  var lastP=past[past.length-1]||{},todayP=ppd.filter(function(p){return p.d===S.today})[0]||{},provP=win.filter(function(p){return p.prov})[0];
   var openAhead=ppd.filter(function(p){return p.d>=S.today}).reduce(function(a,p){return a+(p.open||0)},0);
-  cards.push({title:'Nursing Hours PPD',sub:'Veras + Paycom · goal 3.6 / CNA 2.4',status:statusBy(lastP.act,3.6,3.5,true),label:lastP.act!=null?num(lastP.act,2)+' on '+md(lastP.d):'',
-    hero:[num(lastP.act,2),'actual · CNA '+num(lastP.cna,2)],line:'Today sched '+num(todayP.sched,2)+' · '+openAhead+' open shifts ahead',
-    chart:lineChart(past.map(function(p){return {v:p.act}}),{goal:3.6,floor:3.5,min:2.8,max:4}),foot:'14 days · dashed = goal · red = floor 3.5'});
+  cards.push({title:'Nursing Hours PPD',sub:'Veras scheduled vs Paycom actual · goal 3.6 / CNA 2.4',status:statusBy(lastP.act,3.6,3.5,true),label:lastP.act!=null?num(lastP.act,2)+' on '+md(lastP.d):'',
+    hero:[num(lastP.act,2),'actual vs '+num(lastP.sched,2)+' scheduled · CNA '+num(lastP.cna,2)],
+    line:'Today scheduled '+num(todayP.sched,2)+' · '+openAhead+' open shifts ahead'+(provP?' · '+md(provP.d)+' partial (night punches not in yet)':''),
+    chart:datedLine(win.map(function(p){return {d:p.d,v:p.act!=null&&!p.prov?+p.act:null}}),{goal:3.6,min:2.8,max:4.2,ref:win.map(function(p){return p.sched!=null?+p.sched:null})}),
+    foot:'14 days · solid = actual · dotted = scheduled · dashed = goal 3.6'});
 
   // 6 Overtime — premium hours by day (daily 8-hour rule)
   var ot=auto('overtime')||{},otser=(T.ot||[]),lastO=otser[otser.length-1]||{};
   cards.push({title:'Overtime',sub:'Paycom · 8-hr daily rule',status:statusBy(lastO.prem,4,8,false),label:lastO.prem!=null?num(lastO.prem,1)+' hrs '+md(lastO.d):'',
     hero:[ot.mtd!=null?num(ot.mtd,0):'—','premium hrs MTD'],line:(lastO.n||0)+' staff over 8¼ hrs on '+md(lastO.d),
     chart:barChart(otser.map(function(p){return {v:p.prem,hl:p.prem>8}}),{max:8}),stale:staleDate('overtime'),foot:'14 days · red = over 8 hrs'});
-
-  // 7 Staffing PPD by department vs standard
-  var sp=rowsOf('staffing_ppd'),spRows=sp.map(function(r){var m=r.title.match(/^(.*?) — ([\d.]+|—) PPD/),s=(r.detail||'').match(/standard ([\d.]+)/);return {l:m?m[1]:r.title,v:m&&m[2]!=='—'?+m[2]:0,std:s?+s[1]:null,over:r.flag}})
-    .filter(function(r){return r.std!=null}).map(function(r){r.max=Math.max(r.v,r.std)*1.25;r.txt=num(r.v,2);return r});
-  var spOver=spRows.filter(function(r){return r.over}).length;
-  cards.push({title:'Hours PPD by Dept',sub:'Paycom ÷ census · tick = standard',status:spOver?'warn':'good',label:spOver?spOver+' over standard':'At standard',
-    body:hbars(spRows.slice(0,6)),stale:staleDate('staffing_ppd')});
 
   // 8 Mini packets
   var mp=auto('mini_packet')||{},mpRows=rowsOf('mini_packet'),mpMissing=mpRows.filter(function(r){return r.status==='missing'}).length,mpTot=leadNum(mp.summary);
@@ -440,14 +438,14 @@ function buildCards(){
   return cards;
 }
 
-// ---------- flow: SWI v2.0 sections in meeting order ----------
+// ---------- flow: sections in meeting order (Stephen 11/3/26) ----------
 var SECTIONS=[
- {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
  {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Admission Mini Packets','Medicare Day-4 Rates']},
- {t:'Clinical Highlights',cards:['Hospital Send-outs','Open Clinical & BO Lists','Leader Resident Rounds']},
- {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Hours PPD by Dept']},
+ {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime']},
  {t:'Operational Updates',cards:['Floor Rounds & Environment','Google Rating']},
- {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']}
+ {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},
+ {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
+ {t:'Clinical Highlights',cards:['Hospital Send-outs','Open Clinical & BO Lists','Leader Resident Rounds']}
 ];
 var SEC_SECS=100;   // 10 minutes ÷ 6 sections
 var ESC='Needs an Owner Today';
