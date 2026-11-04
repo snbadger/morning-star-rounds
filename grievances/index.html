@@ -129,7 +129,7 @@ var me={name:lsGet('ii_name')||'',dept:lsGet('ii_dept')||''};
 var view='submit', form=blankForm(), busy=false;
 var mode='staff'; // 'staff' = a staff member logs it; 'resident' = device handed to the resident / family member
 
-function blankForm(){return{category:'',raised_by:'',room:'',resident_name:'',about:'',description:'',wish:'',urgent:false}}
+function blankForm(){return{category:'',raised_by:'',room:'',resident_name:'',about:'',description:'',wish:'',urgent:false,summary:''}}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
@@ -187,6 +187,8 @@ function submitView(){
    '<label>What did they tell you?</label>'+
    '<textarea id="fDesc" placeholder="In their words as best you can — what happened, when, and what they would like to see happen.">'+esc(form.description)+'</textarea>'+
    '<div class="nophi">🔒 <b>Last name and first initial only.</b> Don\'t include diagnoses, medications, or other private health details — Social Services will pull those from the chart.</div>'+
+   '<label>Short summary for the standup screen <span class="opt">— optional, no names</span></label>'+
+   '<input id="fSummary" maxlength="80" value="'+esc(form.summary)+'" placeholder="e.g. Call light slow on nights" autocomplete="off">'+
    '<div class="urgent-row'+(form.urgent?' on':'')+'" onclick="toggleUrgent()">'+
    '<span style="font-size:22px">🚨</span><div><div class="t">This needs attention today</div>'+
    '<div class="d">The resident is upset now, or it affects their care or comfort right now</div></div></div>'+
@@ -256,6 +258,7 @@ function readForm(){
   if((v=g('fResName'))!==null)form.resident_name=v;
   if((v=g('fAbout'))!==null)form.about=v;
   if((v=g('fDesc'))!==null)form.description=v;
+  if((v=g('fSummary'))!==null)form.summary=v;
   if((v=g('fWish'))!==null)form.wish=v;
 }
 function looksLikeName(s){
@@ -275,6 +278,7 @@ async function submitGrievance(){
   var needsId=form.raised_by!=='Resident Council'&&form.raised_by!=='Anonymous';
   if(needsId&&!form.room.trim()&&!form.resident_name.trim()){toast(res?'Please enter your name or room number':'Enter the resident\'s name or room number');return}
   if(form.description.trim().length<10){toast(res?'Please tell us what happened':'Please describe the concern');return}
+  if(!res&&(/\b[A-Z][a-z]+,\s*[A-Z]\b/.test(form.summary||'')||/\b(mr|mrs|ms|miss)\.?\s+[a-z]/i.test(form.summary||''))){toast('Keep names out of the standup summary');return}
   var desc=form.description.trim();
   if(form.wish&&form.wish.trim())desc+='\n\nWhat would make it right: '+form.wish.trim();
   busy=true;
@@ -289,7 +293,8 @@ async function submitGrievance(){
     p_about_dept:(!res&&form.about)?form.about:null,
     p_urgent:form.urgent,
     p_resident_name:form.resident_name.trim()||null,
-    p_entered_by:res?(form.raised_by==='Family / visitor'?'family':'resident'):'staff'
+    p_entered_by:res?(form.raised_by==='Family / visitor'?'family':'resident'):'staff',
+    p_standup_summary:(!res&&form.summary.trim())?form.summary.trim():null
   });
   busy=false;b.disabled=false;b.textContent='Send to Social Services';
   if(r.error||!r.data){toast('Could not send — '+((r.error&&r.error.message)||'please try again'));return}
