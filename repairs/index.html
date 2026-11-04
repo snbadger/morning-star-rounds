@@ -84,7 +84,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 <script>
 var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
-var NOTIFY_URL=SUPABASE_URL+'/functions/v1/repair-notify';
 var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 
 var WORK_DEPTS=["Nursing (CNA)","Nursing (LVN/RN)","Dietary","Housekeeping","Laundry","Maintenance",
@@ -202,6 +201,7 @@ async function submitRepair(){
   busy=true;
   var b=document.getElementById('subBtn');b.disabled=true;b.textContent='Sending…';
   // RPC only, never a direct insert (RLS blocks anon writes by design).
+  // A DB trigger puts the repair on Maintenance's My Work list (no Asana since 11/4/26).
   var r=await sb.rpc('submit_equipment_repair',{
     p_name:me.name, p_dept:me.dept,
     p_item:form.item.trim(),
@@ -212,8 +212,6 @@ async function submitRepair(){
   });
   busy=false;b.disabled=false;b.textContent='Send to Maintenance';
   if(r.error||!r.data){toast('Could not send — '+((r.error&&r.error.message)||'please try again'));return}
-  fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({repair_id:r.data})}).catch(function(){});
   form=blankForm();openLoaded=false;
   view='thanks';render();window.scrollTo(0,0);
 }
