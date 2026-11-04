@@ -6,119 +6,103 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MS Apps">
-<meta name="theme-color" content="#1a3c5e">
+<meta name="theme-color" content="#052B49">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Morning Star Staff Apps</title>
+<link rel="stylesheet" href="ms-ui.css?v=2">
+<script src="ms-ui.js?v=1" defer></script>
 <style>
-:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--gold:#f5b301;--success:#27ae60;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
-.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:22px 20px 18px;text-align:center}
-.header h1{font-size:20px;font-weight:800;letter-spacing:.5px}
-.header .star{color:var(--gold);margin-right:6px}
-.header .sub{font-size:12px;opacity:.75;margin-top:4px}
-.page{max-width:640px;margin:0 auto;padding:16px 14px 40px}
-.section{margin-top:18px}
-.section-hdr{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:1px;margin:0 4px 8px;display:flex;align-items:center;gap:6px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(min-width:480px){.grid{grid-template-columns:1fr 1fr 1fr}}
-.tile{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-decoration:none;color:var(--text);display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .1s;min-height:96px}
-.tile:active{transform:scale(.97)}
-.tile .icon{font-size:26px;line-height:1}
-.tile .name{font-size:14px;font-weight:700;color:var(--primary);line-height:1.2}
-.tile .desc{font-size:11px;color:var(--text-light);line-height:1.3}
-.tile{position:relative}
-.tbadge{position:absolute;top:8px;right:8px;min-width:22px;padding:2px 7px;border-radius:12px;background:#e67e22;color:#fff;font-size:11px;font-weight:800;text-align:center;display:none}
-/* Leadership gate */
-.lock-row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
-.lock-row .lbl{font-size:13px;font-weight:600;color:var(--text-light);flex:1}
-.pin-box{display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:8px}
-.pin-box.open{display:block}
-.pin-box input{width:120px;font-size:20px;letter-spacing:6px;text-align:center;padding:8px;border:1px solid var(--border);border-radius:8px}
-.pin-box button{margin-left:8px;padding:10px 18px;font-size:14px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer}
-.pin-err{color:#e74c3c;font-size:12px;margin-top:6px;display:none}
-.footer{text-align:center;font-size:11px;color:var(--text-light);margin-top:30px;line-height:1.6}
-.footer .hint{background:#fff;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;display:inline-block;margin-bottom:10px}
+/* page-specific */
+.pin-row{display:flex;align-items:center;gap:8px}
+.pin-err{display:none}
+.tile-icon .fb{display:none;font-size:20px;line-height:1}
+html.no-icons .tile-icon .fb{display:block}
+html.no-icons i[data-lucide]{display:none}
 </style>
 </head>
 <body>
-<div class="header">
+<header class="ms-header center">
   <h1><span class="star">★</span>MORNING STAR STAFF APPS</h1>
   <div class="sub">We Enrich Lives in Happy, Helpful, and Heartfelt Ways</div>
-</div>
-<div class="page">
-
-  <div class="section">
-    <div class="section-hdr">Everyday Tools</div>
-    <div class="grid">
-      <a class="tile" href="showers/"><span class="icon">🚿</span><span class="name">Shower Sheet</span><span class="desc">Log showers &amp; bed baths</span></a>
-      <a class="tile" href="assignments/"><span class="icon">📋</span><span class="name">CNA Assignment Sheet</span><span class="desc">Build &amp; print the shift assignment sheet</span></a>
-      <a class="tile" href="room-changes/"><span class="icon">🚪</span><span class="name">Room Changes</span><span class="desc">Report a resident room change</span></a>
-      <a class="tile" href="deep-cleaning/"><span class="icon">🧽</span><span class="name">Deep Cleaning</span><span class="desc">Log monthly room deep cleans</span></a>
-      <a class="tile" href="floor-rounds/"><span class="icon">🧭</span><span class="name">Floor Rounds</span><span class="desc">Daily hall checklist — Sebastian</span></a>
-      <a class="tile" href="grievances/"><span class="icon">🗣️</span><span class="name">Resident Grievance</span><span class="desc">Log a resident or family concern</span></a>
-      <a class="tile" href="https://snbadger.github.io/morning-star-supply/"><span class="icon">📦</span><span class="name">Supply Order</span><span class="desc">Request supplies</span></a>
-      <a class="tile" href="repairs/"><span class="icon">🔧</span><span class="name">Equipment Repair</span><span class="desc">Report broken equipment · track rentals</span></a>
-      <a class="tile" href="shoutouts/"><span class="icon">⭐</span><span class="name">Shout Outs</span><span class="desc">Recognize a co-worker's HEART</span></a>
-      <a class="tile" href="ideas/"><span class="icon">💡</span><span class="name">Ideas for Improvement</span><span class="desc">Share an idea — every idea counts</span></a>
+</header>
+<main class="ms-page">
+  <section class="section">
+    <div class="section-title">Everyday Tools</div>
+    <div class="grid cols-3">
+      <a class="tile" href="showers/"><span class="tile-icon"><i data-lucide="shower-head"></i><span class="fb">🚿</span></span><span class="name">Shower Sheet</span><span class="desc">Log showers &amp; bed baths</span></a>
+      <a class="tile" href="assignments/"><span class="tile-icon"><i data-lucide="clipboard-list"></i><span class="fb">📋</span></span><span class="name">CNA Assignment Sheet</span><span class="desc">Build &amp; print the shift assignment sheet</span></a>
+      <a class="tile" href="room-changes/"><span class="tile-icon"><i data-lucide="door-open"></i><span class="fb">🚪</span></span><span class="name">Room Changes</span><span class="desc">Report a resident room change</span></a>
+      <a class="tile" href="deep-cleaning/"><span class="tile-icon"><i data-lucide="sparkles"></i><span class="fb">🧽</span></span><span class="name">Deep Cleaning</span><span class="desc">Log monthly room deep cleans</span></a>
+      <a class="tile" href="floor-rounds/"><span class="tile-icon"><i data-lucide="compass"></i><span class="fb">🧭</span></span><span class="name">Floor Rounds</span><span class="desc">Daily hall checklist — Sebastian</span></a>
+      <a class="tile" href="grievances/"><span class="tile-icon"><i data-lucide="message-square-warning"></i><span class="fb">🗣️</span></span><span class="name">Resident Grievance</span><span class="desc">Log a resident or family concern</span></a>
+      <a class="tile" href="https://snbadger.github.io/morning-star-supply/"><span class="tile-icon"><i data-lucide="package"></i><span class="fb">📦</span></span><span class="name">Supply Order</span><span class="desc">Request supplies</span></a>
+      <a class="tile" href="repairs/"><span class="tile-icon"><i data-lucide="wrench"></i><span class="fb">🔧</span></span><span class="name">Equipment Repair</span><span class="desc">Report broken equipment · track rentals</span></a>
+      <a class="tile" href="shoutouts/"><span class="tile-icon"><i data-lucide="star"></i><span class="fb">⭐</span></span><span class="name">Shout Outs</span><span class="desc">Recognize a co-worker's HEART</span></a>
+      <a class="tile" href="ideas/"><span class="tile-icon"><i data-lucide="lightbulb"></i><span class="fb">💡</span></span><span class="name">Ideas for Improvement</span><span class="desc">Share an idea — every idea counts</span></a>
     </div>
-  </div>
+  </section>
 
-  <div class="section">
-    <div class="section-hdr">Training &amp; HR</div>
-    <div class="grid">
-      <a class="tile" href="https://snbadger.github.io/dining-inservice-quiz/"><span class="icon">📝</span><span class="name">In-Service Quizzes</span><span class="desc">Training &amp; quizzes</span></a>
-      <a class="tile" href="https://snbadger.github.io/msa-annual-eval/board.html"><span class="icon">📝</span><span class="name">Annual Review Feedback</span><span class="desc">Give feedback on co-workers up for review</span></a>
-      <a class="tile" href="#" onclick="shareApply();return false"><span class="icon">📣</span><span class="name">Refer a Friend</span><span class="desc">Share our job application with friends &amp; family</span></a>
+  <section class="section">
+    <div class="section-title">Training &amp; HR</div>
+    <div class="grid cols-3">
+      <a class="tile" href="https://snbadger.github.io/dining-inservice-quiz/"><span class="tile-icon"><i data-lucide="graduation-cap"></i><span class="fb">📝</span></span><span class="name">In-Service Quizzes</span><span class="desc">Training &amp; quizzes</span></a>
+      <a class="tile" href="https://snbadger.github.io/msa-annual-eval/board.html"><span class="tile-icon"><i data-lucide="clipboard-check"></i><span class="fb">📝</span></span><span class="name">Annual Review Feedback</span><span class="desc">Give feedback on co-workers up for review</span></a>
+      <a class="tile" href="#" onclick="shareApply();return false"><span class="tile-icon"><i data-lucide="megaphone"></i><span class="fb">📣</span></span><span class="name">Refer a Friend</span><span class="desc">Share our job application with friends &amp; family</span></a>
     </div>
-  </div>
+  </section>
 
-  <div class="section">
-    <div class="section-hdr">🔒 Leadership</div>
+  <section class="section">
+    <div class="section-title"><i data-lucide="lock" class="icon-sm"></i>Leadership</div>
     <div class="lock-row" id="lockRow_leader" onclick="togglePin('leader')">
-      <span style="font-size:20px">🔐</span>
+      <i data-lucide="key-round"></i>
       <span class="lbl">Tap to unlock leadership tools</span>
+      <i data-lucide="chevron-right" class="icon-sm"></i>
     </div>
     <div class="pin-box" id="pinBox_leader">
-      <input type="tel" id="pinInput_leader" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off">
-      <button onclick="checkPin('leader')">Unlock</button>
-      <div class="pin-err" id="pinErr_leader">Incorrect PIN</div>
+      <div class="pin-row">
+        <input type="tel" id="pinInput_leader" class="input pin-input" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off" aria-label="PIN">
+        <button class="btn" onclick="checkPin('leader')">Unlock</button>
+      </div>
+      <div class="help error pin-err" id="pinErr_leader">Incorrect PIN</div>
     </div>
-    <div class="grid" id="grid_leader" style="margin-top:8px;display:none">
-      <a class="tile" href="rounds/"><span class="icon">🏥</span><span class="name">Room Rounds</span><span class="desc">Rounds completed, compliance, start a round</span></a>
-      <a class="tile" href="standup/"><span class="icon">📋</span><span class="name">Standup Log</span><span class="desc">Update your standup tabs before 9 AM</span></a>
-      <a class="tile" href="my-work/" id="tile_mywork"><span class="icon">✅</span><span class="name">My Work</span><span class="desc">Your action items, lists, and what's due today</span><span class="tbadge" id="mwBadge"></span></a>
-      <a class="tile" href="plaud/"><span class="icon">🎙️</span><span class="name">Plaud Review</span><span class="desc">Approve meeting action items → Asana (own PIN)</span></a>
-      <a class="tile" href="competency/"><span class="icon">✅</span><span class="name">Skill Validation</span><span class="desc">Competency check-offs</span></a>
-      <a class="tile" href="inservice-dashboard/"><span class="icon">📊</span><span class="name">In-Service Completion</span><span class="desc">Who's done each quiz, who to chase</span></a>
-      <a class="tile" href="shower-audit/"><span class="icon">🚿</span><span class="name">Shower Sheet Audit</span><span class="desc">Missed showers, refusals, skin follow-up</span></a>
-      <a class="tile" href="reliability/"><span class="icon">⭐</span><span class="name">Staff Reliability</span><span class="desc">Approve OT · monthly clean-month list</span></a>
+    <div class="grid cols-3" id="grid_leader" style="margin-top:8px;display:none">
+      <a class="tile leader" href="rounds/"><span class="tile-icon"><i data-lucide="bed-double"></i><span class="fb">🏥</span></span><span class="name">Room Rounds</span><span class="desc">Rounds completed, compliance, start a round</span></a>
+      <a class="tile leader" href="standup/"><span class="tile-icon"><i data-lucide="list-todo"></i><span class="fb">📋</span></span><span class="name">Standup Log</span><span class="desc">Update your standup tabs before 9 AM</span></a>
+      <a class="tile leader" href="my-work/" id="tile_mywork"><span class="tile-icon"><i data-lucide="circle-check-big"></i><span class="fb">✅</span></span><span class="name">My Work</span><span class="desc">Your action items, lists, and what's due today</span><span class="tbadge" id="mwBadge"></span></a>
+      <a class="tile leader" href="plaud/"><span class="tile-icon"><i data-lucide="mic"></i><span class="fb">🎙️</span></span><span class="name">Plaud Review</span><span class="desc">Approve meeting action items → Asana (own PIN)</span></a>
+      <a class="tile leader" href="competency/"><span class="tile-icon"><i data-lucide="badge-check"></i><span class="fb">✅</span></span><span class="name">Skill Validation</span><span class="desc">Competency check-offs</span></a>
+      <a class="tile leader" href="inservice-dashboard/"><span class="tile-icon"><i data-lucide="chart-column"></i><span class="fb">📊</span></span><span class="name">In-Service Completion</span><span class="desc">Who's done each quiz, who to chase</span></a>
+      <a class="tile leader" href="shower-audit/"><span class="tile-icon"><i data-lucide="shower-head"></i><span class="fb">🚿</span></span><span class="name">Shower Sheet Audit</span><span class="desc">Missed showers, refusals, skin follow-up</span></a>
+      <a class="tile leader" href="reliability/"><span class="tile-icon"><i data-lucide="star"></i><span class="fb">⭐</span></span><span class="name">Staff Reliability</span><span class="desc">Approve OT · monthly clean-month list</span></a>
     </div>
-  </div>
+  </section>
 
-  <div class="section">
-    <div class="section-hdr">🔒 HR &amp; Onboarding</div>
+  <section class="section">
+    <div class="section-title"><i data-lucide="lock" class="icon-sm"></i>HR &amp; Onboarding</div>
     <div class="lock-row" id="lockRow_hr" onclick="togglePin('hr')">
-      <span style="font-size:20px">🗝️</span>
+      <i data-lucide="key-round"></i>
       <span class="lbl">Separate PIN — new-hire setup</span>
+      <i data-lucide="chevron-right" class="icon-sm"></i>
     </div>
     <div class="pin-box" id="pinBox_hr">
-      <input type="tel" id="pinInput_hr" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off">
-      <button onclick="checkPin('hr')">Unlock</button>
-      <div class="pin-err" id="pinErr_hr">Incorrect PIN</div>
+      <div class="pin-row">
+        <input type="tel" id="pinInput_hr" class="input pin-input" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off" aria-label="PIN">
+        <button class="btn" onclick="checkPin('hr')">Unlock</button>
+      </div>
+      <div class="help error pin-err" id="pinErr_hr">Incorrect PIN</div>
     </div>
-    <div class="grid" id="grid_hr" style="margin-top:8px;display:none">
-      <a class="tile" href="https://snbadger.github.io/jericho-road-onboarding/admin.html"><span class="icon">🧭</span><span class="name">The Jericho Road — New Hires</span><span class="desc">Enter new employees &amp; track orientation progress</span></a>
+    <div class="grid cols-3" id="grid_hr" style="margin-top:8px;display:none">
+      <a class="tile leader" href="https://snbadger.github.io/jericho-road-onboarding/admin.html"><span class="tile-icon"><i data-lucide="compass"></i><span class="fb">🧭</span></span><span class="name">The Jericho Road — New Hires</span><span class="desc">Enter new employees &amp; track orientation progress</span></a>
     </div>
-  </div>
+  </section>
 
-  <div class="footer">
-    <div class="hint">📲 Tip: In Safari, tap <b>Share → Add to Home Screen</b> to keep this page as an app icon</div><br>
+  <footer class="footer">
+    <div class="hint"><i data-lucide="smartphone" class="icon-sm"></i> Tip: In Safari, tap <b>Share → Add to Home Screen</b> to keep this page as an app icon</div><br>
     Morning Star Post Acute · 111 Barstow Ave., Clovis, CA · (559) 299-2591
-  </div>
-</div>
+  </footer>
+</main>
 
 <script>
 // Two independent gates: leadership (dept heads) and HR & Onboarding (Kelsey/Yessi/Stephen).
