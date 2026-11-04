@@ -39,6 +39,15 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .card.stale{border-top-color:var(--stale);background:#f6f7f9}
 .card.stale .hero,.card.stale .chart{opacity:.55}
 .card.wide{grid-column:span 2}
+/* week grid (leader rounds, floor rounds): M–F cells, green = done, red = missed, MTD % of weekdays */
+.wg{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,30px) 52px;gap:3px 6px;align-items:center;font-size:15px;margin-top:6px}
+.wg .h{font-size:12px;color:var(--muted);text-align:center;font-weight:700}.wg .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.wg .c{height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.wg .y{background:var(--good-bg);color:var(--good)}.wg .x{background:var(--bad-bg);color:var(--bad)}.wg .f{background:#f1f3f6}.wg .p{text-align:right;font-weight:700}
+.flow .wg{font-size:19px;grid-template-columns:minmax(0,1fr) repeat(5,40px) 64px}.flow .wg .c{height:32px}
+/* per-role run charts (PCC forms) */
+.pr .v.bad{color:var(--bad)}.pr{display:grid;grid-template-columns:86px 1fr 64px;gap:4px 10px;align-items:center;font-size:15px}.pr .v{text-align:right;font-weight:700}.pr svg{width:100%;height:28px;display:block}
+.flow .pr{font-size:19px;grid-template-columns:110px 1fr 80px}.flow .pr svg{height:36px}
 /* two-column card (Census): headline + chart on the left, lists on the right */
 .card.twocol{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto 1fr auto;column-gap:28px}
 .card.twocol .ch{grid-column:1/-1}.par .hb,.flow .par .hb{grid-template-columns:minmax(0,170px) 1fr 100px;padding:3px 0}.twocol .rows .chart,.flow .twocol .rows .chart{flex:none;height:96px;margin-top:4px}.par .hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card.twocol .rows{grid-column:2;grid-row:2/6;margin-top:0}.card.twocol .chart{min-height:160px}
@@ -141,6 +150,7 @@ var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 
 // Same roster and roles as the Standup Log app (index.html).
+var ROUNDERS=['Randy Bago','Valerie Estrada','Michael Miller','Lucy Malcolm','Kim Beatrez','Annie Vang','Kelsey Kennington','Yessi Flores','Amandeep Brar'];
 var ROSTER=[
  {name:'Donna Rogers',role:'don'},{name:'Savanna McCormick',role:'adon'},{name:'Amandeep Brar',role:'mds'},
  {name:'Yessi Flores',role:'dsd'},{name:'Randy Bago',role:'adm'},{name:'Belem Gonzalez',role:'bom'},
@@ -261,6 +271,34 @@ function datedLine(pts,o){
   h+='</div><div class="dl">'+pts.map(function(p,i){return '<span style="left:'+xp(i)+'">'+(i===0||String(p.d).slice(8)==='01'?md(p.d):+String(p.d).slice(8))+'</span>'}).join('')+'</div></div>';
   return h;
 }
+// Falls: one stacked bar per day by shift (AM dark → NOC light), injury / send-out falls drawn red on top; date under each bar.
+function shiftBars(pts){
+  var W=300,H=90,gap=3,n=pts.length||1,bw=(W-gap*(n-1))/n,tot=function(p){return (p.am||0)+(p.pm||0)+(p.noc||0)+(p.unk||0)};
+  var hi=Math.max.apply(null,pts.map(tot).concat([2])),col={am:'#1f4e8c',pm:'#5b8fd6',noc:'#a9c4ec',unk:'#c9ced6'};
+  var h='<div class="dc"><div class="dp"><svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  pts.forEach(function(p,i){var x0=i*(bw+gap),t=tot(p),y=H,u=(H-6)/hi;
+    if(!t){h+='<rect x="'+x0.toFixed(1)+'" y="'+(H-1.5)+'" width="'+bw.toFixed(1)+'" height="1.5" fill="#d7dbe1"/>';return}
+    var red=Math.min(p.inj||0,t),left=t-red;
+    ['am','pm','noc','unk'].forEach(function(k){var v=Math.min(p[k]||0,left);if(!v)return;left-=v;y-=v*u;h+='<rect x="'+x0.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(v*u).toFixed(1)+'" fill="'+col[k]+'"/>'});
+    if(red){y-=red*u;h+='<rect x="'+x0.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(red*u).toFixed(1)+'" fill="var(--bad)"/>'}});
+  h+='</svg></div><div class="dl">'+pts.map(function(p,i){return '<span style="left:'+(100*(i*(bw+gap)+bw/2)/W).toFixed(2)+'%">'+(i===0||String(p.d).slice(8,10)==='01'?md(p.d):+String(p.d).slice(8,10))+'</span>'}).join('')+'</div></div>';
+  return h;
+}
+// Two-line sparkline (due solid red, in progress dotted grey) for the PCC forms run charts.
+function spark2(a,b){
+  var W=120,H=28,n=a.length,hi=Math.max.apply(null,a.concat(b).concat([1])),x=function(i){return n>1?i*W/(n-1):W/2},y=function(v){return H-2-(H-4)*v/hi};
+  var line=function(v,st){return '<polyline fill="none" points="'+v.map(function(q,i){return x(i).toFixed(1)+','+y(q).toFixed(1)}).join(' ')+'" '+st+' vector-effect="non-scaling-stroke"/>'};
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+line(b,'stroke="#9aa3ae" stroke-width="2" stroke-dasharray="2 3"')+line(a,'stroke="var(--bad)" stroke-width="2.5"')+'</svg>';
+}
+// Current week Mon–Fri and month-to-date % of weekdays (today counts once done).
+function weekDays(){var dow=(new Date(S.today+'T12:00:00').getDay()+6)%7,mon=addDays(S.today,-dow);return [0,1,2,3,4].map(function(i){return addDays(mon,i)})}
+function mtdPct(days){var n=0,hit=0,d=S.today.slice(0,8)+'01';while(d<=S.today){var w=new Date(d+'T12:00:00').getDay(),on=days.indexOf(d)>=0;if(w>0&&w<6&&(d<S.today||on)){n++;if(on)hit++}d=addDays(d,1)}return n?Math.round(100*hit/n):null}
+function weekGrid(rows){
+  var wk=weekDays();
+  return '<div class="wg"><span></span>'+['M','T','W','Th','F'].map(function(l){return '<span class="h">'+l+'</span>'}).join('')+'<span class="h">MTD</span>'+
+    rows.map(function(r){var p=mtdPct(r.days);return '<span class="n">'+esc(r.name)+'</span>'+wk.map(function(d){var y=r.days.indexOf(d)>=0;return '<span class="c '+(y?'y':d<S.today?'x':'f')+'">'+(y?'✓':d<S.today?'✕':'')+'</span>'}).join('')+
+      '<span class="p">'+(p==null?'—':p+'%')+'</span>'}).join('')+'</div>';
+}
 function barChart(pts,o){
   o=o||{};var W=o.w||300,H=o.h||90,py=6,gap=2;
   var hi=Math.max.apply(null,pts.map(function(p){return p.v||0}).concat([o.max||1]));
@@ -347,19 +385,23 @@ function buildCards(){
   cards.push({title:'Admissions & Discharges',sub:'Jericho Census workbook',status:dcFlag?'bad':awaiting?'warn':'good',label:dcFlag?dcFlag+' DC past date':awaiting?awaiting+' awaiting auth':'Clear',
     split:true,body:admBlk+dcBlk,stale:staleDate('pending_admissions')});
 
-  // 3 Falls — any injury / send-out in 7 days = red (SQCDP S)
-  var falls=(S.day&&S.day.falls)||[],f7=falls.filter(function(f){return f.date>=day7}),inj7=f7.filter(function(f){return f.injury==='major'||f.injury==='pending'||f.injury==='minor'||f.sent_out}).length;
-  var fmap={};(T.falls||[]).forEach(function(p){fmap[p.d]=p});
-  var fser=[];for(var i=29;i>=0;i--){var d=addDays(S.today,-i),p=fmap[d];fser.push({v:p?p.n:0,hl:p&&p.inj>0})}
-  var f30=(T.falls||[]).reduce(function(a,p){return a+p.n},0),inj30=(T.falls||[]).reduce(function(a,p){return a+p.inj},0);
-  cards.push({title:'Falls',sub:'incident log',status:inj7?'bad':f7.length?'warn':'good',label:inj7?inj7+' with injury':f7.length?'no injury':'None in 7 days',
-    hero:[f7.length,'last 7 days'],line:f30+' in 30 days · '+inj30+' with injury or sent out',chart:barChart(fser,{max:2}),foot:'30 days · red = injury / sent out'});
+  // 3 Falls (Stephen 11/3) — MTD vs last month to the same day, rate per 1,000 patient days, 14 days by shift,
+  // room-bed list with ↻ on repeat fallers (2+ falls in 30 days at that room-bed). Red = any fall in the last 24 hours.
+  var fc=auto('falls_card')||{},fm=fc.mtd||{},fl=fc.last||{},fRows=fc.rows||[],frate=function(x){return x.pt_days?1000*x.falls/x.pt_days:null};
+  cards.push({title:'Falls',sub:'incident log · room-bed only',status:fc.last24?'bad':fRows.length?'warn':'good',label:fc.last24?fc.last24+' in last 24 hrs':'None in 24 hrs',
+    hero:[num(fm.falls),'falls MTD · '+num(fm.inj)+' injury / sent out'],
+    line:num(frate(fm),1)+' per 1,000 pt days · last month to '+md(fl.through)+': '+num(fl.falls)+' falls, '+num(fl.inj)+' injury, '+num(frate(fl),1)+' per 1,000',
+    chart:shiftBars(fc.series||[]),
+    body:fRows.slice(0,4).map(function(r){return '<div class="row'+(r.inj?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.repeat>=2?' <b title="2+ falls in 30 days">↻'+r.repeat+'</b>':'')+'<small>'+esc(r.shift||'shift ?')+'</small></span>'+
+      '<span class="v">'+md(r.date)+' · '+(r.sent_out?'sent out':r.injury==='none'?'no injury':r.injury==='pending'?'injury pending':esc(r.injury||'?')+' injury')+'</span></div>'}).join('')+more(fRows.length,4),
+    foot:'14 days · dark→light = AM / PM / NOC · red = injury or sent out · ↻ = repeat at that room-bed'});
 
-  // 4 Send-outs & AMA
-  var rta=rowsOf('rta'),ama=rowsOf('ama');
-  cards.push({title:'Hospital Send-outs',sub:'RTA · 7 days',status:rta.length>=3?'bad':rta.length?'warn':'good',label:rta.length>=3?'Review':rta.length?'Watch':'None',
-    hero:[rta.length,'send-outs'],line:ama.length+' AMA in 30 days · '+(auto('resident_at_hospital')?'':'')+(entries('resident_at_hospital').length+' at hospital'),
-    body:rta.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('rta')});
+  // 4 Send-outs (Stephen 11/3) — from the 24-hr reports (same day) instead of the lagging ADT export; AMA still from PCC ADT
+  var rt=auto('rta24')||{},rta=rt.rows||[],ama=rowsOf('ama'),rtOut=rta.filter(function(r){return r.still_out}).length;
+  cards.push({title:'Hospital Send-outs',sub:'24-hr report · 7 days',status:rta.length>=3?'bad':rta.length?'warn':'good',label:rta.length>=3?'Review':rta.length?'Watch':'None',
+    hero:[rta.length,'send-outs'],line:rtOut+' still out · '+ama.length+' AMA in 30 days',
+    body:rta.slice(0,5).map(function(r){return '<div class="row'+(r.still_out?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.hospital?'<small>'+esc(r.hospital)+'</small>':'')+'</span><span class="v">'+md(r.date)+' · '+(r.still_out?'still out':'back or discharged')+'</span></div>'}).join('')+more(rta.length,5),
+    stale:rt.as_of&&rt.as_of<addDays(S.today,-1)?rt.as_of:null});
 
   // 5 Nursing PPD — last 14 days, Veras scheduled vs actual (Paycom punches matched to Veras PPD shifts; salaried = scheduled)
   var ppd=(T.ppd||[]),win=ppd.filter(function(p){return p.d<S.today&&p.d>=addDays(S.today,-14)}),past=win.filter(function(p){return p.act!=null&&!p.prov});
@@ -371,11 +413,24 @@ function buildCards(){
     chart:datedLine(win.map(function(p){return {d:p.d,v:p.act!=null&&!p.prov?+p.act:null}}),{goal:3.6,min:2.8,max:4.2,ref:win.map(function(p){return p.sched!=null?+p.sched:null})}),
     foot:'14 days · solid = actual · dotted = scheduled · dashed = goal 3.6'});
 
-  // 6 Overtime — premium hours by day (daily 8-hour rule)
-  var ot=auto('overtime')||{},otser=(T.ot||[]),lastO=otser[otser.length-1]||{};
-  cards.push({title:'Overtime',sub:'Paycom · 8-hr daily rule',status:statusBy(lastO.prem,4,8,false),label:lastO.prem!=null?num(lastO.prem,1)+' hrs '+md(lastO.d):'',
-    hero:[ot.mtd!=null?num(ot.mtd,0):'—','premium hrs MTD'],line:(lastO.n||0)+' staff over 8¼ hrs on '+md(lastO.d),
-    chart:barChart(otser.map(function(p){return {v:p.prem,hl:p.prem>8}}),{max:8}),stale:staleDate('overtime'),foot:'14 days · red = over 8 hrs'});
+  // 6 Overtime (Stephen 11/3) — the daily OT alert's own summary (ot_alert_summary), so the screen matches the email.
+  // Totals in dollars only (no per-person dollars on a shared screen); under-15-minute rows collapse to one line.
+  var os=auto('ot_summary');
+  if(os){
+    var otm=os.mtd||{},odt=os.double_time||[],orows=(os.rows||[]).filter(function(r){return r.band!=='Under 15 min'}),u15=(os.rows||[]).filter(function(r){return r.band==='Under 15 min'});
+    cards.push({title:'Overtime',sub:'daily OT alert · '+os.label,status:odt.length?'bad':os.premium_hrs>4?'warn':'good',label:odt.length?odt.length+' double time':num(os.premium_hrs,2)+' hrs',
+      hero:[num(os.premium_hrs,2),'premium hrs · ≈ $'+num(os.dollars)],
+      line:'Double time: '+(odt.length?odt.map(function(x){return esc(x.name)+' ('+esc(x.role)+')'}).join('; '):'none')+' · MTD '+num(otm.premium_hrs,2)+' hrs ≈ $'+num(otm.dollars),
+      body:orows.slice(0,5).map(function(r){return '<div class="row'+(r.band==='DOUBLE TIME'?' flag':'')+'"><span class="l">'+esc(r.name)+' ('+esc(r.role)+')<small>'+esc(r.dept)+' · worked '+num(r.worked,2)+'</small></span><span class="v">'+num(r.premium,2)+' · '+esc(r.band)+'</span></div>'}).join('')+more(orows.length,5)+
+        (u15.length?'<div class="more">'+u15.length+' others over by under 15 min ('+num(u15.reduce(function(a,r){return a+(+r.premium||0)},0),2)+' hrs)</div>':'')+
+        ((os.repeat||[]).length?'<div class="bh2">Repeat · 3+ alert days in 14</div><div class="sub">'+os.repeat.map(function(x){return esc(x.name)+' ('+esc(x.role)+') — '+x.days}).join('; ')+'</div>':''),
+      stale:os.window_end<addDays(S.today,-1)?os.window_end:null});
+  }else{
+    var ot=auto('overtime')||{},otser=(T.ot||[]),lastO=otser[otser.length-1]||{};
+    cards.push({title:'Overtime',sub:'Paycom · 8-hr daily rule',status:statusBy(lastO.prem,4,8,false),label:lastO.prem!=null?num(lastO.prem,1)+' hrs '+md(lastO.d):'',
+      hero:[ot.mtd!=null?num(ot.mtd,0):'—','premium hrs MTD'],line:(lastO.n||0)+' staff over 8¼ hrs on '+md(lastO.d),
+      chart:barChart(otser.map(function(p){return {v:p.prem,hl:p.prem>8}}),{max:8}),stale:staleDate('overtime'),foot:'14 days · red = over 8 hrs'});
+  }
 
   // 7 Call-offs & HR — Kelsey's Standup Log tabs (call-offs, open positions, HR scorecard); counts only, no HR free text
   var hr=auto('hr_staffing')||{},co=hr.call_offs||[],coRecent=co.filter(function(r){return r.date>=addDays(S.today,-1)}),coOpen=coRecent.filter(function(r){return r.flag}).length;
@@ -396,11 +451,20 @@ function buildCards(){
     body:mpRows.slice(0,5).map(function(r){var dd=Math.round((new Date(S.today+'T12:00:00')-new Date(String(r.date).slice(0,10)+'T12:00:00'))/864e5);
       return '<div class="row'+(dd>3?' flag':'')+'"><span class="l">Rm '+esc(r.room)+'<small>'+esc(r.title)+'</small></span><span class="v">day '+dd+'</span></div>'}).join('')+more(mpRows.length,5),stale:staleDate('mini_packet')});
 
-  // 9 PCC forms due (UDA)
+  // 9 PCC forms due (UDA) — a small 14-day run chart per role (Stephen 11/3), busiest role first
+  var pccRoles=function(){
+    var pf=auto('pcc_forms_roles')||{},bd=pf.by_day||{},days=Object.keys(bd).sort().slice(-14),last=bd[days[days.length-1]]||{},seen={};
+    days.forEach(function(k){Object.keys(bd[k]||{}).forEach(function(r){var x=bd[k][r]||{};if(x.due||x.ip)seen[r]=1})});
+    var roles=Object.keys(seen).sort(function(a,b){var x=last[a]||{},y=last[b]||{};return ((y.due||0)+(y.ip||0))-((x.due||0)+(x.ip||0))});
+    if(!roles.length)return '<div class="sub">No forms due</div>';
+    return '<div class="pr">'+roles.map(function(r){var x=last[r]||{};
+      return '<span class="l">'+esc(r)+'</span>'+spark2(days.map(function(k){return ((bd[k]||{})[r]||{}).due||0}),days.map(function(k){return ((bd[k]||{})[r]||{}).ip||0}))+
+        '<span class="v'+((x.due||0)?' bad':'')+'">'+(x.due||0)+' / '+(x.ip||0)+'</span>'}).join('')+'</div>';
+  };
   var ud=rowsOf('uda_overdue'),udRows=ud.map(function(r){var m=(r.detail||'').match(/(\d+) due · (\d+) in progress/);return {l:r.title,due:m?+m[1]:0,ip:m?+m[2]:0,flag:r.flag}}),udDue=udRows.reduce(function(a,r){return a+r.due},0);
   cards.push({title:'PCC Forms Due',sub:'HIM board · UDAs',status:udDue>5?'bad':udDue?'warn':'good',label:udDue?udDue+' due':'None due',
     hero:[leadNum((auto('uda_overdue')||{}).summary),'due or in progress'],
-    body:hbars(udRows.sort(function(a,b){return (b.due+b.ip)-(a.due+a.ip)}).slice(0,5).map(function(r){return {l:r.l,v:r.due+r.ip,max:Math.max.apply(null,udRows.map(function(x){return x.due+x.ip}))*1.1,over:r.due>0,txt:r.due+' / '+r.ip}})),stale:staleDate('uda_overdue'),foot:'due / in progress'});
+    body:pccRoles(),stale:staleDate('uda_overdue'),foot:'14 days per role · red = due · dotted = in progress · today due / in progress'});
 
   // 10 POC compliance (weekly)
   var poc=rowsOf('poc_compliance')[0]||{},pocV=leadNum((auto('poc_compliance')||{}).summary);
@@ -420,45 +484,48 @@ function buildCards(){
   // 12 Google reviews
   var gr=rowsOf('google_review'),g0=gr[0]||{},stars=leadNum(g0.title),grser=gr.slice().reverse().map(function(r){return {v:leadNum(r.title)}});
   cards.push({title:'Google Rating',sub:'goal 4.6',status:statusBy(stars,4.6,4.0,true),label:stars!=null?(stars>=4.6?'At goal':'Below goal'):'',
-    hero:[stars!=null?num(stars,1)+' ★':'—',String(g0.title||'').replace(/^.*· /,'')],line:g0.detail||'',chart:lineChart(grser,{goal:4.6,min:3,max:5}),stale:staleDate('google_review'),foot:'recent checks · dashed = goal'});
+    hero:[stars!=null?num(stars,1)+' ★':'—',String(g0.title||'').replace(/^.*· /,'')],line:g0.detail||'',stale:staleDate('google_review')});
 
   // 13 Grievances
   // Summary from structured fields only (department, type, who raised it, owner, days) — descriptions name staff and carry allegations, so they stay off this shared screen.
   var gAll=(auto('grievances')||{}).rows||[],gv=gAll.filter(function(r){return r.status!=='done'}),gDone=gAll.filter(function(r){return r.status==='done'});
-  var gvOpen=leadNum((auto('grievances')||{}).summary),gvNew=(String((auto('grievances')||{}).summary||'').match(/(\d+) received/)||[])[1];
+  var gm=(auto('grievances')||{}).mtd||{},gvOpen=leadNum((auto('grievances')||{}).summary),gvNew=(String((auto('grievances')||{}).summary||'').match(/(\d+) received/)||[])[1];
   var cap=function(t){t=String(t||'grievance');return t.charAt(0).toUpperCase()+t.slice(1)};
   var gWhat=function(r){return r.dept&&r.dept!=='Other / not sure'?r.dept:cap(r.category)};
   var gSmall=function(r){var w=gWhat(r)===cap(r.category)?'':cap(r.category);return [w,r.raised?'from '+String(r.raised).toLowerCase():''].filter(Boolean).join(' · ')};
   var gBy={};gv.forEach(function(r){var k=gWhat(r);gBy[k]=(gBy[k]||0)+1});
-  var gRow=function(r,open){return '<div class="row'+(open&&r.flag?' flag':'')+'"><span class="l">'+(open&&r.urgent?'⚑ ':'')+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(gWhat(r))+(gSmall(r)?'<small>'+esc(gSmall(r))+'</small>':'')+'</span>'+
+  // r.summary_text = the no-names "standup summary" typed on the grievance form (never the description)
+  var gRow=function(r,open){var sm=r.summary_text?[gWhat(r),gSmall(r)].filter(Boolean).join(' · '):gSmall(r);
+    return '<div class="row'+(open&&r.flag?' flag':'')+'"><span class="l">'+(open&&r.urgent?'⚑ ':'')+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.summary_text||gWhat(r))+(sm?'<small>'+esc(sm)+'</small>':'')+'</span>'+
     '<span class="v">'+(open?(r.days!=null?r.days+'d':md(r.date))+(r.owner?' · '+esc(r.owner):''):'resolved in '+(r.days!=null?r.days+'d':'—'))+'</span></div>'};
   cards.push({title:'Grievances',sub:'tracker · open',status:gvOpen>=5?'bad':gvOpen?'warn':'good',label:gvOpen>=5?'Backlog':gvOpen?'Open':'None open',
     hero:[gvOpen!=null?gvOpen:'—','open'],
-    line:gv.length?Object.keys(gBy).map(function(k){return gBy[k]+' '+esc(k)}).join(' · '):(gvNew||0)+' received in the last 7 days · all resolved',
+    line:(gv.length?Object.keys(gBy).map(function(k){return gBy[k]+' '+esc(k)}).join(' · '):(gvNew||0)+' received in the last 7 days · all resolved')+
+      ' · received MTD '+num(gm.received)+' vs '+num(gm.last_month)+' last month to date',
+    chart:barChart(((auto('grievances')||{}).series||[]).map(function(p){return {v:p.n}}),{max:2,h:50}),foot:'14 days received',
     body:gv.slice(0,5).map(function(r){return gRow(r,true)}).join('')+more(gv.length,5)+
       (gDone.length?'<div class="bh2">Received this week · resolved</div>'+gDone.slice(0,4).map(function(r){return gRow(r,false)}).join('')+more(gDone.length,4):'')});
 
-  // 14 Environment — floor rounds, painting, room changes
-  var fr=auto('floor_rounds')||{},frs=String(fr.summary||''),frDays=(frs.match(/(\d+) of the last 7 days/)||[])[1],roundedToday=/^Rounded/i.test(frs);
-  var paintOpen=leadNum((auto('painting')||{}).summary),rcOpen=leadNum((auto('room_changes')||{}).summary);
-  cards.push({title:'Floor Rounds & Environment',sub:'Maintenance / EVS',status:roundedToday?'good':+frDays>=5?'warn':'bad',label:roundedToday?'Rounded today':'Not rounded today',
-    hero:[frDays!=null?frDays+'/7':'—','days rounded'],line:frs,
-    body:'<div class="row"><span class="l">Painting items open</span><span class="v">'+num(paintOpen)+'</span></div><div class="row"><span class="l">Room changes open</span><span class="v">'+num(rcOpen)+'</span></div>'+
-      rowsOf('floor_rounds').filter(function(r){return r.flag}).slice(0,2).map(function(r){return '<div class="row flag"><span class="l">'+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')});
+  // 14 Environment (Stephen 11/3) — Sebastian's whole-building floor round as a week grid + MTD %, what didn't pass, open repairs
+  var fg=auto('floor_grid')||[],fdays=fg.map(function(x){return x.date}),fToday=fdays.indexOf(S.today)>=0,fLast=fg[0],a10=new Date().getHours()>=10;
+  var repOpen=leadNum((auto('painting')||{}).summary),rcOpen=leadNum((auto('room_changes')||{}).summary);
+  cards.push({title:'Floor Rounds & Environment',sub:'Maintenance / EVS · whole building',status:fToday?(fLast&&fLast.fails?'warn':'good'):(a10?'bad':'warn'),label:fToday?'Rounded today':'Not rounded today',
+    body:weekGrid([{name:'Sebastian',days:fdays}])+
+      (fLast&&fLast.items&&fLast.items.length?'<div class="bh2">Not passed · '+md(fLast.date)+'</div>'+fLast.items.slice(0,4).map(function(t){return '<div class="row flag"><span class="l">'+esc(t)+'</span></div>'}).join('')+more(fLast.items.length,4):'')+
+      '<div class="bh2">Open</div><div class="row"><span class="l">Open repair requests</span><span class="v">'+num(repOpen)+'</span></div><div class="row"><span class="l">Room changes open</span><span class="v">'+num(rcOpen)+'</span></div>'});
 
-  // 15 Leader rounds today
-  var rr=rowsOf('resident_rounds'),rToday=rr.filter(function(r){return r.date===S.today}),rYest=rr.filter(function(r){return r.date===addDays(S.today,-1)});
-  var after10=new Date().getHours()>=10;
-  cards.push({title:'Leader Resident Rounds',sub:'Room Rounds app · today',status:rToday.length>=3?'good':rToday.length?'warn':(after10?'bad':'warn'),label:rToday.length?rToday.length+' rounding':'Nobody yet',
-    hero:[rToday.length,'rounders today'],line:rYest.length+' yesterday',
-    body:rToday.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')});
+  // 15 Leader resident rounds (Stephen 11/3) — this week per rounder like the Room Rounds app, MTD % of weekdays; Stephen not listed
+  var rg=auto('rounds_grid')||{},rToday=ROUNDERS.filter(function(n){return (rg[n]||[]).indexOf(S.today)>=0}).length,after10=new Date().getHours()>=10;
+  cards.push({title:'Leader Resident Rounds',sub:'Room Rounds app · this week',status:rToday>=Math.ceil(ROUNDERS.length*0.6)?'good':rToday?'warn':(after10?'bad':'warn'),label:rToday+' of '+ROUNDERS.length+' today',
+    body:weekGrid(ROUNDERS.map(function(n){return {name:n.split(' ')[0],days:rg[n]||[]}}))});
 
   // 16 Clinical lists — open items from the nursing / IP tabs
   var lists=[['isolation','Isolation'],['ebp','Enhanced barrier'],['sitter','Sitters'],['behaviors','Behaviors'],['wound_vac','Wound VAC'],['at_risk_rta','At risk of send-out'],['bedholds','Bed holds'],['medi_cal_pending','Medi-Cal pending']];
-  var lrows=lists.map(function(x){var t=S.byKey[x[0]];return {k:x[0],l:x[1],n:entries(x[0]).length,miss:t&&!covered(x[0])}});
+  var lrows=lists.map(function(x){var t=S.byKey[x[0]],es=entries(x[0]);return {k:x[0],l:x[1],n:es.length,miss:t&&!covered(x[0]),
+    rooms:es.map(function(e){return e.room?String(e.room)+(e.bed?'-'+e.bed:''):null}).filter(Boolean)}});
   var lmiss=lrows.filter(function(r){return r.miss}).length;
   cards.push({title:'Open Clinical & BO Lists',sub:'Standup Log entries',status:lmiss?null:'good',label:'Updated',missing:lmiss>0&&pastDeadline(),
-    body:lrows.map(function(r){return '<div class="row"><span class="l">'+esc(r.l)+(r.miss?' <span style="color:var(--stale);font-size:13px">not updated</span>':'')+'</span><span class="v">'+r.n+'</span></div>'}).join('')});
+    body:lrows.map(function(r){return '<div class="row"><span class="l">'+esc(r.l)+(r.miss?' <span style="color:var(--stale);font-size:13px">not updated</span>':'')+(r.rooms.length?'<small>'+esc(r.rooms.join(', '))+'</small>':'')+'</span><span class="v">'+r.n+'</span></div>'}).join('')});
 
   // 17 Department updates (wide) — who has updated their tabs today
   var byRole={};
@@ -468,12 +535,13 @@ function buildCards(){
     r.total++;var c=cov(t.tab_key),ok=covered(t.tab_key);if(ok)r.done++;if(c.check_date&&(!r.last||c.check_date>r.last))r.last=c.check_date;
     r.tabs.push({l:t.label,ok:ok,nothing:c.status==='nothing',last:c.check_date,cad:t.cadence});
   });
+  var dw=auto('dept_week')||{},wkStreak=function(r){var w=dw[r]||[];return w.length?' · week '+w.filter(function(x){return x.total&&x.done===x.total}).length+'/'+w.length+' on time':''};
   var roles=Object.keys(byRole).filter(function(r){return r!=='admin'}).sort(function(a,b){return (ROLES[a]||a)<(ROLES[b]||b)?-1:1});
   var upd=roles.filter(function(r){return byRole[r].done===byRole[r].total}).length,none=roles.filter(function(r){return !byRole[r].done}).length;
   cards.push({title:'Department Updates',sub:'Standup Log · due before '+DEADLINE,wide:true,status:none===0?'good':upd>=roles.length/2?'warn':'bad',label:upd+' of '+roles.length+' complete',
     body:'<div class="dept">'+roles.map(function(r){
       var x=byRole[r],who=ROSTER.filter(function(p){return p.role===r}).map(function(p){return p.name.split(' ')[0]}).join(' & '),cls=x.done===x.total?'ok':x.done?'part':'miss';
-      var cell='<div class="d '+cls+(S.deptOpen===r?' open':'')+'" onclick="toggleDept(\''+r+'\')"><span class="ic">'+(cls==='ok'?'✓':cls==='part'?'…':'○')+'</span><span class="n">'+esc(who)+'</span><span class="r">'+esc(ROLES[r]||r)+' · '+x.done+'/'+x.total+(cls==='miss'?(x.last?' · last '+md(x.last):' · nothing today'):'')+'</span></div>';
+      var cell='<div class="d '+cls+(S.deptOpen===r?' open':'')+'" onclick="toggleDept(\''+r+'\')"><span class="ic">'+(cls==='ok'?'✓':cls==='part'?'…':'○')+'</span><span class="n">'+esc(who)+'</span><span class="r">'+esc(ROLES[r]||r)+' · '+x.done+'/'+x.total+(cls==='miss'?(x.last?' · last '+md(x.last):' · nothing today'):'')+wkStreak(r)+'</span></div>';
       if(S.deptOpen!==r)return cell;
       // tapped name: drop down that person's tabs and whether each is updated
       return cell+'<div class="dtasks">'+x.tabs.map(function(t){return '<div class="dt '+(t.ok?'ok':'miss')+'"><span class="ic">'+(t.ok?'✓':'○')+'</span><span class="l">'+esc(t.l)+'</span><span class="r">'+
@@ -501,7 +569,7 @@ function secStatus(cards,i){
 // Recap for the last section: everything red, then watch, then stale, with the section it came from.
 function escalationCard(cards){
   var rank={bad:0,warn:1,stale:2},items=[];
-  SECTIONS.slice(0,5).forEach(function(s){s.cards.forEach(function(t){
+  SECTIONS.filter(function(s){return s.t!=='Action Items & Escalations'}).forEach(function(s){s.cards.forEach(function(t){
     var c=cardBy(cards,t),k=c&&kindOf(c);
     if(k in rank)items.push({k:k,t:t,s:s.t,l:k==='stale'?(c.stale?'data from '+md(c.stale):'not updated'):c.label});
   })});
