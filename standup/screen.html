@@ -348,11 +348,13 @@ function buildCards(){
   // 1 Census — ADC vs budget (SQCDP C)
   var cser=(T.census||[]).slice(-14);
   var adcDelta=bud!=null&&mtd.avg_total!=null?mtd.avg_total-bud:null;
-  // Bed holds (24-hr report leave list, else census board watch list) and Randy's referral data (Standup Log #22)
+  // Bed holds (24-hr report leave list, else census board watch list) and Randy's referral data (Standup Log #22).
+  // Name code (11/4, Stephen): first 3 letters of last name + first initial, e.g. SMIJ, next to the room-bed on bed holds,
+  // MTD admits/discharges and falls — leadership PIN screen only (standup_resident_codes). Shown only when the feed has one.
   var cenBody=function(cen){
     var bh=cen.bed_holds||[],rf=auto('referrals')||{},rfm=rf.mtd||{},rser=rf.series||[],rlast=rser[rser.length-1]||{},rgoal=rf.goal_minutes||10;
     var rsn=rf.reasons||[],rtot=rsn.reduce(function(a,x){return a+x.n},0),rcum=0;
-    return '<div class="bh2">Bed holds · '+bh.length+'</div>'+(bh.length?bh.map(function(h){return '<div class="row'+(h.day>=6?' flag':'')+'"><span class="l">Rm '+esc(h.room||'—')+(h.hospital?'<small>'+esc(h.hospital)+'</small>':'')+'</span><span class="v">day '+(h.day!=null?h.day:'?')+' of 7</span></div>'}).join(''):'<div class="sub">None</div>')+
+    return '<div class="bh2">Bed holds · '+bh.length+'</div>'+(bh.length?bh.map(function(h){return '<div class="row'+(h.day>=6?' flag':'')+'"><span class="l">Rm '+esc(h.room||'—')+(h.code?' · '+esc(h.code):'')+(h.hospital?'<small>'+esc(h.hospital)+'</small>':'')+'</span><span class="v">day '+(h.day!=null?h.day:'?')+' of 7</span></div>'}).join(''):'<div class="sub">None</div>')+
       '<div class="bh2">Referrals · Randy</div><div class="row'+(rlast.min>20?' flag':'')+'"><span class="l">Response time'+(rlast.d?' '+md(rlast.d):'')+'<small>goal under '+rgoal+' · MTD avg '+num(rfm.avg_minutes)+'</small></span><span class="v">'+num(rlast.min)+' min</span></div>'+
       '<div class="row"><span class="l">MTD</span><span class="v">'+num(rfm.refs)+' referrals · '+num(rfm.accepted)+' accepted · '+num(rfm.admitted)+' admitted</span></div>'+
       (rser.length>1?'<div class="chart">'+datedLine(rser.map(function(p){return {d:p.d,v:p.min}}),{goal:rgoal,min:0})+'</div>':'')+
@@ -374,7 +376,7 @@ function buildCards(){
   var awaiting=pend.filter(function(r){return r.status==='pending'}).length,dcFlag=plan.filter(function(r){return r.flag}).length;
   var more=function(n,shown){return n>shown?'<div class="more">+'+(n-shown)+' more</div>':''};
   var am=auto('adm_dc_mtd')||{},amRows=am.rows||[],amA=amRows.filter(function(r){return r.kind==='adm'}),amD=amRows.filter(function(r){return r.kind==='dc'});
-  var amList=function(rows){return rows.slice(0,3).map(function(r){return '<div class="row"><span class="l">Rm '+esc(r.room||'—')+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(rows.length,3)};
+  var amList=function(rows){return rows.slice(0,3).map(function(r){return '<div class="row"><span class="l">Rm '+esc(r.room||'—')+(r.code?' · '+esc(r.code):'')+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(rows.length,3)};
   // Two stacked blocks — admissions on top, discharges below — so each gets its own count and list.
   var admBlk='<div class="blk"><div class="bh"><b>'+pend.length+'</b>Admissions<small>pending'+(awaiting?' · '+awaiting+' awaiting auth':'')+'</small></div>'+
     (pend.length?pend.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+more(pend.length,4):'<div class="sub">None pending</div>')+
@@ -388,11 +390,11 @@ function buildCards(){
   // 3 Falls (Stephen 11/3) — MTD vs last month to the same day, rate per 1,000 patient days, 14 days by shift,
   // room-bed list with ↻ on repeat fallers (2+ falls in 30 days at that room-bed). Red = any fall in the last 24 hours.
   var fc=auto('falls_card')||{},fm=fc.mtd||{},fl=fc.last||{},fRows=fc.rows||[],frate=function(x){return x.pt_days?1000*x.falls/x.pt_days:null};
-  cards.push({title:'Falls',sub:'incident log · room-bed only',status:fc.last24?'bad':fRows.length?'warn':'good',label:fc.last24?fc.last24+' in last 24 hrs':'None in 24 hrs',
+  cards.push({title:'Falls',sub:'incident log · room-bed + name code',status:fc.last24?'bad':fRows.length?'warn':'good',label:fc.last24?fc.last24+' in last 24 hrs':'None in 24 hrs',
     hero:[num(fm.falls),'falls MTD · '+num(fm.inj)+' injury / sent out'],
     line:num(frate(fm),1)+' per 1,000 pt days · last month to '+md(fl.through)+': '+num(fl.falls)+' falls, '+num(fl.inj)+' injury, '+num(frate(fl),1)+' per 1,000',
     chart:shiftBars(fc.series||[]),
-    body:fRows.slice(0,4).map(function(r){return '<div class="row'+(r.inj?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.repeat>=2?' <b title="2+ falls in 30 days">↻'+r.repeat+'</b>':'')+'<small>'+esc(r.shift||'shift ?')+'</small></span>'+
+    body:fRows.slice(0,4).map(function(r){return '<div class="row'+(r.inj?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+(r.repeat>=2?' <b title="2+ falls in 30 days">↻'+r.repeat+'</b>':'')+'<small>'+esc(r.shift||'shift ?')+'</small></span>'+
       '<span class="v">'+md(r.date)+' · '+(r.sent_out?'sent out':r.injury==='none'?'no injury':r.injury==='pending'?'injury pending':esc(r.injury||'?')+' injury')+'</span></div>'}).join('')+more(fRows.length,4),
     foot:'14 days · dark→light = AM / PM / NOC · red = injury or sent out · ↻ = repeat at that room-bed'});
 
