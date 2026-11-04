@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morning Star — Standup Screen</title>
+<link rel="stylesheet" href="../ms-ui.css?v=2">
+<script src="../ms-ui.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* One-page card grid for a 65" TV at 10–15 ft (1920×1080). QAPI-dashboard look: white cards on grey,
@@ -140,6 +142,61 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 @media (max-width:1500px){main{grid-template-columns:repeat(4,1fr)}.hero b{font-size:48px}.flow .hero b{font-size:80px}.flow .hero b.sm{font-size:60px}.steps .t{font-size:15px}}
 @media (max-width:1000px){body{overflow:auto}#root{height:auto;min-height:100vh}.flow main{grid-template-columns:1fr;grid-auto-rows:minmax(300px,auto)}.steps{flex-wrap:wrap}.steps .st{flex:1 1 30%}main{height:auto;grid-template-columns:repeat(2,1fr);grid-auto-rows:260px}.card.wide{grid-column:span 2}header{height:auto;padding:12px 16px;flex-wrap:wrap}.hk{order:3;width:100%}.att{height:auto;flex-wrap:wrap;padding:8px 16px}}
 @media (max-width:600px){main{grid-template-columns:1fr}.card.wide{grid-column:span 1}}
+</style>
+<style>
+/* ms-ui look (11/4/26): screen tokens mapped onto ms-ui; hairline cards, status icon tiles, Lucide badges.
+   TV type sizes unchanged. Status ink stays the darker screen greens/reds for contrast at 10–15 ft. */
+:root{--bg:var(--background);--text:var(--foreground);--line:var(--border);--navy:var(--ms-navy);--radius:var(--radius-lg)}
+body{font-family:var(--font);background:var(--bg)}
+header{background:linear-gradient(180deg,#0a3558 0%,var(--ms-navy) 100%);border-bottom:3px solid var(--ms-gold);height:88px}
+header h1{letter-spacing:-.5px}
+.hk div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:var(--radius)}
+.hk .bad{background:rgba(198,40,40,.38);border-color:rgba(255,140,140,.5)}.hk .warn{background:rgba(207,140,42,.34);border-color:rgba(240,190,110,.5)}
+.vt{border:1px solid rgba(255,255,255,.22);border-radius:var(--radius-pill);padding:7px 16px;display:inline-flex;align-items:center;gap:6px}
+.att{background:var(--card);border-bottom:1px solid var(--border)}
+.att button{border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--card)}
+.card{border:1px solid var(--border);border-top:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 18px 12px}
+.card.bad{border-color:#f0b4b4;box-shadow:0 0 0 1px #f0b4b4,var(--shadow-sm)}
+.card.warn{border-color:#f1d3a6}
+.card.good,.card.warn,.card.bad,.card.stale{border-top-width:1px}.card.good{border-top-color:var(--border)}.card.warn{border-top-color:#f1d3a6}.card.bad{border-top-color:#f0b4b4}.card.stale{border-top-color:var(--border);background:#f7f8fa}
+.flow .card{border-top-width:1px;padding:22px 26px 18px}
+.ch{align-items:center;flex-wrap:wrap;row-gap:6px}
+.ch .ti{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 300px}
+.ch .ti h3{min-width:0}
+/* all-cards view: 19 narrow cards on one screen — no tile, badge beside the title, as on the live screen */
+#root:not(.flow) .ch{flex-wrap:nowrap;align-items:flex-start}#root:not(.flow) .ch .ti{flex:1 1 auto}
+#root:not(.flow) .ch .ic2{display:none}
+.ch .ic2{width:40px;height:40px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--secondary);color:var(--ms-navy)}
+.ch .ic2 svg{width:22px;height:22px;stroke-width:2.2}
+.card.good .ic2{background:var(--good-bg);color:var(--good)}.card.warn .ic2{background:var(--warn-bg);color:var(--warn)}.card.bad .ic2{background:var(--bad-bg);color:var(--bad)}.card.stale .ic2{background:var(--stale-bg);color:var(--stale)}
+.flow .ch .ic2{width:54px;height:54px;border-radius:16px}.flow .ch .ic2 svg{width:30px;height:30px}
+html.no-icons .ch .ic2{display:none}
+.ch h3{color:var(--foreground);font-weight:700}
+.ch h3 small{color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:var(--radius-pill)}
+.badge svg{width:16px;height:16px;stroke-width:2.6}.flow .badge svg{width:20px;height:20px}
+.b-good{border-color:#bfe3cf}.b-warn{border-color:#f1d3a6}.b-bad{border-color:#f0b4b4}.b-stale{border-color:#d9dde3}
+.row{align-items:baseline;border-top:1px solid #eef1f4}
+.bh2{border-top:1px solid var(--border);color:var(--muted)}
+.blk+.blk{border-top:1px solid var(--border)}
+.wg .c{border-radius:8px}
+.steps .st{border:1px solid var(--border);box-shadow:none;border-radius:var(--radius)}
+.steps .st.on{background:var(--ms-navy);border-color:var(--ms-navy)}
+.fb button.nx{border-radius:var(--radius-pill);padding:10px 24px}
+.pinbox{border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}
+.pinbox input{border:1px solid var(--input);border-radius:var(--radius)}
+.pinbox button{border-radius:var(--radius-pill)}
+/* Repairs & Room Changes: department chips — ✓ green when the department's tasks are all done, ✕ red when not */
+.rc{padding:5px 0;border-top:1px solid #eef1f4}.rc:first-child{border-top:0}
+.rc .top{display:flex;justify-content:space-between;gap:8px;font-size:17px;font-weight:600}.rc .top .v{font-weight:700;white-space:nowrap}
+.rc .top small{color:var(--muted);font-size:.75em;font-weight:600;margin-left:6px}
+.dks{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.dk{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:2px 9px;border-radius:var(--radius-pill);border:1px solid;white-space:nowrap}
+.dk.ok{background:var(--good-bg);color:var(--good);border-color:#bfe3cf}.dk.no{background:var(--bad-bg);color:var(--bad);border-color:#f0b4b4}
+/* double-width card: the two lists side by side */
+.card.span2{grid-column:span 2}.card.span2 .rows.split{flex-direction:row;gap:24px}
+.card.span2 .split .blk+.blk{border-top:0;margin-top:0;padding-top:0;border-left:1px solid var(--border);padding-left:24px}
+.flow .rc{padding:8px 0}.flow .rc .top{font-size:21px}.flow .dk{font-size:16px;padding:3px 11px}
 </style>
 </head>
 <body>
@@ -322,15 +379,21 @@ function hbars(rows){
 // ---------- cards ----------
 // Each card: {title, sub(small under title), status:'good'|'warn'|'bad'|null, label, hero:[big, unit], line, body(html), stale:date|null, missing:bool}
 function badge(c){
-  if(c.stale)return '<span class="badge b-stale">⏱ data from '+md(c.stale)+'</span>';
-  if(c.missing)return '<span class="badge b-stale">⏱ not updated</span>';
-  var m={good:['✓','On track'],warn:['▲','Watch'],bad:['✕','Action']}[c.status];
-  return m?'<span class="badge b-'+c.status+'">'+m[0]+' '+esc(c.label||m[1])+'</span>':'';
+  if(c.stale)return '<span class="badge b-stale"><i data-lucide="clock"></i>data from '+md(c.stale)+'</span>';
+  if(c.missing)return '<span class="badge b-stale"><i data-lucide="clock"></i>not updated</span>';
+  var m={good:['circle-check','On track'],warn:['triangle-alert','Watch'],bad:['circle-x','Action']}[c.status];
+  return m?'<span class="badge b-'+c.status+'"><i data-lucide="'+m[0]+'"></i>'+esc(c.label||m[1])+'</span>':'';
 }
+// Lucide icon per card (ms-ui look); a card not listed gets no tile
+var CARD_ICONS={'Census':'bed-double','Admissions & Discharges':'arrow-left-right','Admission Mini Packets':'folder-check','Medicare Day-4 Rates':'badge-dollar-sign',
+ 'Nursing Hours PPD':'stethoscope','Overtime':'timer','Call-offs & HR':'phone-off','Floor Rounds & Environment':'clipboard-check','Repairs & Room Changes':'wrench',
+ 'Google Rating':'star','Needs an Owner Today':'siren','Department Updates':'users','Falls':'triangle-alert','Grievances':'message-square-warning',
+ 'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
 function cardHtml(c){
-  var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
+  var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.span2?' span2':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
   var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
-  return '<div class="'+cls+'"><div class="ch"><h3>'+esc(c.title)+(c.sub?'<small>'+esc(c.sub)+'</small>':'')+'</h3>'+badge(c)+'</div>'+hero+
+  var ic=CARD_ICONS[c.title];
+  return '<div class="'+cls+'"><div class="ch"><div class="ti">'+(ic?'<span class="ic2"><i data-lucide="'+ic+'"></i></span>':'')+'<h3>'+esc(c.title)+(c.sub?'<small>'+esc(c.sub)+'</small>':'')+'</h3></div>'+badge(c)+'</div>'+hero+
     (c.line?'<div class="sub">'+c.line+'</div>':'')+(c.chart?'<div class="chart">'+c.chart+'</div>':'')+(c.body?'<div class="rows'+(c.split?' split':'')+'">'+c.body+'</div>':'')+
     (c.foot?'<div class="foot">'+esc(c.foot)+'</div>':'')+'</div>';
 }
@@ -510,11 +573,25 @@ function buildCards(){
 
   // 14 Environment (Stephen 11/3) — Sebastian's whole-building floor round as a week grid + MTD %, what didn't pass, open repairs
   var fg=auto('floor_grid')||[],fdays=fg.map(function(x){return x.date}),fToday=fdays.indexOf(S.today)>=0,fLast=fg[0],a10=new Date().getHours()>=10;
-  var repOpen=leadNum((auto('painting')||{}).summary),rcOpen=leadNum((auto('room_changes')||{}).summary);
   cards.push({title:'Floor Rounds & Environment',sub:'Maintenance / EVS · whole building',status:fToday?(fLast&&fLast.fails?'warn':'good'):(a10?'bad':'warn'),label:fToday?'Rounded today':'Not rounded today',
     body:weekGrid([{name:'Sebastian',days:fdays}])+
-      (fLast&&fLast.items&&fLast.items.length?'<div class="bh2">Not passed · '+md(fLast.date)+'</div>'+fLast.items.slice(0,4).map(function(t){return '<div class="row flag"><span class="l">'+esc(t)+'</span></div>'}).join('')+more(fLast.items.length,4):'')+
-      '<div class="bh2">Open</div><div class="row"><span class="l">Open repair requests</span><span class="v">'+num(repOpen)+'</span></div><div class="row"><span class="l">Room changes open</span><span class="v">'+num(rcOpen)+'</span></div>'});
+      (fLast&&fLast.items&&fLast.items.length?'<div class="bh2">Not passed · '+md(fLast.date)+'</div>'+fLast.items.slice(0,6).map(function(t){return '<div class="row flag"><span class="l">'+esc(t)+'</span></div>'}).join('')+more(fLast.items.length,6):'')});
+
+  // 14b Repairs & Room Changes (Stephen 11/4) — every open repair (urgent first, days open) and every open room change with each department's sign-off
+  var repO=((auto('painting')||{}).rows||[]).filter(function(r){return r.status!=='done'}),
+      rcO=((auto('room_changes')||{}).rows||[]).filter(function(r){return r.status==='open'}),
+      urg=repO.filter(function(r){return r.flag}).length;
+  var repDays=function(r){var m=String(r.detail||'').match(/(\d+) days? open/);return m?+m[1]:null};
+  var repRow=function(r){var dd=repDays(r),what=String(r.detail||'').split(' · ')[0];
+    return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+(r.flag?'⚑ ':'')+esc(r.title)+(what?'<small>'+esc(what)+'</small>':'')+'</span><span class="v">'+(dd!=null?dd+'d':md(r.date))+'</span></div>'};
+  var rcRow=function(r){return '<div class="rc"><div class="top"><span>'+esc(r.title)+(r.detail?'<small>'+esc(String(r.detail).split(' · ')[0])+'</small>':'')+'</span><span class="v">'+(r.days!=null?r.days+'d':md(r.date))+'</span></div>'+
+    '<div class="dks">'+(r.depts||[]).map(function(x){return '<span class="dk '+(x.done?'ok':'no')+'">'+(x.done?'✓ ':'✕ ')+esc(x.d)+(x.done?'':' · '+x.left+' left')+'</span>'}).join('')+'</div></div>'};
+  cards.push({title:'Repairs & Room Changes',sub:'Repair + Room Changes apps · open',status:urg?'bad':(repO.length||rcO.length)?'warn':'good',
+    label:urg?urg+' urgent':(repO.length+rcO.length)?(repO.length+rcO.length)+' open':'None open',split:true,span2:true,
+    body:'<div class="blk"><div class="bh"><b>'+repO.length+'</b> open repairs'+(urg?'<small>'+urg+' urgent</small>':'')+'</div>'+
+        (repO.length?repO.slice(0,8).map(repRow).join('')+more(repO.length,8):'<div class="sub">No open repairs</div>')+'</div>'+
+      '<div class="blk"><div class="bh"><b>'+rcO.length+'</b> room changes open</div>'+
+        (rcO.length?rcO.slice(0,5).map(rcRow).join('')+more(rcO.length,5):'<div class="sub">All room changes complete</div>')+'</div>'});
 
   // 15 Leader resident rounds (Stephen 11/3) — this week per rounder like the Room Rounds app, MTD % of weekdays; Stephen not listed
   var rg=auto('rounds_grid')||{},rToday=ROUNDERS.filter(function(n){return (rg[n]||[]).indexOf(S.today)>=0}).length,after10=new Date().getHours()>=10;
@@ -555,7 +632,7 @@ function buildCards(){
 var SECTIONS=[
  {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Admission Mini Packets','Medicare Day-4 Rates']},
  {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Call-offs & HR']},
- {t:'Operational Updates',cards:['Floor Rounds & Environment','Google Rating']},
+ {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Google Rating']},
  {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},
  {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
  {t:'Clinical Highlights',cards:['Hospital Send-outs','Open Clinical & BO Lists','Leader Resident Rounds']}
@@ -622,9 +699,10 @@ function render(){
   root.className=flow?'flow':'';
   if(flow){
     var sc=SECTIONS[S.sec].cards.map(function(t){return cardBy(cards,t)}).filter(Boolean);
-    root.innerHTML=head+stepsHtml(cards)+(S.sec===0?attHtml():'')+'<main style="--n:'+sc.reduce(function(a,c){return a+(c.twocol?2:1)},0)+'">'+sc.map(cardHtml).join('')+'</main>'+footHtml();
+    root.innerHTML=head+stepsHtml(cards)+(S.sec===0?attHtml():'')+'<main style="--n:'+sc.reduce(function(a,c){return a+(c.twocol||c.span2?2:1)},0)+'">'+sc.map(cardHtml).join('')+'</main>'+footHtml();
   }else root.innerHTML=head+attHtml()+'<main>'+cards.filter(function(c){return c.title!==ESC}).map(cardHtml).join('')+'</main>';
   tick();
+  if(window.MS&&MS.icons)MS.icons();
 }
 
 function toggleDept(r){S.deptOpen=S.deptOpen===r?null:r;render()}
