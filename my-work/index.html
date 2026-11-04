@@ -377,7 +377,14 @@ function renderItem(){
   app().innerHTML=h;
   if(open&&!it.owner_key)document.getElementById('itOwner').value='dept:'+it.department;
 }
-function itComplete(){var n=document.getElementById('itNote').value;guard(async function(){await rpc('work_complete',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.item.id,p_note:n||null});toast('Done');S.item=null;await reload()})}
+function itComplete(){
+  // A new owner picked but not saved means "hand this off", not "done" — never drop it silently.
+  var ov=document.getElementById('itOwner').value;
+  if(ov!==(S.item.owner_key||('dept:'+S.item.department))){
+    if(confirm('You picked '+(ov.indexOf('dept:')===0?ov.slice(5):ownerName(ov))+' as the new owner but did not save.\n\nOK = assign it to them (stays open)\nCancel = go back'))itSave();
+    return;
+  }
+  var n=document.getElementById('itNote').value;guard(async function(){await rpc('work_complete',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.item.id,p_note:n||null});toast('Done');S.item=null;await reload()})}
 function itAddNote(){var n=document.getElementById('itNote').value.trim();if(!n)return toast('Type a note first');guard(async function(){await rpc('work_update',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.item.id,p_title:null,p_due:null,p_clear_due:false,p_note:n});toast('Note added');await reload();S.item=findItem(S.item.id)||null;route()})}
 function itReopen(){guard(async function(){await rpc('work_reopen',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.item.id});toast('Reopened');await reload();S.item=findItem(S.item.id)||null;route()})}
 function itCancel(){if(!confirm('Cancel this item? It will leave everyone\'s list.'))return;var n=document.getElementById('itNote').value;guard(async function(){await rpc('work_cancel',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.item.id,p_note:n||null});toast('Cancelled');S.item=null;await reload()})}
