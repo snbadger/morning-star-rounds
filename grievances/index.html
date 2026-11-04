@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — Resident Grievance</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=1"></script>
+<script src="../ms-ui.js?v=1" defer></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -71,11 +73,12 @@ body.resident .urgent-row .d{font-size:13.5px}
 .rtitle{font-size:22px;font-weight:800;color:var(--primary);line-height:1.3}
 .rsub{font-size:16px;line-height:1.55;margin-top:6px}
 </style>
+<link rel="stylesheet" href="../ms-skin.css?v=1">
 </head>
 <body>
 <div class="header">
   <div>
-    <h1>🗣️ Resident Grievance</h1>
+    <h1><i data-lucide="message-square-warning"></i><span class="fb">🗣️</span>Resident Grievance</h1>
     <div class="sub"><a href="../">← All Apps</a> · Morning Star Post Acute</div>
   </div>
   <div class="who" id="whoChip" onclick="editIdentity()">Sign in</div>
@@ -146,7 +149,21 @@ function choiceList(list,sel,fn){
     return '<div class="choice'+(sel===c.v?' on':'')+'" onclick="'+fn+'(\''+c.v+'\')"><div class="ck"></div><div><div class="cl">'+c.l+'</div><div class="cd">'+c.d+'</div></div></div>';
   }).join('')+'</div>';
 }
+// ---- Sign-in via the hub's Paycom roster (ms-identity.js, 11/4/26). Originals kept below as legacy* fallbacks. ----
 function identityView(){
+  if(!window.MS||!MS.identity)return legacyIdentityView();
+  return MS.identity.card({"title": "Who are you?", "hint": "So Social Services can follow up with you if they have a question."});
+}
+function saveIdentity(){
+  if(!window.MS||!MS.identity)return legacySaveIdentity();
+  var u=MS.identity.get();
+  if(!u){MS.identity._appPick();return}
+  me.name=u.name;
+  if('dept' in me)me.dept=MS.identity.dept('work')||'Other';
+  view='submit';render();
+}
+function logout(){if(window.MS&&MS.identity)return MS.identity.signOut();legacyLogout()}
+function legacyIdentityView(){
   return '<div class="card">'+
    '<h2 style="font-size:18px;margin-bottom:4px">Who are you?</h2>'+
    '<div class="hint">So Social Services can follow up with you if they have a question.</div>'+
@@ -158,7 +175,7 @@ function identityView(){
    '<button class="btn btn-primary" onclick="saveIdentity()">Continue</button>'+
    '</div>';
 }
-function saveIdentity(){
+function legacySaveIdentity(){
   var n=document.getElementById('iName').value.trim(), d=document.getElementById('iDept').value;
   if(n.length<3){toast('Please enter your first and last name');return}
   if(!d){toast('Please pick your department');return}
@@ -318,7 +335,7 @@ function thanksView(){
 
 // Shared phone: hand the app back to the next person. Clears the identity shared by
 // the Ideas / Repairs / Shout Outs / Supply apps and returns to the Staff Apps home screen.
-function logout(){
+function legacyLogout(){
   try{localStorage.removeItem('ii_name');localStorage.removeItem('ii_dept');}catch(e){}
   location.href='../';
 }

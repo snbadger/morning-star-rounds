@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — Shower Sheet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=1"></script>
 <link rel="stylesheet" href="../ms-ui.css?v=2">
 <script src="../ms-ui.js?v=1"></script>
 <style>
@@ -207,7 +208,7 @@ function esc(s){var d=document.createElement('div');d.textContent=s==null?'':Str
 function toast(m){var t=/fail|not a valid|^Pick|^Complete|^Check at least|^Please/i.test(m)?'destructive':/^Saved|^Marked|removed/i.test(m)?'success':'';if(window.MS&&MS.toast)MS.toast(m,{type:t});else alert(m)}
 function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+me.name.split(' ')[0]):'Sign in'}
 function editIdentity(){view='identity';render()}
-function logout(){try{localStorage.removeItem('sh_name');}catch(e){}location.href='../';}
+function legacyLogout(){try{localStorage.removeItem('sh_name');}catch(e){}location.href='../';}
 function setTab(t){tab=t;localStorage.setItem('sh_tab',t);view='home';loadAndRender()}
 function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
 // Outcomes where care actually happened — these carry task checklists and a skin check.
@@ -233,7 +234,20 @@ function render(){
   el.innerHTML=tab==='nurse'?nurseView():homeView();
 }
 
+// ---- Sign-in via the hub's Paycom roster (ms-identity.js, 11/4/26). Originals kept below as legacy* fallbacks. ----
 function identityView(){
+  if(!window.MS||!MS.identity)return legacyIdentityView();
+  return MS.identity.card({"title": "Who are you?", "hint": "Your name is stamped on every shower you document, just like signing the paper sheet. No resident names anywhere in this app.", "chip": "Nursing SNF"});
+}
+function saveIdentity(){
+  if(!window.MS||!MS.identity)return legacySaveIdentity();
+  var u=MS.identity.get();
+  if(!u){MS.identity._appPick();return}
+  me.name=u.name;
+  view='home';loadAndRender();
+}
+function logout(){if(window.MS&&MS.identity)return MS.identity.signOut();legacyLogout()}
+function legacyIdentityView(){
   return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
   '<div class="hint">Your name is stamped on every shower you document — just like signing the paper sheet.</div>'+
   '<label>Your name (First Last)</label><input id="idName" placeholder="e.g. Maria Lopez" value="'+esc(me.name)+'">'+
@@ -242,7 +256,7 @@ function identityView(){
   '</div>'+
   '<div class="card hint" style="margin-top:4px">🔒 No resident names anywhere in this app — rooms and beds only.</div>';
 }
-function saveIdentity(){
+function legacySaveIdentity(){
   var n=document.getElementById('idName').value.trim();
   if(!n){toast('Please enter your name');return}
   me.name=n;localStorage.setItem('sh_name',n);view='home';loadAndRender();
@@ -446,6 +460,8 @@ function formView(){
   return h;
 }
 
+// Paycom employee number of the signed-in CNA (null for typed names or legacy sign-ins).
+function msEmployeeNumber(){var u=window.MS&&MS.identity&&MS.identity.get();return(u&&u.name===me.name&&u.employee_number)?u.employee_number:null}
 var saving=false;
 async function saveForm(){
   if(saving)return;
@@ -464,7 +480,7 @@ async function saveForm(){
     skin_note:(careGiven(f.outcome)&&f.skin_issues.length)?f.skin_note:null,
     notes:f.notes||null,
     refusal_steps:f.outcome==='refused'?f.refusal_steps:null,
-    cna_name:me.name,updated_at:new Date().toISOString(),source:'shower-app'};
+    cna_name:me.name,employee_number:msEmployeeNumber(),updated_at:new Date().toISOString(),source:'shower-app'};
   var res=await sb.from('shower_logs').upsert(row,{onConflict:'log_date,shift,room_bed'});
   saving=false;
   if(res.error){document.getElementById('saveBtn').disabled=false;toast('Save failed — try again');console.error(res.error);return}

@@ -520,6 +520,47 @@ body.has-tabbar .toaster { bottom: calc(84px + env(safe-area-inset-bottom)); }
 .check-row .check-sub { font-size: 12.5px; font-weight: 400; color: var(--muted-foreground); }
 .back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 12px; font-size: 14.5px; font-weight: 700; color: var(--primary); cursor: pointer; }
 
+/* ---------- 14. Group colors for hub tiles (added 11/4 — tiles were monotone) ----------
+   One hue per task group on the icon well and the section label. Hues avoid the status
+   colors' meanings: no plain red/green on tiles. */
+:root{
+  --g-document:#0b7285;  --g-document-bg:#e3f4f7;
+  --g-report:#c2570c;    --g-report-bg:#fff0e3;
+  --g-speak:#a8326e;     --g-speak-bg:#fbe8f2;
+  --g-learn:#6741d9;     --g-learn-bg:#efeafd;
+  --g-leader:#1a3c5e;    --g-leader-bg:#e4ebf2;
+  --g-hr:#8A5A12;        --g-hr-bg:#faf0dc;
+}
+html[data-theme="dark"]{
+  --g-document:#5cc8d9;  --g-document-bg:#123a42;
+  --g-report:#f59f5b;    --g-report-bg:#3d2615;
+  --g-speak:#ec8bbd;     --g-speak-bg:#3d1a2c;
+  --g-learn:#a991f5;     --g-learn-bg:#2a2148;
+  --g-leader:#8fb8e6;    --g-leader-bg:#1c3550;
+  --g-hr:#e7b766;        --g-hr-bg:#3a2e14;
+}
+.tile[data-group="document"] .tile-icon{background:var(--g-document);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-document) 35%,transparent)}
+.tile[data-group="report"]   .tile-icon{background:var(--g-report);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-report) 35%,transparent)}
+.tile[data-group="speak"]    .tile-icon{background:var(--g-speak);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-speak) 35%,transparent)}
+.tile[data-group="learn"]    .tile-icon{background:var(--g-learn);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-learn) 35%,transparent)}
+.tile[data-group="leader"]   .tile-icon{background:var(--g-leader);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-leader) 35%,transparent)}
+.tile[data-group="hr"]       .tile-icon{background:var(--g-hr);color:#fff;box-shadow:0 2px 6px color-mix(in srgb,var(--g-hr) 35%,transparent)}
+.tile[data-group]:hover{border-color:currentColor}
+.tile[data-group="document"]:hover{border-color:var(--g-document)}
+.tile[data-group="report"]:hover{border-color:var(--g-report)}
+.tile[data-group="speak"]:hover{border-color:var(--g-speak)}
+.tile[data-group="learn"]:hover{border-color:var(--g-learn)}
+.tile[data-group="leader"]:hover{border-color:var(--g-leader)}
+.tile[data-group="hr"]:hover{border-color:var(--g-hr)}
+section[data-group] > .section-title::before{content:"";width:10px;height:10px;border-radius:3px;flex:none;background:var(--muted-foreground)}
+section[data-group="document"] > .section-title::before{background:var(--g-document)}
+section[data-group="report"]   > .section-title::before{background:var(--g-report)}
+section[data-group="speak"]    > .section-title::before{background:var(--g-speak)}
+section[data-group="learn"]    > .section-title::before{background:var(--g-learn)}
+section[data-group="leader"]   > .section-title::before{background:var(--g-leader)}
+section[data-group="hr"]       > .section-title::before{background:var(--g-hr)}
+section[data-group] > .section-title svg{display:none}
+
 /* Utilities */
 .muted { color: var(--muted-foreground); } .bold { font-weight: 700; } .small { font-size: 13px; }
 .mt-0{margin-top:0}.mt-1{margin-top:6px}.mt-2{margin-top:12px}.mt-3{margin-top:18px}.mt-4{margin-top:24px}

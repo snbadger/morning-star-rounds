@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — Room Changes</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=1"></script>
+<script src="../ms-ui.js?v=1" defer></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -58,10 +60,11 @@ input:focus,select:focus{outline:none;border-color:var(--primary-light)}
 .empty{text-align:center;color:var(--text-light);font-size:14px;padding:26px 0}
 .hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
 </style>
+<link rel="stylesheet" href="../ms-skin.css?v=1">
 </head>
 <body>
 <div class="header">
-  <div><h1>🔄 Room Changes</h1><div class="sub">Morning Star Post Acute</div></div>
+  <div><h1><i data-lucide="door-open"></i><span class="fb">🔄</span>Room Changes</h1><div class="sub">Morning Star Post Acute</div></div>
   <div class="who" id="whoChip" onclick="editIdentity()"></div>
 </div>
 <div class="page" id="app"></div>
@@ -136,7 +139,21 @@ function render(){
   el.innerHTML=homeView();
 }
 
+// ---- Sign-in via the hub's Paycom roster (ms-identity.js, 11/4/26). Originals kept below as legacy* fallbacks. ----
 function identityView(){
+  if(!window.MS||!MS.identity)return legacyIdentityView();
+  return MS.identity.card({"title": "Who are you?", "hint": "Your name is stamped on every box you check, so the team knows who did what.", "chip": "all"});
+}
+function saveIdentity(){
+  if(!window.MS||!MS.identity)return legacySaveIdentity();
+  var u=MS.identity.get();
+  if(!u){MS.identity._appPick();return}
+  me.name=u.name;
+  if('dept' in me)me.dept=MS.identity.dept('rc')||'Other';
+  view='home';refresh();
+}
+function logout(){if(window.MS&&MS.identity)return MS.identity.signOut();legacyLogout()}
+function legacyIdentityView(){
   return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
   '<div class="hint">Your name is stamped on every box you check, so the team knows who did what.</div>'+
   '<label>Your name</label><input id="idName" list="staffList" placeholder="Type or pick your name" value="'+esc(me.name)+'">'+
@@ -144,7 +161,7 @@ function identityView(){
   '<label>Your department</label><select id="idDept">'+DEPTS.map(function(d){return '<option'+(d===me.dept?' selected':'')+'>'+d+'</option>'}).join('')+'</select>'+
   '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
 }
-function saveIdentity(){
+function legacySaveIdentity(){
   var n=document.getElementById('idName').value.trim();
   if(!n){toast('Please enter your name');return}
   me.name=n;me.dept=document.getElementById('idDept').value;
@@ -193,7 +210,7 @@ function homeView(){
   return h;
 }
 // Shared phone: clear this app's identity and go back to the Staff Apps home screen.
-function logout(){
+function legacyLogout(){
   try{localStorage.removeItem('rc_name');localStorage.removeItem('rc_dept');}catch(e){}
   location.href='../';
 }
