@@ -39,6 +39,9 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .card.stale{border-top-color:var(--stale);background:#f6f7f9}
 .card.stale .hero,.card.stale .chart{opacity:.55}
 .card.wide{grid-column:span 2}
+/* two-column card (Census): headline + chart on the left, lists on the right */
+.card.twocol{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto 1fr auto;column-gap:28px}
+.card.twocol .ch{grid-column:1/-1}.par .hb,.flow .par .hb{grid-template-columns:minmax(0,170px) 1fr 100px;padding:3px 0}.twocol .rows .chart,.flow .twocol .rows .chart{flex:none;height:96px;margin-top:4px}.par .hb .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card.twocol .rows{grid-column:2;grid-row:2/6;margin-top:0}.card.twocol .chart{min-height:160px}
 .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .ch h3{font-size:19px;font-weight:700;color:var(--muted);line-height:1.15}
 .ch h3 small{display:block;font-size:13px;font-weight:600;color:#8a93a0;margin-top:2px}
@@ -145,6 +148,7 @@ var ROSTER=[
  {name:'Kim Beatrez',role:'diet'},{name:'Annie Vang',role:'mr'},{name:'Kelsey Kennington',role:'hr'},
  {name:'Sebastian Lopez',role:'mnt'},{name:'Joe Fronteras',role:'rehab'},{name:'Stephen Badger',role:'admin'}
 ];
+var MONS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var ROLES={don:'DON',adon:'ADON',mds:'MDS',dsd:'DSD / IP',adm:'Admissions',bom:'Business Office',ssd:'Social Services',act:'Activities',
  diet:'Dietary',mr:'Medical Records',hr:'HR',mnt:'Maintenance / EVS',rehab:'Rehab',admin:'Administrator'};
 var FORM_KINDS=['log','count','list','falls'];
@@ -286,7 +290,7 @@ function badge(c){
   return m?'<span class="badge b-'+c.status+'">'+m[0]+' '+esc(c.label||m[1])+'</span>':'';
 }
 function cardHtml(c){
-  var cls='card'+(c.wide?' wide':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
+  var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
   var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
   return '<div class="'+cls+'"><div class="ch"><h3>'+esc(c.title)+(c.sub?'<small>'+esc(c.sub)+'</small>':'')+'</h3>'+badge(c)+'</div>'+hero+
     (c.line?'<div class="sub">'+c.line+'</div>':'')+(c.chart?'<div class="chart">'+c.chart+'</div>':'')+(c.body?'<div class="rows'+(c.split?' split':'')+'">'+c.body+'</div>':'')+
@@ -306,6 +310,16 @@ function buildCards(){
   // 1 Census — ADC vs budget (SQCDP C)
   var cser=(T.census||[]).slice(-14);
   var adcDelta=bud!=null&&mtd.avg_total!=null?mtd.avg_total-bud:null;
+  // Bed holds (24-hr report leave list, else census board watch list) and Randy's referral data (Standup Log #22)
+  var cenBody=function(cen){
+    var bh=cen.bed_holds||[],rf=auto('referrals')||{},rfm=rf.mtd||{},rser=rf.series||[],rlast=rser[rser.length-1]||{},rgoal=rf.goal_minutes||10;
+    var rsn=rf.reasons||[],rtot=rsn.reduce(function(a,x){return a+x.n},0),rcum=0;
+    return '<div class="bh2">Bed holds · '+bh.length+'</div>'+(bh.length?bh.map(function(h){return '<div class="row'+(h.day>=6?' flag':'')+'"><span class="l">Rm '+esc(h.room||'—')+(h.hospital?'<small>'+esc(h.hospital)+'</small>':'')+'</span><span class="v">day '+(h.day!=null?h.day:'?')+' of 7</span></div>'}).join(''):'<div class="sub">None</div>')+
+      '<div class="bh2">Referrals · Randy</div><div class="row'+(rlast.min>20?' flag':'')+'"><span class="l">Response time'+(rlast.d?' '+md(rlast.d):'')+'<small>goal under '+rgoal+' · MTD avg '+num(rfm.avg_minutes)+'</small></span><span class="v">'+num(rlast.min)+' min</span></div>'+
+      '<div class="row"><span class="l">MTD</span><span class="v">'+num(rfm.refs)+' referrals · '+num(rfm.accepted)+' accepted · '+num(rfm.admitted)+' admitted</span></div>'+
+      (rser.length>1?'<div class="chart">'+datedLine(rser.map(function(p){return {d:p.d,v:p.min}}),{goal:rgoal,min:0})+'</div>':'')+
+      (rtot?'<div class="bh2">Denial reasons MTD · '+rtot+' · cumulative %</div><div class="par">'+hbars(rsn.slice(0,4).map(function(x){rcum+=x.n;return {l:x.cat,v:x.n,max:rsn[0].n,txt:x.n+' · '+Math.round(100*rcum/rtot)+'%'}}))+'</div>':'');
+  };
   // census_now = latest PCC census (or newer census board) moved forward by later 24-hr reports; open = 57 - total
   var cOpen=cen.open_beds!=null?cen.open_beds:cen.total_census!=null?57-cen.total_census:null,cEmpty=cen.beds_empty||[];
   cards.push({title:'Census',sub:cen.estimate?'PCC '+md(cen.base_date)+' + 24-hr report '+md(cen.report_date)+' · estimate'
@@ -315,20 +329,21 @@ function buildCards(){
     hero:[cen.total_census!=null?(cen.estimate?'≈':'')+cen.total_census:'—','census incl. '+(cen.holds||0)+' bed hold'+(cen.holds==1?'':'s')+(cOpen!=null?' · '+cOpen+' open':'')],
     line:'Medicare A '+num(cen.mcra_count)+' · HMO '+num(cen.hmo_count)+' · Medi-Cal '+num(cen.mcal_count)+(cen.payer_date&&cen.payer_date!==cen.date?' ('+md(cen.payer_date)+')':''),
     chart:datedLine(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,
-    foot:(cEmpty.length?'Empty: '+cEmpty.join(', ')+' · ':'')+'14 days · dashed = budget ADC'});
+    twocol:true,body:cenBody(cen),foot:(cEmpty.length?'Empty: '+cEmpty.join(', ')+' · ':'')+'14 days · dashed = budget ADC'});
 
   // 2 Admissions & discharges — census workbook + PCC ADT
   var pa=auto('pending_admissions')||{},dc=auto('discharges')||{},pend=rowsOf('pending_admissions'),plan=rowsOf('discharges').filter(function(r){return r.status==='planned'});
   var awaiting=pend.filter(function(r){return r.status==='pending'}).length,dcFlag=plan.filter(function(r){return r.flag}).length;
   var more=function(n,shown){return n>shown?'<div class="more">+'+(n-shown)+' more</div>':''};
-  var admRecent=(String((auto('prior_day_admissions')||{}).summary||'').match(/(\d+) admissions? in the last (\d+) days/)||[]),dcRecent=(String(dc.summary||'').match(/(\d+) discharges? in the last (\d+) days/)||[]);
+  var am=auto('adm_dc_mtd')||{},amRows=am.rows||[],amA=amRows.filter(function(r){return r.kind==='adm'}),amD=amRows.filter(function(r){return r.kind==='dc'});
+  var amList=function(rows){return rows.slice(0,3).map(function(r){return '<div class="row"><span class="l">Rm '+esc(r.room||'—')+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(rows.length,3)};
   // Two stacked blocks — admissions on top, discharges below — so each gets its own count and list.
   var admBlk='<div class="blk"><div class="bh"><b>'+pend.length+'</b>Admissions<small>pending'+(awaiting?' · '+awaiting+' awaiting auth':'')+'</small></div>'+
     (pend.length?pend.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+more(pend.length,4):'<div class="sub">None pending</div>')+
-    (admRecent[1]!=null?'<div class="more">'+admRecent[1]+' admitted in the last '+admRecent[2]+' days</div>':'')+'</div>';
+    '<div class="more">MTD '+num(am.admits)+' admitted'+(am.readmits?' ('+am.readmits+' readmits)':'')+' · PCC through '+md(am.through)+'</div>'+amList(amA)+'</div>';
   var dcBlk='<div class="blk"><div class="bh"><b>'+plan.length+'</b>Discharges<small>planned / LCD</small></div>'+
     (plan.length?plan.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">Rm '+esc(r.room)+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(plan.length,4):'<div class="sub">None planned</div>')+
-    (dcRecent[1]!=null?'<div class="more">'+dcRecent[1]+' discharged in the last '+dcRecent[2]+' days</div>':'')+'</div>';
+    '<div class="more">MTD '+num(am.discharges)+' discharged · PCC through '+md(am.through)+'</div>'+amList(amD)+'</div>';
   cards.push({title:'Admissions & Discharges',sub:'Jericho Census workbook',status:dcFlag?'bad':awaiting?'warn':'good',label:dcFlag?dcFlag+' DC past date':awaiting?awaiting+' awaiting auth':'Clear',
     split:true,body:admBlk+dcBlk,stale:staleDate('pending_admissions')});
 
@@ -376,8 +391,10 @@ function buildCards(){
   // 8 Mini packets
   var mp=auto('mini_packet')||{},mpRows=rowsOf('mini_packet'),mpMissing=mpRows.filter(function(r){return r.status==='missing'}).length,mpTot=leadNum(mp.summary);
   cards.push({title:'Admission Mini Packets',sub:'Business Office audit tracker',status:mpMissing?'bad':'good',label:mpMissing?mpMissing+' not received':'All in',
-    hero:[mpMissing,'of '+(mpTot!=null?mpTot:'—')+' admits · 14 days'],line:'Oldest: '+(mpRows.length?'Rm '+esc(mpRows[mpRows.length-1].room)+' admitted '+md(mpRows[mpRows.length-1].date):'—'),
-    body:mpRows.slice(0,4).map(function(r){return '<div class="row flag"><span class="l">Rm '+esc(r.room)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('mini_packet')});
+    hero:[mpMissing,'of '+(mpTot!=null?mpTot:'—')+' admits · 14 days'],
+    line:'MTD complete '+(mp.mtd&&mp.mtd.admits?Math.round(100*mp.mtd.complete/mp.mtd.admits)+'% ('+mp.mtd.complete+' of '+mp.mtd.admits+')':'— (no admits yet this month)'),
+    body:mpRows.slice(0,5).map(function(r){var dd=Math.round((new Date(S.today+'T12:00:00')-new Date(String(r.date).slice(0,10)+'T12:00:00'))/864e5);
+      return '<div class="row'+(dd>3?' flag':'')+'"><span class="l">Rm '+esc(r.room)+'<small>'+esc(r.title)+'</small></span><span class="v">day '+dd+'</span></div>'}).join('')+more(mpRows.length,5),stale:staleDate('mini_packet')});
 
   // 9 PCC forms due (UDA)
   var ud=rowsOf('uda_overdue'),udRows=ud.map(function(r){var m=(r.detail||'').match(/(\d+) due · (\d+) in progress/);return {l:r.title,due:m?+m[1]:0,ip:m?+m[2]:0,flag:r.flag}}),udDue=udRows.reduce(function(a,r){return a+r.due},0);
@@ -391,10 +408,14 @@ function buildCards(){
     hero:[pocV!=null?num(pocV,1)+'%':'—',(auto('poc_compliance')||{}).summary?String((auto('poc_compliance')||{}).summary).replace(/^[\d.]+% /,''):''],stale:staleDate('poc_compliance')});
 
   // 11 MDS day-4 rates
+  var d4=auto('day4_mtd')||{},d4p=(d4.pcc||[])[0]||{},d4t=d4.tracker||{},ym=S.today.slice(0,7),pm=addDays(ym+'-01',-1).slice(0,7),tCur=d4t[ym]||{},tPrev=d4t[pm]||{};
   var m4=auto('mds_day4')||{},m4s=String(m4.summary||''),under=(m4s.match(/(\d+) under \$900/)||[])[1],notPosted=(m4s.match(/(\d+) MDS not posted/)||[])[1];
   cards.push({title:'Medicare Day-4 Rates',sub:'PDPM · $900 rule',status:+under>0?'bad':'good',label:+under>0?under+' under $900':'All over $900',
-    hero:[under!=null?under:'—','under $900 · 14 days'],line:(notPosted||0)+' MDS not posted yet',
-    body:rowsOf('mds_day4').filter(function(r){return r.flag}).slice(0,3).map(function(r){return '<div class="row flag"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),stale:staleDate('mds_day4')});
+    hero:[under!=null?under:'—','under $900 · 14 days'],line:(notPosted||0)+' MDS not posted yet · PCC pull '+md(d4.pcc_loaded),
+    body:'<div class="row'+(d4p.avg!=null&&d4p.avg<900?' flag':'')+'"><span class="l">Avg day-4 rate · '+(d4p.month?MONS[+d4p.month.slice(5,7)-1]:'—')+'<small>'+num(d4p.assessed)+' assessed · '+num(d4p.over900)+' at $900+ · PCC billed</small></span><span class="v">$'+num(d4p.avg)+'</span></div>'+
+      '<div class="row"><span class="l">Sent to Liz · '+MONS[+ym.slice(5,7)-1]+'<small>Amandeep\'s tracker · '+MONS[+pm.slice(5,7)-1]+': '+(tPrev.emailed||0)+' of '+(tPrev.admits||0)+', avg $'+num(tPrev.avg_rate)+'</small></span><span class="v">'+(tCur.emailed||0)+' of '+(tCur.admits||0)+'</span></div>'+
+      rowsOf('mds_day4').filter(function(r){return r.flag}).slice(0,3).map(function(r){return '<div class="row flag"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),
+    stale:d4.pcc_loaded&&d4.pcc_loaded<addDays(S.today,-8)?d4.pcc_loaded:staleDate('mds_day4')});
 
   // 12 Google reviews
   var gr=rowsOf('google_review'),g0=gr[0]||{},stars=leadNum(g0.title),grser=gr.slice().reverse().map(function(r){return {v:leadNum(r.title)}});
@@ -531,7 +552,7 @@ function render(){
   root.className=flow?'flow':'';
   if(flow){
     var sc=SECTIONS[S.sec].cards.map(function(t){return cardBy(cards,t)}).filter(Boolean);
-    root.innerHTML=head+stepsHtml(cards)+(S.sec===0?attHtml():'')+'<main style="--n:'+sc.length+'">'+sc.map(cardHtml).join('')+'</main>'+footHtml();
+    root.innerHTML=head+stepsHtml(cards)+(S.sec===0?attHtml():'')+'<main style="--n:'+sc.reduce(function(a,c){return a+(c.twocol?2:1)},0)+'">'+sc.map(cardHtml).join('')+'</main>'+footHtml();
   }else root.innerHTML=head+attHtml()+'<main>'+cards.filter(function(c){return c.title!==ESC}).map(cardHtml).join('')+'</main>';
   tick();
 }
