@@ -294,7 +294,7 @@ function renderWho(){
   }
   icons();
 }
-function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();loadToday()}})}
+function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();loadToday();loadLeaving()}})}
 // Picking your name is the first thing on the hub. Every app then uses it, so nobody is asked again.
 // Shared iPads ask every time the hub opens with nobody signed in; personal phones ask once per visit.
 function askOnOpen(){
@@ -455,7 +455,32 @@ function loadToday(){
 /* ---------- Leaving the building: appointments + discharges, today and the next 7 days ---------- */
 // Entered in Transportation & Discharges (trips/). Shared iPads use the device key from device setup;
 // a leader's phone uses the saved leadership PIN. Without either the banner stays off (dates + rooms are PHI).
-function leaveKey(){return SHARED?lsGet('ms_dev_key'):(lsGet('su_pin')||null)}
+// Housekeeping phones (Environmental Services, 11/5/26): the housekeeping PIN from Sebastian, entered once,
+// trades for this phone's own revocable key (ms_hk_key). Changing that PIN signs every housekeeping phone out.
+function leaveKey(){return SHARED?lsGet('ms_dev_key'):(lsGet('su_pin')||lsGet('ms_hk_key')||null)}
+function isHousekeeping(){var u=ID&&ID.get?ID.get():null;return !!(u&&/environmental/i.test(u.department||''))}
+function hkCard(sec,msg){
+  sec.innerHTML='<div class="card leave"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Who’s leaving and arriving</div>'+
+    '<div class="muted small mt-1">Discharges, appointments and admissions for the week, so you know which rooms to turn over. Enter the housekeeping PIN from Sebastian once on this phone.</div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><input id="hkPin" class="input" type="password" inputmode="numeric" autocomplete="off" placeholder="Housekeeping PIN" style="flex:1">'+
+    '<button class="btn sm" id="hkGo">Turn on</button></div>'+(msg?'<div class="small mt-1" style="color:var(--destructive)">'+esc(msg)+'</div>':'')+'</div>';
+  sec.hidden=false;icons();
+  document.getElementById('hkGo').onclick=function(){
+    var u=ID.get(), b=this;b.disabled=true;
+    fetch(SB+'rpc/ms_hk_key_claim',{method:'POST',headers:hdrs({'Content-Type':'application/json'}),
+      body:JSON.stringify({p_pin:document.getElementById('hkPin').value.trim(),p_name:u?u.name:''})})
+      .then(function(r){return r.json()}).then(function(j){
+        if(j&&j.key){lsSet('ms_hk_key',j.key);loadLeaving();loadArriving();return}
+        hkCard(sec,j&&j.message==='locked'?'Too many wrong tries. Wait 15 minutes and try again.':'That PIN didn’t work. Check with Sebastian.');
+      }).catch(function(){b.disabled=false;hkCard(sec,'Could not connect. Try again.')});
+  };
+}
+// A saved housekeeping key stops working when the PIN changes: drop it and ask again.
+function hkRecheck(sec){
+  var k=lsGet('ms_hk_key');if(!k||SHARED||lsGet('su_pin'))return false;
+  rpc('ms_key_status',{p_key:k}).then(function(s){if(s==='revoked'){try{localStorage.removeItem('ms_hk_key')}catch(e){}document.getElementById('arriving').hidden=true;if(isHousekeeping())hkCard(sec,'The housekeeping PIN changed. Enter the new one.')}});
+  return true;
+}
 function hm12(t){if(!t)return '';var p=t.split(':'),h=+p[0];return ((h+11)%12+1)+':'+p[1]+(h<12?' AM':' PM')}
 function addD(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
 function leaveDay(d,today){
@@ -502,11 +527,13 @@ function loadLeaving(){
   var sec=document.getElementById('leaving'), key=leaveKey(), tok=++leaveTok;
   if(!key){
     if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>The “leaving the building” list is off on this iPad. A leader can turn it on: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}
+    else if(isHousekeeping())hkCard(sec,'');
     else{sec.hidden=true}
     return;
   }
   rpc('trips_board',{p_key:key,p_days:7}).then(function(b){
     if(tok!==leaveTok)return;
+    if((!b||!b.rows)&&hkRecheck(sec))return;
     if(!b||!b.rows){if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>Could not load the “leaving the building” list. If this keeps happening, a leader can redo device setup: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}else sec.hidden=true;return}
     var rows=b.rows, today=b.today, nA=rows.filter(function(r){return r.kind==='appt'}).length, nD=rows.length-nA;
     var h='<div class="card leave"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Leaving the building · next 7 days'+

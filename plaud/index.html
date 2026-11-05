@@ -98,7 +98,7 @@ async function rpc(fn,args){
   if(r.error){
     var m=String(r.error.message||'');
     if(m.indexOf('bad_pin')>=0||m.indexOf('no_pin')>=0){ls('pr_pin',null);S.pin=null;gate('That PIN did not work.');throw new Error('bad_pin')}
-    if(m.indexOf('locked')>=0){ls('pr_pin',null);S.pin=null;gate('Too many wrong PINs. Wait an hour and try again.');throw new Error('bad_pin')}
+    if(m.indexOf('locked')>=0){ls('pr_pin',null);S.pin=null;gate('Too many wrong PINs. Wait 15 minutes and try again.');throw new Error('bad_pin')}
     throw new Error(m);
   }
   return r.data;
