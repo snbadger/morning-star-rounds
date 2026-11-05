@@ -1087,5 +1087,10 @@ function render(){
 }
 resetForm();render();loadRounds();
 </script>
+<script>
+// Bottom bar Back (ms-nav.js): previous step of the round, then the summary, then the hub.
+window.msNavBack=function(){if(currentView==='form'&&formState&&!formState.submitted&&formState.step>0){formState.step--;render();window.scrollTo(0,0);return true}if(currentView!=='summary'){currentView='summary';render();window.scrollTo(0,0);return true}return false};
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
 </body>
 </html>

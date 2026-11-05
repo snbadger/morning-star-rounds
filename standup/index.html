@@ -458,5 +458,10 @@ function saveFall(){guard(async function(){
 
 start();
 </script>
+<script>
+// Bottom bar Back (ms-nav.js): leave the open tab first, then the hub.
+window.msNavBack=function(){if(S.tab){back();window.scrollTo(0,0);return true}return false};
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
 </body>
 </html>

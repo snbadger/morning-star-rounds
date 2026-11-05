@@ -470,5 +470,10 @@ function lsCancel(){if(!confirm('Cancel this whole list and every open step in i
 
 start();
 </script>
+<script>
+// Bottom bar Back (ms-nav.js): close the open item/list first, then return to My list, then the hub.
+window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'){setView('mine');return true}return false};
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
 </body>
 </html>

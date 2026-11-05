@@ -367,5 +367,10 @@ function voidOT(id){
 
 start();
 </script>
+<script>
+// Bottom bar Back (ms-nav.js): from Approve OT back to Clean Month, then the hub.
+window.msNavBack=function(){if(S.tab&&S.tab!=='month'){go('month');return true}return false};
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
 </body>
 </html>

@@ -40,6 +40,12 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
   pick the signed-in leader from their own lists with `MS.identity.matchName()` — full name, or same
   last name and first three letters ("Yesenia" = "Yessi"). The PIN is still asked; their Log out
   also signs out of the hub.
+- **Navigation bar (ms-nav.js, 11/5/26).** Every in-repo app loads `ms-nav.js` (defer, end of body): a
+  bottom bar with Back · All apps · Log out, because the shared iPads run from the Home Screen with no
+  browser back button. Back returns to the previous screen for apps built on a global `view` + `render()`;
+  apps with other screen state define `window.msNavBack()` (My Work, Standup Log, Room Rounds — step by
+  step — and Staff Reliability). On the first screen Back goes to the hub. An app with its own bottom
+  tab bar (Shower Sheet) gets the three buttons merged into that bar. New apps: add the script tag.
 - **Shower Sheet** also stores `shower_logs.employee_number` for clean audit joins.
 - **Shout Outs** live inside Ideas (Shout Out + Wall tabs); `/shoutouts/` redirects.
 
