@@ -50,9 +50,32 @@ html[data-device="shared"] .ms-page{max-width:980px}
   html[data-device="shared"] .whobar .who-n{font-size:20px}
 }
 @media(min-width:1000px){html[data-device="shared"] .grid.cols-3{grid-template-columns:repeat(4,1fr)}}
+/* Bottom bar: jump to a section, plus Log out (11/5/26) */
+.section{scroll-margin-top:14px}
+.secbar{justify-content:center;padding:0 4px}
+.secbar>button{max-width:118px;min-width:0;padding-left:2px;padding-right:2px;-webkit-tap-highlight-color:transparent}
+.secbar .ico{display:flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:999px;transition:background .15s}
+.secbar .lbl{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+.secbar .fb{display:none;font-size:18px;line-height:1}
+html.no-icons .secbar .fb{display:block}
+.secbar>[data-g="document"] svg{color:var(--g-document)}
+.secbar>[data-g="report"] svg{color:var(--g-report)}
+.secbar>[data-g="speak"] svg{color:var(--g-speak)}
+.secbar>[data-g="learn"] svg{color:var(--g-learn)}
+.secbar>[data-g="leader"] svg{color:var(--g-leader)}
+.secbar>[data-g="more"] svg{color:var(--muted-foreground)}
+.secbar>.on{color:var(--foreground)}
+.secbar>.on .ico{background:var(--muted)}
+.secbar>.out{color:var(--destructive);border-left:1px solid var(--border);margin-left:2px}
+.secbar>.out svg{color:var(--destructive)}
+.secbar>.out.in,.secbar>.out.in svg{color:var(--primary)}
+@media(max-width:380px){.secbar .lbl{font-size:10.5px}.secbar .ico{width:38px}}
+html[data-device="shared"] .secbar .lbl{font-size:13px}
+html[data-device="shared"] .secbar svg{width:24px;height:24px}
+html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 </style>
 </head>
-<body>
+<body class="has-tabbar">
 <header class="ms-header center">
   <h1><span class="star">★</span>MORNING STAR STAFF APPS</h1>
   <div class="sub">We Enrich Lives in Happy, Helpful, and Heartfelt Ways</div>
@@ -122,6 +145,8 @@ html[data-device="shared"] .ms-page{max-width:980px}
   </footer>
 </main>
 
+<nav class="tabbar secbar" id="secBar" aria-label="Jump to a section"></nav>
+
 <script>
 // Two PIN gates: leadership (dept heads) and HR & Onboarding (Kelsey/Yessi/Stephen). Honest-people gates (public repo).
 const GATES={
@@ -157,7 +182,7 @@ function checkPin(g){
   if(sha256(v)===GATES[g].hash){
     if(SHARED){ if(g==='leader'){ssSet('msLeaderSession','1');if(ID)ID.touch();} }
     else lsSet(GATES[g].ls,'1');
-    showGate(g);layout();loadToday();
+    showGate(g);layout();loadToday();buildBar();
   }else{
     document.getElementById('pinErr_'+g).style.display='block';
     document.getElementById('pinInput_'+g).value='';
@@ -199,6 +224,59 @@ function renderWho(){
 }
 function whoPick(){ID.pick().then(function(u){if(u){renderWho();loadToday()}})}
 function whoOut(){ID.clear();location.reload()}
+
+/* ---------- bottom bar: jump to each section + Log out ---------- */
+var BAR={document:['clipboard-pen','📝','Document'],report:['triangle-alert','⚠️','Report'],speak:['megaphone','📣','Speak up'],
+  learn:['graduation-cap','🎓','Learn'],more:['layout-grid','➕','More'],leader:['shield-check','🔒','Leaders']};
+var barSecs=[];
+function barKey(sec){
+  if(sec.id==='moreSec')return 'more';
+  if(sec.id==='sec_leader')return 'leader';
+  var g=sec.getAttribute('data-group');return (g&&BAR[g]&&g!=='leader')?g:null;
+}
+function buildBar(){
+  var bar=document.getElementById('secBar'); if(!bar)return;
+  barSecs=[];
+  document.querySelectorAll('main .section').forEach(function(sec){
+    var k=barKey(sec); if(k&&!sec.hidden)barSecs.push({k:k,el:sec});
+  });
+  var h=barSecs.map(function(x,i){var b=BAR[x.k];
+    return '<button type="button" data-g="'+x.k+'" data-i="'+i+'" aria-label="Jump to '+b[2]+'"><span class="ico"><i data-lucide="'+b[0]+'"></i><span class="fb">'+b[1]+'</span></span><span class="lbl">'+b[2]+'</span></button>';
+  }).join('');
+  var u=ID&&ID.get(), signIn=SHARED&&!u;
+  h+='<button type="button" class="out'+(signIn?' in':'')+'" id="barOut"><span class="ico"><i data-lucide="'+(signIn?'log-in':'log-out')+'"></i><span class="fb">'+(signIn?'👤':'🚪')+'</span></span><span class="lbl">'+(signIn?'Sign in':'Log out')+'</span></button>';
+  bar.innerHTML=h;
+  bar.querySelectorAll('[data-i]').forEach(function(b){b.onclick=function(){jumpTo(+b.getAttribute('data-i'))}});
+  document.getElementById('barOut').onclick=barOut;
+  icons();markBar();
+}
+function jumpTo(i){
+  var x=barSecs[i]; if(!x)return;
+  if(x.k==='more'){var d=x.el.querySelector('details');if(d)d.open=true}
+  x.el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function markBar(){
+  var cur=-1, y=window.innerHeight*0.35;
+  barSecs.forEach(function(x,i){if(x.el.getBoundingClientRect().top<=y)cur=i});
+  if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4&&barSecs.length)cur=barSecs.length-1;
+  document.querySelectorAll('#secBar [data-i]').forEach(function(b){b.classList.toggle('on',+b.getAttribute('data-i')===cur)});
+}
+var barTick=false;
+window.addEventListener('scroll',function(){if(barTick)return;barTick=true;requestAnimationFrame(function(){barTick=false;markBar()})},{passive:true});
+// Log out = forget who is signed in. On a personal phone it also re-locks leadership and HR and clears
+// saved leadership PINs, so it asks first. On a shared iPad with nobody signed in, the button is "Sign in".
+function barOut(){
+  var u=ID&&ID.get();
+  if(SHARED){ if(!u){whoPick();return} ID.clear(); location.reload(); return }
+  function go(){
+    if(ID)ID.clear();
+    ['msHubLeader','msHubHR','su_pin','su_name','rl_name','mw_owner'].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}});
+    window.scrollTo(0,0); location.reload();
+  }
+  var opts={title:'Log out of this phone?',desc:'This clears your name and locks the leadership tools. Next time, tap your name and enter your PIN again.',confirmText:'Log out',cancelText:'Stay signed in',destructive:true};
+  if(window.MS&&MS.confirm)MS.confirm(opts).then(function(ok){if(ok)go()});
+  else if(window.confirm(opts.title))go();
+}
 
 /* ---------- device pill + hidden device setup (tap the address 5 times) ---------- */
 function renderDevicePill(){
@@ -349,8 +427,8 @@ function sha256(ascii){
 });
 if(leaderUnlocked())showGate('leader');
 if(!SHARED&&lsGet(GATES.hr.ls)==='1')showGate('hr');
-layout();renderWho();renderDevicePill();loadToday();
-window.addEventListener('ms:identity',function(){renderWho()});
+layout();renderWho();renderDevicePill();loadToday();buildBar();
+window.addEventListener('ms:identity',function(){renderWho();buildBar()});
 </script>
 </body>
 </html>
