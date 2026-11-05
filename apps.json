@@ -453,6 +453,24 @@
    }
   },
   {
+   "id": "eval-review",
+   "registry": {
+    "app": "Eval Review",
+    "url": "`/eval-review/`",
+    "audience": "**Stephen, Donna, Yessi, Kelsey only** — each has a personal PIN (6–8 digits, bcrypt, 5 misses = 1-hour lockout), set with a one-time setup code Stephen issues from the page. PIN kept in sessionStorage only; 15-minute idle lock.",
+    "data": "Supabase `hr_eval` schema: cards computed live by `v_eval_cards` (editor: Stephen for dept heads, Donna for LVN/RN, Yessi for CNA/RNA; attendance + Paycom: Kelsey; competencies: Yessi for nursing, Stephen for dept heads; approve + sign: Stephen). Done-state in `card_status`; edits saved as new `evaluation_drafts` versions (`author`). RPCs `eval_review_*`. Raw coworker feedback only on Stephen's approve card.",
+    "status": "Built 11/5/26 — not yet published"
+   },
+   "tile": {
+    "group": "leader",
+    "href": "eval-review/",
+    "icon": "clipboard-pen",
+    "fb": "📝",
+    "name": "Eval Review",
+    "desc": "Annual evaluation tasks waiting on you (own PIN)"
+   }
+  },
+  {
    "id": "jericho-road",
    "registry": {
     "app": "The Jericho Road (NEO)",

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Eval Review</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--blue:#0071e3;--blue-d:#0058b0;--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--muted:#6e6e73;--line:#d2d2d7;--red:#d70015;--red-bg:#fff0f0;--amber:#b25000;--amber-bg:#fff6e5;--green:#1a7f37;--green-bg:#eaf7ee;--gray-bg:#f0f0f2;--r:18px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:90px}
+.nav{position:sticky;top:0;z-index:50;background:rgba(245,245,247,.85);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.08);padding:12px 16px 10px}
+.nav-row{display:flex;justify-content:space-between;align-items:center;max-width:640px;margin:0 auto}
+.nav h1{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.nav .sub{font-size:13px;color:var(--muted);margin-top:1px}
+.nav button.link{background:none;border:none;color:var(--blue);font-size:15px;font-family:inherit;cursor:pointer;padding:6px 0 6px 10px}
+.page{max-width:640px;margin:0 auto;padding:14px 16px}
+.card{background:var(--card);border-radius:var(--r);border:1px solid rgba(0,0,0,.06);padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:opacity .25s,transform .25s}
+.card.gone{opacity:0;transform:translateX(40px)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.pill{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--gray-bg);color:var(--muted)}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.green{background:var(--green-bg);color:var(--green)}
+.pill.blue{background:#e8f2fd;color:var(--blue-d)}
+.task{font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-.2px}
+.meta{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.4}
+.meta b{color:var(--text);font-weight:600}
+.body{display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
+.card.open .body{display:block}
+.card.open .opener{display:none}
+.note{font-size:14px;line-height:1.45;background:var(--bg);border-radius:12px;padding:10px 12px;margin-top:10px;color:#3a3a3c}
+.note.amber{background:var(--amber-bg);color:#5c3300}
+.hint{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.4}
+.hint button{background:none;border:none;color:var(--blue);font-family:inherit;font-size:13px;cursor:pointer;padding:0}
+.more{background:none;border:none;color:var(--blue);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;padding:10px 0 0}
+.btn{border:none;border-radius:999px;font-size:15px;font-weight:600;padding:12px 8px;cursor:pointer;font-family:inherit;min-height:44px}
+.btn.go{background:var(--blue);color:#fff}
+.btn.done{background:var(--green-bg);color:var(--green)}
+.btn.skip{background:var(--gray-bg);color:var(--text)}
+.btn.warn{background:var(--amber-bg);color:var(--amber)}
+.btn.full{width:100%}
+.btn:disabled{opacity:.45}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 5px}
+label .n{text-transform:none;letter-spacing:0;font-weight:400}
+input,select,textarea{width:100%;font-size:16px;font-family:inherit;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--text)}
+textarea{min-height:110px;resize:vertical;line-height:1.45}
+textarea.fill{border-color:var(--amber);background:#fffdf8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 4px;font-family:inherit;font-size:14px;cursor:pointer;color:var(--text);line-height:1.2}
+.seg button small{display:block;font-size:11px;color:var(--muted)}
+.seg button.on{background:var(--text);border-color:var(--text);color:#fff}
+.seg button.on small{color:#ddd}
+.seg2{grid-template-columns:1fr 1fr}
+.spread{font-size:12.5px;color:var(--muted);margin-top:4px}
+.was{font-size:13px;color:var(--muted);background:var(--bg);border-left:3px solid var(--line);border-radius:6px;padding:7px 10px;margin-top:6px;white-space:pre-wrap;display:none}
+.showdiff .was{display:block}
+.chg{font-size:11px;font-weight:700;color:var(--amber);text-transform:none;letter-spacing:0;margin-left:6px}
+.fb{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;line-height:1.45}
+.fb .who{font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.fb p{margin-top:4px;white-space:pre-wrap}
+.fb b{font-weight:600}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px;margin-top:8px}
+.facts span{color:var(--muted)}
+h2{font-size:15px;font-weight:600;color:var(--muted);margin:24px 4px 10px;text-transform:uppercase;letter-spacing:.4px}
+.mini{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:11px 14px;margin-bottom:8px;border:1px solid rgba(0,0,0,.05)}
+.mini .t{font-size:14px;line-height:1.35;flex:1;min-width:0}
+.mini .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.mini button{font-size:14px;color:var(--blue);background:none;border:none;font-family:inherit;cursor:pointer;white-space:nowrap}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:16px;line-height:1.5}
+.empty .big{font-size:40px;margin-bottom:8px}
+.gate{max-width:380px;margin:10vh auto 0;padding:0 24px;text-align:center}
+.gate h1{font-size:28px;font-weight:700;letter-spacing:-.4px}
+.gate p{color:var(--muted);margin:8px 0 18px;font-size:15px;line-height:1.45}
+.gate input{text-align:center;font-size:22px;letter-spacing:5px;margin-bottom:10px}
+.gate input.code{letter-spacing:3px;text-transform:uppercase}
+.gate .msg{color:var(--red);font-size:14px;min-height:20px;margin-bottom:8px}
+.who{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.who button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 6px;font-family:inherit;font-size:16px;font-weight:600;cursor:pointer;color:var(--text)}
+.who button small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+.who button.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(120px);background:rgba(29,29,31,.95);color:#fff;border-radius:999px;padding:12px 8px 12px 20px;font-size:15px;display:flex;align-items:center;gap:12px;transition:transform .25s;z-index:99;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast button{background:none;border:none;color:#64b5ff;font-weight:600;font-size:15px;font-family:inherit;padding:4px 12px;cursor:pointer}
+.toast button:empty{display:none}
+.codebox{font-family:ui-monospace,Menlo,monospace;font-size:26px;letter-spacing:4px;text-align:center;background:var(--bg);border-radius:12px;padding:14px;margin:10px 0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn"></button></div>
+<script>
+var SB_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SB_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SB_URL,SB_KEY);
+var UNDO_MS=6000, IDLE_MS=15*60*1000;
+// The PIN lives in sessionStorage only: closing the tab locks the page, which matters on shared iPads.
+var S={user:null,pin:null,data:null,busy:false,dirty:{},timers:{}};
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function $(id){return document.getElementById(id)}
+function fmtD(d){if(!d)return'';var p=String(d).slice(0,10).split('-');return(+p[1])+'/'+(+p[2])+'/'+p[0].slice(2)}
+function val(id){var e=$(id);return e?e.value.trim():''}
+
+var toastTimer;
+function toast(msg,btn,fn,ms){var t=$('toast');$('toastMsg').textContent=msg;var b=$('toastBtn');b.textContent=btn||'';b.onclick=function(){hideToast();fn&&fn()};t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||3000)}
+function hideToast(){$('toast').classList.remove('show')}
+
+var MSG={ratings_missing:'Pick all four ratings and enter the write-up count.',
+  sections_incomplete:'Every section needs text, and nothing left in [brackets].',
+  counts_missing:'Enter all four attendance numbers (0 is fine).',
+  answers_missing:'Answer both questions.',dates_missing:'Enter both signature dates.',
+  note_required:'Add a short note saying what to change.',not_open:'Already handled. Refreshing.',
+  not_your_card:'This one isn’t yours anymore. Refreshing.',cannot_undo:'Too late to undo that one.',
+  bad_rate_type:'Pick hourly or salary.'};
+function niceErr(m){for(var k in MSG)if(m.indexOf(k)>=0)return MSG[k];if(m.indexOf('out_of_range')>=0)return'A number is out of range.';return m}
+
+async function rpc(fn,args){
+  var r=await sb.rpc(fn,args);
+  if(r.error)throw new Error(String(r.error.message||'error'));
+  var d=r.data;
+  if(d&&d.error){
+    var e=d.error;
+    if(e==='bad_pin'||e==='no_pin'||e==='locked'||e==='bad_user'){
+      S.pin=null;ss('er_pin',null);
+      gate(e==='locked'?'Too many wrong tries. Wait an hour and try again.':e==='no_pin'?'Your PIN was reset. Use the new setup code from Stephen.':'That PIN did not work.');
+      throw new Error('bad_pin');
+    }
+    throw new Error(e);
+  }
+  return d;
+}
+
+/* ---------- sign-in: pick yourself, then your own PIN ---------- */
+var USERS=[];
+async function start(){
+  S.user=ss('er_user')||ls('er_user');S.pin=ss('er_pin');
+  if(S.user&&S.pin){try{await load();return}catch(e){if(e.message==='bad_pin')return;showErr(e);return}}
+  gate('');
+}
+function showErr(e){$('app').innerHTML='<div class="empty">Could not load. Check the connection and refresh.<br><small>'+esc(e.message)+'</small></div>'}
+async function gate(msg){
+  if(!USERS.length){try{var r=await sb.rpc('eval_review_users');USERS=r.data||[]}catch(e){}}
+  var u=USERS.filter(function(x){return x.key===S.user})[0];
+  var h='<div class="gate"><h1>Eval Review</h1><p>Annual evaluation tasks waiting on you. Who are you?</p><div class="who">'+
+    USERS.map(function(x){return'<button class="'+(x.key===S.user?'on':'')+'" onclick="pick(\''+x.key+'\')">'+esc(x.name)+'<small>'+esc(x.role)+'</small></button>'}).join('')+'</div>';
+  if(u&&u.has_pin){
+    h+='<input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Your PIN">'+
+      '<div class="msg">'+esc(msg)+'</div><button class="btn go full" id="pinGo">Open</button>'+
+      '<p style="margin-top:16px;font-size:13px">Forgot your PIN? Ask Stephen for a new setup code.</p>';
+  }else if(u){
+    h+='<p style="margin:0 0 10px">First time here: enter the setup code Stephen gave you, then pick a 6–8 digit PIN only you know.</p>'+
+      '<input id="code" class="code" autocomplete="off" autocapitalize="characters" placeholder="Setup code">'+
+      '<input id="pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN">'+
+      '<input id="pin2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="New PIN again">'+
+      '<div class="msg">'+esc(msg)+'</div><button class="btn go full" id="pinGo">Set my PIN</button>';
+  }else h+='<div class="msg">'+esc(msg)+'</div>';
+  $('app').innerHTML=h+'</div>';
+  if(!u)return;
+  ($('code')||$('pin')).focus();
+  $('pin').onkeydown=function(e){if(e.key==='Enter'&&!$('pin2'))$('pinGo').click()};
+  $('pinGo').onclick=async function(){
+    var v=$('pin').value.trim();
+    if(!u.has_pin){
+      if(!/^[0-9]{6,8}$/.test(v))return gate('Use 6 to 8 digits.');
+      if(v!==$('pin2').value.trim())return gate('The two PINs don’t match.');
+      var r=await sb.rpc('eval_review_set_pin',{p_user:S.user,p_code:$('code').value,p_pin:v});
+      var err=r.error?r.error.message:(r.data&&r.data.error);
+      if(err)return gate(err==='bad_code'?'That setup code didn’t match.':err==='no_setup_code'?'No setup code is active for you. Ask Stephen for one.':err==='locked'?'Too many wrong tries. Wait an hour.':err);
+      u.has_pin=true;
+    }
+    S.pin=v;
+    try{await load();ss('er_pin',v);ss('er_user',S.user);ls('er_user',S.user)}catch(e){if(e.message!=='bad_pin')gate('Could not connect: '+e.message)}
+  };
+}
+function pick(k){S.user=k;gate('')}
+function lock(){if(anyDirty()&&!confirm('You have unsaved typing. Lock anyway and lose it?'))return;S.dirty={};S.pin=null;ss('er_pin',null);gate('')}
+var idleT;function bump(){clearTimeout(idleT);idleT=setTimeout(function(){if(S.pin&&!anyDirty())lock()},IDLE_MS)}
+['click','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,bump,{passive:true})});
+function anyDirty(){for(var k in S.dirty)if(S.dirty[k])return true;return false}
+window.addEventListener('beforeunload',function(e){if(anyDirty()){e.preventDefault();e.returnValue=''}});
+
+/* ---------- data ---------- */
+async function load(){S.data=await rpc('eval_review_list',{p_user:S.user,p_pin:S.pin});render();bump()}
+function key(c){return c.cycle_id+'_'+c.card}
+var TITLE={editor:'Write the evaluation',attendance:'Attendance and pay',competencies:'Competencies',approve:'Approve',sign:'Sign and meet',paycom:'Record in Paycom'};
+var SEC=[['job_skills_strengths','Job skills — strengths'],['job_skills_improvements','Job skills — areas for improvement'],
+  ['attendance','Attendance / time management'],['customer_service','Customer service with residents and families'],
+  ['teamwork','Teamwork with staff and managers'],['jericho_experience','Jericho experience']];
+var RAT=[['job_skills','Job skills'],['attendance','Attendance'],['customer_service','Customer service'],['teamwork','Teamwork']];
+
+function render(){
+  var d=S.data,cards=d.cards,open={};
+  document.querySelectorAll('.card.open').forEach(function(el){open[el.id]=1});
+  var h='<div class="nav"><div class="nav-row"><div><h1>Eval Review</h1><div class="sub">'+esc(d.me.name)+' · '+
+    (cards.length?cards.length+' to do':'All caught up')+'</div></div><button class="link" onclick="lock()">Lock</button></div></div><div class="page">';
+  if(!cards.length)h+='<div class="empty"><div class="big">✓</div>Nothing waiting on you.<br><small>New cards appear the morning after a review’s feedback closes.</small></div>';
+  var order=['approve','sign','editor','competencies','attendance','paycom'];
+  order.forEach(function(t){
+    var g=cards.filter(function(c){return c.card===t});if(!g.length)return;
+    if(order.filter(function(x){return cards.some(function(c){return c.card===x})}).length>1)h+='<h2>'+esc(TITLE[t])+' · '+g.length+'</h2>';
+    g.forEach(function(c){h+=cardHtml(c)});
+  });
+  if(d.me.key==='admin')h+=adminHtml();
+  if(d.recent.length){
+    h+='<h2>Done in the last 3 days</h2>';
+    d.recent.forEach(function(r){
+      var lab=r.status==='returned'?'Sent back':r.status==='paper'?'Closed as done on paper':'Done';
+      h+='<div class="mini"><div class="t">'+esc(r.name)+'<div class="s">'+esc(TITLE[r.card]||r.card)+' · '+lab+'</div></div>'+
+        (r.can_undo?'<button onclick="undo(\''+r.cycle_id+'\',\''+r.card+'\')">Undo</button>':'')+'</div>';
+    });
+  }
+  h+='</div>';
+  $('app').innerHTML=h;
+  Object.keys(open).forEach(function(id){var el=$(id);if(el)el.classList.add('open')});
+}
+
+function head(c){
+  var p='';
+  if(c.days_past>0)p+='<span class="pill '+(c.days_past>90?'red':'amber')+'">'+c.days_past+' days past anniversary</span>';
+  if(c.card==='editor'||c.card==='approve')p+='<span class="pill blue">'+c.forms+' coworker response'+(c.forms===1?'':'s')+'</span>';
+  if(c.data&&c.data.returned_note&&c.card==='editor')p+='<span class="pill red">Sent back</span>';
+  return'<div class="pills">'+p+'</div><div class="task">'+esc(c.name)+'</div>'+
+    '<div class="meta">'+esc(c.job_title)+(c.shift?' · '+esc(c.shift):'')+' · Review period <b>'+fmtD(c.period_start)+' – '+fmtD(c.period_end)+'</b></div>';
+}
+function cardHtml(c){
+  var k=key(c),f={editor:editorBody,attendance:attBody,competencies:compBody,approve:approveBody,sign:signBody,paycom:paycomBody}[c.card];
+  var label={editor:'Open the form',attendance:'Enter numbers',competencies:'Answer',approve:'Review',sign:'Enter signatures',paycom:'Open'}[c.card];
+  return'<div class="card" id="c_'+k+'">'+head(c)+'<button class="more opener" onclick="openCard(\''+k+'\')">'+label+'</button><div class="body">'+f(c,k)+'</div></div>';
+}
+function openCard(k){$('c_'+k).classList.add('open')}
+function markDirty(k){S.dirty[k]=true}
+
+/* ---------- editor (DON / DSD / Administrator) ---------- */
+function segRating(k,name,cur){
+  return'<div class="seg" data-k="'+k+'" data-name="'+name+'">'+[[1,'Below'],[2,'Standard'],[3,'Above']].map(function(o){
+    return'<button type="button" class="'+(cur===o[0]?'on':'')+'" onclick="setSeg(this,'+o[0]+')">'+o[0]+'<small>'+o[1]+'</small></button>'}).join('')+'</div>';
+}
+function setSeg(b,v){var g=b.parentNode;g.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');g.dataset.v=v;markDirty(g.dataset.k)}
+function segVal(k,name){var g=document.querySelector('.seg[data-k="'+k+'"][data-name="'+name+'"]');if(!g)return null;if(g.dataset.v)return+g.dataset.v;var on=g.querySelector('.on');return on?+on.textContent.charAt(0):null}
+function sectionsHtml(c,k,withWas){
+  var s=c.data.sections||{},w=c.data.claude_sections||{};
+  return SEC.map(function(x){
+    var t=s[x[0]]||'',changed=withWas&&w[x[0]]!=null&&w[x[0]]!==t;
+    return'<label>'+esc(x[1])+(changed?'<span class="chg">edited</span>':'')+'</label><textarea id="s_'+k+'_'+x[0]+'" class="'+(/\[FILL/i.test(t)?'fill':'')+'" oninput="markDirty(\''+k+'\');this.classList.toggle(\'fill\',/\\[FILL/i.test(this.value))">'+esc(t)+'</textarea>'+
+      (changed?'<div class="was">Draft said: '+esc(w[x[0]])+'</div>':'');
+  }).join('');
+}
+function readSections(k){var o={};SEC.forEach(function(x){var e=$('s_'+k+'_'+x[0]);if(e)o[x[0]]=e.value});return o}
+function editorBody(c,k){
+  var d=c.data,r=d.ratings||{},h='';
+  if(d.returned_note)h+='<div class="note amber"><b>Stephen sent this back:</b> '+esc(d.returned_note)+'</div>';
+  h+='<div class="note">This draft was written from coworker feedback. Coworkers’ names and words stay with Stephen. Correct anything, add what you know, and replace everything in <b>[brackets]</b>. This text goes on the form.</div>';
+  var ac=d.attendance_counts;
+  h+=ac?'<div class="note">Attendance from Kelsey: '+ac.callins+' non-CA sick call-ins · '+ac.tardies+' tardies · '+ac.meal_penalties+' meal penalties · '+ac.writeups+' attendance write-ups</div>'
+       :'<div class="hint">Kelsey’s attendance numbers aren’t in yet. You can write the other sections now.</div>';
+  h+=sectionsHtml(c,k,false);
+  h+='<h2 style="margin-top:20px">Your ratings</h2>';
+  RAT.forEach(function(x){
+    h+='<label>'+esc(x[1])+'</label>'+segRating(k,x[0],r[x[0]]);
+    var cr=d.coworker_ratings&&d.coworker_ratings[x[0]];
+    if(cr)h+='<div class="spread">Coworkers: '+cr[0]+' Below · '+cr[1]+' Standard · '+cr[2]+' Above</div>';
+  });
+  h+='<label>Performance write-ups this period</label><input id="w_'+k+'" type="number" min="0" inputmode="numeric" value="'+esc(r.writeups==null?'':r.writeups)+'" oninput="markDirty(\''+k+'\')">';
+  h+='<div class="row2"><button class="btn skip" onclick="saveEditor(\''+c.cycle_id+'\',\''+k+'\',\'save\')">Save for later</button>'+
+     '<button class="btn go" onclick="saveEditor(\''+c.cycle_id+'\',\''+k+'\',\'submit\')">'+(S.data.me.key==='admin'?'Ready to approve':'Send to Stephen')+'</button></div>';
+  return h;
+}
+function editorPayload(k){
+  var r={};RAT.forEach(function(x){var v=segVal(k,x[0]);if(v)r[x[0]]=v});
+  var w=val('w_'+k);if(w!=='')r.writeups=+w;
+  return{sections:readSections(k),ratings:r};
+}
+async function saveEditor(cycle,k,action){
+  await act(cycle,'editor',action,editorPayload(k),k,action==='save'?'Saved':(S.data.me.key==='admin'?'Ready for your approval':'Sent to Stephen'),action==='save');
+}
+
+/* ---------- attendance (HR/Payroll) ---------- */
+function num(id,k,label,v,extra){return'<div><label>'+label+'</label><input id="'+id+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v==null?'':v)+'" oninput="markDirty(\''+k+'\')">'+(extra||'')+'</div>'}
+function attBody(c,k){
+  var v=c.data.values||{},hi=c.data.hints||{},h='';
+  var meal=hi.meal_violations!=null?'<div class="hint">Paycom shows '+hi.meal_violations+' meal-break violation'+(hi.meal_violations===1?'':'s')+' since '+fmtD(hi.meal_from)+(hi.meal_from>c.period_start?' (partial period)':'')+'. <button onclick="$(\'a_'+k+'_meal\').value='+hi.meal_violations+';markDirty(\''+k+'\')">Use</button></div>':'';
+  h+='<div class="grid2">'+num('a_'+k+'_callins',k,'Non-CA sick call-ins',v.callins)+num('a_'+k+'_tardies',k,'Tardies',v.tardies)+
+     num('a_'+k+'_meal',k,'Meal penalties',v.meal_penalties,meal)+num('a_'+k+'_writeups',k,'Attendance write-ups',v.writeups)+'</div>';
+  var rate=hi.current_rate!=null?'<div class="hint">Paycom: $'+esc(hi.current_rate)+(hi.rate_type?' '+esc(hi.rate_type):'')+'. <button onclick="$(\'a_'+k+'_rate\').value=\''+hi.current_rate+'\';'+(hi.rate_type?'$(\'a_'+k+'_rt\').value=\''+esc(hi.rate_type)+'\';':'')+'markDirty(\''+k+'\')">Use</button></div>':'';
+  h+='<div class="grid2">'+num('a_'+k+'_rate',k,'Current rate ($)',v.current_rate,rate)+
+     '<div><label>Pay type</label><select id="a_'+k+'_rt" onchange="markDirty(\''+k+'\')"><option value=""></option><option'+(v.rate_type==='hourly'?' selected':'')+'>hourly</option><option'+(v.rate_type==='salary'?' selected':'')+'>salary</option></select></div></div>';
+  h+='<label>Most recent raise <span class="n">(date and new rate)</span></label><div class="grid2"><input id="a_'+k+'_w1d" type="date" value="'+esc(v.wage1_date||'')+'" oninput="markDirty(\''+k+'\')"><input id="a_'+k+'_w1a" type="number" step="any" inputmode="decimal" placeholder="$" value="'+esc(v.wage1_amount==null?'':v.wage1_amount)+'" oninput="markDirty(\''+k+'\')"></div>';
+  h+='<label>Raise before that</label><div class="grid2"><input id="a_'+k+'_w2d" type="date" value="'+esc(v.wage2_date||'')+'" oninput="markDirty(\''+k+'\')"><input id="a_'+k+'_w2a" type="number" step="any" inputmode="decimal" placeholder="$" value="'+esc(v.wage2_amount==null?'':v.wage2_amount)+'" oninput="markDirty(\''+k+'\')"></div>';
+  h+='<button class="btn go full" style="margin-top:16px" onclick="saveAtt(\''+c.cycle_id+'\',\''+k+'\')">Done</button>';
+  return h;
+}
+async function saveAtt(cycle,k){
+  var p='a_'+k+'_';
+  var values={callins:val(p+'callins'),tardies:val(p+'tardies'),meal_penalties:val(p+'meal'),writeups:val(p+'writeups'),
+    current_rate:val(p+'rate'),rate_type:val(p+'rt'),wage1_date:val(p+'w1d'),wage1_amount:val(p+'w1a'),wage2_date:val(p+'w2d'),wage2_amount:val(p+'w2a')};
+  await act(cycle,'attendance','submit',{values:values},k,'Saved');
+}
+
+/* ---------- competencies (DSD) ---------- */
+function yn(k,name,cur){
+  return'<div class="seg seg2" data-k="'+k+'" data-name="'+name+'"'+(cur===true||cur===false?' data-v="'+(cur?1:0)+'"':'')+'>'+
+    '<button type="button" class="'+(cur===true?'on':'')+'" onclick="setYn(this,1)">Yes</button><button type="button" class="'+(cur===false?'on':'')+'" onclick="setYn(this,0)">No</button></div>';
+}
+function setYn(b,v){var g=b.parentNode;g.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});b.classList.add('on');g.dataset.v=v;markDirty(g.dataset.k)}
+function ynVal(k,name){var g=document.querySelector('.seg[data-k="'+k+'"][data-name="'+name+'"]');return g&&g.dataset.v!=null&&g.dataset.v!==''?g.dataset.v==='1':null}
+function compBody(c,k){
+  var v=c.data.values||{},hi=c.data.hints||{};
+  return'<label>Annual competencies completed?</label>'+yn(k,'competencies',v.competencies)+
+    (hi.validations?'<div class="hint">'+hi.validations+' skill check'+(hi.validations===1?'':'s')+' recorded in the Skill Validation app for this period.</div>':'')+
+    '<label>12 hours of inservices completed?</label>'+yn(k,'inservices',v.inservices)+
+    '<button class="btn go full" style="margin-top:16px" onclick="saveComp(\''+c.cycle_id+'\',\''+k+'\')">Done</button>';
+}
+async function saveComp(cycle,k){
+  var a=ynVal(k,'competencies'),b=ynVal(k,'inservices');
+  if(a===null||b===null)return toast(MSG.answers_missing);
+  await act(cycle,'competencies','submit',{values:{competencies:a,inservices:b}},k,'Saved');
+}
+
+/* ---------- approve (Administrator only) ---------- */
+function money(v){return v==null||v===''?'—':'$'+v}
+function approveBody(c,k){
+  var d=c.data,r=d.ratings||{},ac=d.attendance_counts||{},cp=d.competencies||{},m=d.comp||{},h='';
+  var by={don:'Donna',dsd:'Yessi',admin:'you',claude:'Claude (not edited yet)'}[d.draft_author]||d.draft_author;
+  h+='<div class="note">Text below is the latest version, by <b>'+esc(by)+'</b>. <button class="more" style="padding:0" onclick="$(\'c_'+k+'\').classList.toggle(\'showdiff\')">Show what changed from the draft</button></div>';
+  h+=sectionsHtml(c,k,true);
+  h+='<h2 style="margin-top:20px">Ratings and numbers</h2><div class="facts">'+
+    RAT.map(function(x){return'<div><span>'+x[1]+':</span> <b>'+(r[x[0]]||'—')+'</b></div>'}).join('')+
+    '<div><span>Performance write-ups:</span> <b>'+(r.writeups==null?'—':r.writeups)+'</b></div>'+
+    '<div><span>Competencies:</span> <b>'+(cp.competencies==null?'—':cp.competencies?'Yes':'No')+'</b></div>'+
+    '<div><span>12-hr inservices:</span> <b>'+(cp.inservices==null?'—':cp.inservices?'Yes':'No')+'</b></div>'+
+    '<div><span>Sick call-ins:</span> <b>'+(ac.callins==null?'—':ac.callins)+'</b></div><div><span>Tardies:</span> <b>'+(ac.tardies==null?'—':ac.tardies)+'</b></div>'+
+    '<div><span>Meal penalties:</span> <b>'+(ac.meal_penalties==null?'—':ac.meal_penalties)+'</b></div><div><span>Attendance write-ups:</span> <b>'+(ac.writeups==null?'—':ac.writeups)+'</b></div></div>';
+  var fb=d.feedback||[];
+  h+='<h2>Coworker feedback · only you see this</h2>';
+  if(!fb.length)h+='<div class="hint">No coworker responses.</div>';
+  else h+='<button class="more" style="padding:0 0 4px" onclick="var x=$(\'fb_'+k+'\');x.style.display=x.style.display===\'none\'?\'block\':\'none\'">Show '+fb.length+' response'+(fb.length===1?'':'s')+'</button><div id="fb_'+k+'" style="display:none">'+
+    fb.map(function(f){return'<div class="fb"><div class="who">'+esc(f.who)+' · '+fmtD(f.date)+' · ratings '+f.ratings.map(function(x){return x||'N/A'}).join('/')+'</div>'+
+      (f.strengths?'<p><b>Strengths:</b> '+esc(f.strengths)+'</p>':'')+(f.opportunities?'<p><b>Growth:</b> '+esc(f.opportunities)+'</p>':'')+
+      (f.heart?'<p><b>HEART:</b> '+esc(f.heart)+'</p>':'')+(f.other?'<p><b>Other:</b> '+esc(f.other)+'</p>':'')+'</div>'}).join('')+'</div>';
+  h+='<h2>Pay · only you and Kelsey see this</h2><div class="facts"><div><span>Current:</span> <b>'+money(m.current_rate)+(m.rate_type?' '+esc(m.rate_type):'')+'</b></div>'+
+    '<div><span>Last raise:</span> <b>'+(m.wage1_date?fmtD(m.wage1_date)+' → '+money(m.wage1_amount):'—')+'</b></div></div>';
+  h+='<div class="grid2">'+num('p_'+k+'_inc',k,'Recommended increase ($)',m.recommended_increase)+num('p_'+k+'_fw',k,'Final wage ($)',m.final_wage)+
+    '<div><label>Final pay type</label><select id="p_'+k+'_ft" onchange="markDirty(\''+k+'\')"><option value=""></option><option'+(m.final_wage_type==='hourly'?' selected':'')+'>hourly</option><option'+(m.final_wage_type==='salary'?' selected':'')+'>salary</option></select></div>'+
+    '<div><label>Effective date</label><input id="p_'+k+'_ed" type="date" value="'+esc(m.effective_date||'')+'" oninput="markDirty(\''+k+'\')"></div></div>';
+  h+='<div class="row3"><button class="btn go" onclick="approve(\''+c.cycle_id+'\',\''+k+'\')">Approve</button>'+
+    '<button class="btn warn" onclick="sendBack(\''+c.cycle_id+'\',\''+k+'\')">Send back</button>'+
+    '<button class="btn skip" onclick="paper(\''+c.cycle_id+'\',\''+k+'\')">Done on paper</button></div>';
+  return h;
+}
+async function approve(cycle,k){
+  var p='p_'+k+'_';
+  await act(cycle,'approve','approve',{sections:readSections(k),values:{recommended_increase:val(p+'inc'),final_wage:val(p+'fw'),final_wage_type:val(p+'ft'),effective_date:val(p+'ed')}},k,'Approved');
+}
+async function sendBack(cycle,k){
+  var n=prompt('What should be changed? This note shows on their card.');if(n===null)return;
+  await act(cycle,'approve','return',{note:n},k,'Sent back');
+}
+async function paper(cycle,k){
+  if(!confirm('Close this review as finished on paper? It leaves every list.'))return;
+  await act(cycle,'approve','paper',{},k,'Closed');
+}
+
+/* ---------- sign (Administrator) ---------- */
+function signBody(c,k){
+  var t=S.data.today;
+  return'<div class="note">Print the approved form, sign it, and hold the review conversation. Then enter the dates.'+(c.data.docx_path?'<br>Form: '+esc(c.data.docx_path):'')+'</div>'+
+    '<div class="grid2"><div><label>You signed</label><input id="g_'+k+'_a" type="date" value="'+esc(c.data.admin_signed||t)+'"></div>'+
+    '<div><label>Employee signed</label><input id="g_'+k+'_e" type="date" value="'+esc(c.data.employee_signed||t)+'"></div></div>'+
+    '<button class="btn go full" style="margin-top:16px" onclick="sign(\''+c.cycle_id+'\',\''+k+'\')">Signed</button>';
+}
+async function sign(cycle,k){await act(cycle,'sign','submit',{admin_signed:val('g_'+k+'_a'),employee_signed:val('g_'+k+'_e')},k,'Signed. Kelsey gets the Paycom card.')}
+
+/* ---------- Paycom (HR/Payroll) ---------- */
+function paycomBody(c,k){
+  var m=c.data.comp||{};
+  return'<div class="facts"><div><span>Evaluation date:</span> <b>'+fmtD(c.data.admin_signed)+'</b></div><div><span>Employee signed:</span> <b>'+fmtD(c.data.employee_signed)+'</b></div>'+
+    '<div><span>New wage:</span> <b>'+money(m.final_wage)+(m.final_wage_type?' '+esc(m.final_wage_type):'')+'</b></div><div><span>Effective:</span> <b>'+(m.effective_date?fmtD(m.effective_date):'—')+'</b></div>'+
+    '<div><span>Increase:</span> <b>'+money(m.recommended_increase)+'</b></div><div><span>Was:</span> <b>'+money(m.current_rate)+'</b></div></div>'+
+    '<button class="btn go full" style="margin-top:16px" onclick="paycomDone(\''+c.cycle_id+'\',\''+k+'\')">Recorded in Paycom</button>';
+}
+// Recording closes the review for good, so hold the call through the undo window.
+function paycomDone(cycle,k){
+  var el=$('c_'+k);if(el)el.classList.add('gone');
+  S.timers[k]=setTimeout(async function(){delete S.timers[k];
+    try{await rpc('eval_review_save',{p_user:S.user,p_pin:S.pin,p_cycle:cycle,p_card:'paycom',p_action:'submit',p_data:{}});await load()}
+    catch(e){if(e.message!=='bad_pin'){toast('Not saved: '+niceErr(e.message));await load()}}},UNDO_MS);
+  toast('Closing this review…','Undo',function(){clearTimeout(S.timers[k]);delete S.timers[k];if(el)el.classList.remove('gone')},UNDO_MS);
+}
+
+/* ---------- Administrator: who owes what, and PINs ---------- */
+function adminHtml(){
+  var d=S.data,h='';
+  if(d.overview.length){
+    h+='<h2>Waiting on others</h2>';
+    d.overview.forEach(function(o){
+      var by={};o.items.forEach(function(i){(by[i.card]=by[i.card]||[]).push(i.name)});
+      h+='<div class="mini"><div class="t"><b>'+esc(o.owner)+'</b> · '+o.count+'<div class="s">'+
+        Object.keys(by).map(function(c){return esc(TITLE[c]||c)+': '+esc(by[c].join(', '))}).join('<br>')+'</div></div></div>';
+    });
+  }
+  h+='<h2>People</h2>';
+  d.people.forEach(function(p){
+    var st=p.has_pin?'PIN set':p.code_pending?'Setup code given, PIN not set yet':'No PIN yet';
+    h+='<div class="mini"><div class="t">'+esc(p.name)+' · '+esc(p.role)+'<div class="s">'+st+'</div></div><button onclick="issue(\''+p.key+'\',\''+esc(p.name)+'\','+(p.has_pin?1:0)+')">'+(p.has_pin?'Reset PIN':'Setup code')+'</button></div>';
+  });
+  return h;
+}
+async function issue(target,name,had){
+  if(had&&!confirm('Reset '+name+'’s PIN? Their current PIN stops working until they use the new code.'))return;
+  try{
+    var r=await rpc('eval_review_issue_code',{p_user:S.user,p_pin:S.pin,p_target:target});
+    $('app').insertAdjacentHTML('afterbegin','<div class="gate" id="codeShow" style="margin-top:4vh"><h1>'+esc(name)+'</h1><p>Give '+esc(name)+' this setup code in person or by text. It works once and expires '+fmtD(r.expires)+'. It won’t be shown again.</p><div class="codebox">'+esc(r.code)+'</div><button class="btn go full" onclick="$(\'codeShow\').remove();load()">Done</button></div>');
+    window.scrollTo(0,0);
+  }catch(e){if(e.message!=='bad_pin')toast('Not done: '+niceErr(e.message))}
+}
+
+/* ---------- shared save + undo ---------- */
+async function act(cycle,card,action,data,k,okMsg,stay){
+  if(S.busy)return;S.busy=true;
+  try{
+    await rpc('eval_review_save',{p_user:S.user,p_pin:S.pin,p_cycle:cycle,p_card:card,p_action:action,p_data:data});
+    S.dirty[k]=false;
+    if(stay){toast(okMsg);S.data=await rpc('eval_review_list',{p_user:S.user,p_pin:S.pin});render();openCard(k);return}
+    var el=$('c_'+k);if(el)el.classList.add('gone');
+    var undoCard=action==='return'?'editor':card;
+    setTimeout(load,230);
+    toast(okMsg,action==='paper'?'':'Undo',function(){undo(cycle,undoCard)},UNDO_MS);
+  }catch(e){if(e.message!=='bad_pin'){toast(niceErr(e.message),'',null,4500);if(/not_open|not_your_card/.test(e.message))load()}}
+  finally{S.busy=false}
+}
+async function undo(cycle,card){
+  try{await rpc('eval_review_undo',{p_user:S.user,p_pin:S.pin,p_cycle:cycle,p_card:card});await load();toast('Back in your list')}
+  catch(e){if(e.message!=='bad_pin')toast(niceErr(e.message))}
+}
+start();
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
+</body>
+</html>
