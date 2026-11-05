@@ -280,6 +280,35 @@
    }
   },
   {
+   "id": "trips",
+   "registry": {
+    "app": "Transportation & Discharges",
+    "url": "`/trips/` (`?tab=appt` or `?tab=dc`)",
+    "audience": "Leadership PIN (shares `su_pin`, `mw_owner`). Valerie Estrada and Lucy Malcolm schedule; the scheduler enters everything (no transport hand-off since Brenna left 11/5/26)",
+    "data": "Supabase `resident_trips` (RLS on, anon revoked; room-bed + name code only, never a name). RPCs `trips_list`, `trips_save`, `trips_set_status` (PIN), `trips_board` (PIN or shared-iPad key from `ms_device_keys`, issued by `ms_device_key_issue` in hub device setup). A new discharge starts the 7-step SS discharge checklist in My Work (`work_lists` template `discharge`, owner = Social Services, `sync_status='local'` so it never goes to Asana). PCC ADT trigger `_trips_close_from_adt` marks a discharge done when PCC shows DD/DAMA from that room-bed. Hub banner + standup card show today and the next 7 days",
+    "status": "Built 11/5/26 — replaces Appointment_Transportation_Tracker.xlsx"
+   },
+   "tile": {
+    "group": "leader",
+    "href": "trips/?tab=appt",
+    "icon": "bus",
+    "fb": "🚐",
+    "name": "Transportation",
+    "desc": "Schedule an appointment and the ride"
+   }
+  },
+  {
+   "id": "trips-dc",
+   "tile": {
+    "group": "leader",
+    "href": "trips/?tab=dc",
+    "icon": "door-open",
+    "fb": "🏠",
+    "name": "Discharges",
+    "desc": "Planned discharges · starts the SS checklist"
+   }
+  },
+  {
    "id": "rounds",
    "registry": {
     "app": "Room Rounds",

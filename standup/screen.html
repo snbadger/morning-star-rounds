@@ -263,8 +263,9 @@ function poll(){
   load().then(render).catch(function(){}).then(function(){S.polling=false});
 }
 async function load(){
-  var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_live',{p_pin:S.pin})]);
-  S.day=r[0];S.live=r[1];S.loadedAt=new Date();
+  var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_live',{p_pin:S.pin}),
+    rpc('trips_board',{p_key:S.pin,p_days:7}).catch(function(){return null})]);
+  S.day=r[0];S.live=r[1];S.trips=r[2];S.loadedAt=new Date();
   var a=(S.day.entries||[]).filter(function(e){return e.tab_key==='attendance'})[0];
   S.att={};S.attId=a?a.id:null;
   if(a){(a.data.present||[]).forEach(function(n){S.att[n]='p'});(a.data.late||[]).forEach(function(n){S.att[n]='l'})}
@@ -388,7 +389,7 @@ function badge(c){
 var CARD_ICONS={'Census':'bed-double','Admissions & Discharges':'arrow-left-right','Admission Mini Packets':'folder-check','Medicare Day-4 Rates':'badge-dollar-sign',
  'Nursing Hours PPD':'stethoscope','Overtime':'timer','Call-offs & HR':'phone-off','Floor Rounds & Environment':'clipboard-check','Repairs & Room Changes':'wrench',
  'Google Rating':'star','Needs an Owner Today':'siren','Department Updates':'users','Falls':'triangle-alert','Grievances':'message-square-warning',
- 'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
+ 'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Leaving the Building':'bus','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
 function cardHtml(c){
   var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.span2?' span2':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
   var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
@@ -460,6 +461,17 @@ function buildCards(){
     body:fRows.slice(0,4).map(function(r){return '<div class="row'+(r.inj?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+(r.repeat>=2?' <b title="2+ falls in 30 days">↻'+r.repeat+'</b>':'')+'<small>'+esc(r.shift||'shift ?')+'</small></span>'+
       '<span class="v">'+md(r.date)+' · '+(r.sent_out?'sent out':r.injury==='none'?'no injury':r.injury==='pending'?'injury pending':esc(r.injury||'?')+' injury')+'</span></div>'}).join('')+more(fRows.length,4),
     foot:'14 days · dark→light = AM / PM / NOC · red = injury or sent out · ↻ = repeat at that room-bed'});
+
+  // Leaving the building (11/5/26) — Transportation & Discharges app: today + next 7 days, room-bed + name code
+  var tb=S.trips,tRows=(tb&&tb.rows)||[],tToday=tRows.filter(function(r){return r.date===S.today}),tA=tRows.filter(function(r){return r.kind==='appt'}).length;
+  var h12=function(t){if(!t)return '';var p=t.split(':'),h=+p[0];return ((h+11)%12+1)+':'+p[1]+(h<12?'a':'p')};
+  var dLbl=function(d){return d===S.today?'today':d===addDays(S.today,1)?'tmrw':md(d)};
+  cards.push({title:'Leaving the Building',sub:'Transportation & Discharges app · 7 days',status:tb?'good':null,
+    label:tToday.length?tToday.length+' leaving today':'None today',hero:[tRows.length,tA+' appointment'+(tA==1?'':'s')+' · '+(tRows.length-tA)+' discharge'+(tRows.length-tA==1?'':'s')],
+    missing:!tb,
+    body:tRows.slice(0,6).map(function(r){var A=r.kind==='appt';return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+
+      '<small>'+(A?'appt':'discharge')+'</small></span><span class="v">'+dLbl(r.date)+(A&&r.pickup?' · out '+h12(r.pickup):r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(tRows.length,6),
+    foot:'Valerie / Lucy enter these · discharges clear when PCC shows them'});
 
   // 4 Send-outs (Stephen 11/3) — from the 24-hr reports (same day) instead of the lagging ADT export; AMA still from PCC ADT
   var rt=auto('rta24')||{},rta=rt.rows||[],ama=rowsOf('ama'),rtOut=rta.filter(function(r){return r.still_out}).length;
@@ -635,7 +647,7 @@ var SECTIONS=[
  {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Google Rating']},
  {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},
  {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
- {t:'Clinical Highlights',cards:['Hospital Send-outs','Open Clinical & BO Lists','Leader Resident Rounds']}
+ {t:'Clinical Highlights',cards:['Hospital Send-outs','Leaving the Building','Open Clinical & BO Lists','Leader Resident Rounds']}
 ];
 var SEC_SECS=100;   // 10 minutes ÷ 6 sections
 var ESC='Needs an Owner Today';

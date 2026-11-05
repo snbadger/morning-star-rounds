@@ -86,15 +86,15 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 .lv .k svg{width:17px;height:17px}
 .lv .k.appt{background:#0b7285}.lv .k.dc{background:#6741d9}
 .lv .k .fb{display:none}html.no-icons .lv .k .fb{display:block}
-.lv .who{font-weight:800;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv .who{font-weight:800;min-width:0;flex:1;white-space:nowrap}
 .lv .who small{font-weight:600;color:var(--muted-foreground);margin-left:6px}
+@media(max-width:520px){.lv .who small{display:block;margin-left:0;font-size:12.5px}.lv .when{max-width:52%}.lv .when small{white-space:normal}.leave-h{flex-wrap:wrap}.leave-h .cnt{margin-left:0;width:100%}}
 .lv .when{font-weight:700;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
 .lv .when small{display:block;font-weight:500;color:var(--muted-foreground);font-size:12.5px}
 .leave .more-days{margin-top:8px}
 .leave .more-days summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--primary);list-style:none}
 .leave-off{font-size:13px;color:var(--muted-foreground);display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--border);border-radius:var(--radius-sm)}
-html[data-device="shared"] .lv{font-size:17px;padding:9px 0}
-html[data-device="shared"] .leave-h{font-size:18px}
+@media(min-width:700px){html[data-device="shared"] .lv{font-size:17px;padding:9px 0}html[data-device="shared"] .leave-h{font-size:18px}}
 </style>
 </head>
 <body class="has-tabbar">
@@ -473,7 +473,7 @@ function loadLeaving(){
   }
   rpc('trips_board',{p_key:key,p_days:7}).then(function(b){
     if(tok!==leaveTok)return;
-    if(!b||!b.rows){sec.hidden=true;return}
+    if(!b||!b.rows){if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>Could not load the “leaving the building” list. If this keeps happening, a leader can redo device setup: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}else sec.hidden=true;return}
     var rows=b.rows, today=b.today, nA=rows.filter(function(r){return r.kind==='appt'}).length, nD=rows.length-nA;
     var h='<div class="card leave"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Leaving the building · next 7 days'+
       '<span class="cnt">'+(nA?'<span class="badge info">'+nA+' appt</span>':'')+(nD?'<span class="badge purple">'+nD+' discharge</span>':'')+'</span></div>';
