@@ -1,4 +1,8 @@
-/* Morning Star Staff Apps — shared identity (ms-identity.js) v1 · 11/4/26
+/* Morning Star Staff Apps — shared identity (ms-identity.js) v2 · 11/5/26
+   v2: the hub asks once on open and every app reuses it — legacy keys now also cover the
+   in-service quiz (dq_*) and Annual Review board (ae_name); typed names a phone already saved
+   are matched to the roster silently; logging out in Supply or the quiz signs out everywhere;
+   matchName() lets the leadership apps pick the signed-in leader from their own lists.
    One sign-in for every app on snbadger.github.io, fed by the Paycom roster.
 
    Device modes (localStorage ms_device):
@@ -9,10 +13,13 @@
    Identity (localStorage ms_user): {employee_number, name, first, last, department, position,
      roster_match, picked_at}. Picking a name also writes each app's legacy key (sh_name,
      ii_name/ii_dept, rc_name/rc_dept, dc_name, fr_name, cv_name) so every app — including the
-     separate-repo Supply app — picks the person up with no change to how it saves.
+     separate-repo Supply, in-service quiz and Annual Review apps — picks the person up with no
+     change to how it saves.
 
    API: MS.identity.get() · set(user) · pick() → Promise<user|null> · card({title,hint})
         signOut() · clear() · dept('work'|'rc') · device() · setDevice(mode) · isShared()
+        ready (Promise, resolves once a saved typed name has been matched or not)
+        matchName(names[]) → the entry in names that is the signed-in person, or null
    Roster: Supabase RPC staff_roster() (column-limited: number, name, department, position).
 */
 (function () {
@@ -30,10 +37,11 @@
   })();
 
   // Keys written when someone picks their name (app identity keys).
-  var NAME_KEYS = ['sh_name', 'dc_name', 'fr_name', 'rc_name', 'cv_name', 'ii_name'];
+  var NAME_KEYS = ['sh_name', 'dc_name', 'fr_name', 'rc_name', 'cv_name', 'ii_name', 'ae_name'];
+  var QUIZ_FAC = 'Morning Star Post Acute';   // dining-inservice-quiz facility name (dq_fac)
   var DEPT_KEYS = { ii_dept: 'work', rc_dept: 'rc' };
   // Keys removed at sign-out (everything that identifies a person on this device).
-  var SIGNOUT_KEYS = NAME_KEYS.concat(['ii_dept', 'rc_dept', 'dq_name', 'dq_role', 'dq_manual', 'ae_name']);
+  var SIGNOUT_KEYS = NAME_KEYS.concat(['ii_dept', 'rc_dept', 'dq_fac', 'dq_name', 'dq_role', 'dq_manual', 'ms_lv']);
   // Extra keys removed on SHARED devices only (leadership sessions must never persist on an iPad).
   var SHARED_EXTRA = ['msHubLeader', 'msHubHR', 'su_pin', 'su_name', 'rl_name', 'mw_owner'];
 
@@ -80,6 +88,11 @@
   function writeLegacy(u) {
     NAME_KEYS.forEach(function (k) { lsSet(k, u.name); });
     Object.keys(DEPT_KEYS).forEach(function (k) { lsSet(k, mapDept(u, DEPT_KEYS[k])); });
+    // In-service quiz: facility + name restore the person straight to their checklist. A typed name
+    // is not on the quiz roster, so it opens the quiz's own "type my name" box pre-filled instead.
+    lsSet('dq_fac', QUIZ_FAC); lsSet('dq_name', u.name);
+    if (u.roster_match === false) lsSet('dq_manual', '1'); else { lsDel('dq_manual'); lsDel('dq_role'); }
+    lsSet('ms_lv', '2');   // marks that ii_name / dq_name were written by this script (see syncOnLoad)
   }
   function set(u) {
     u.picked_at = new Date().toISOString();
@@ -108,12 +121,58 @@
   }
   document.documentElement.setAttribute('data-device', device());
 
+  /* ---------- name matching (roster rows and the leadership apps' own lists) ---------- */
+  function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z\s'-]/g, '').replace(/\s+/g, ' ').trim(); }
+  // Same person when the full name matches, or when the last name matches and the first names
+  // share their first three letters (Paycom "Yesenia" = app "Yessi", "Kimberly" = "Kim").
+  function sameName(a, b) {
+    a = norm(a); b = norm(b); if (!a || !b) return false; if (a === b) return true;
+    var pa = a.split(' '), pb = b.split(' ');
+    if (pa.length < 2 || pb.length < 2 || pa[pa.length - 1] !== pb[pb.length - 1]) return false;
+    var fa = pa[0], fb = pb[0], n = Math.min(3, fa.length, fb.length);
+    return n >= 3 && fa.slice(0, n) === fb.slice(0, n);
+  }
+  function uniqueMatch(name, list, key) {
+    var exact = list.filter(function (x) { return norm(key ? key(x) : x) === norm(name); });
+    if (exact.length === 1) return exact[0];
+    var close = list.filter(function (x) { return sameName(key ? key(x) : x, name); });
+    return close.length === 1 ? close[0] : null;
+  }
+  function matchName(names) {
+    var u = get(); if (!u || !names || !names.length) return null;
+    return uniqueMatch(u.name, names) || (u.first && u.last ? uniqueMatch(u.first + ' ' + u.last, names) : null);
+  }
+  function rowToUser(r) { return { employee_number: r.n, name: r.d, first: r.f, last: r.l, department: r.dp, position: r.p, roster_match: true }; }
+
   // On load: keep legacy keys in step with ms_user; on shared devices drop stale typed names.
+  var ready;
   (function syncOnLoad() {
     var u = get();
-    if (u) writeLegacy(u);
-    else if (isShared()) SIGNOUT_KEYS.forEach(lsDel);
+    if (u && lsGet('ms_lv') === '2' && (!lsGet('ii_name') || !lsGet('dq_name'))) {
+      // Supply's and the quiz's own Log out buttons remove only their keys. Honor them as a full sign-out.
+      clear(); u = null;
+    }
+    if (u) { writeLegacy(u); ready = Promise.resolve(u); return; }
+    if (isShared()) { SIGNOUT_KEYS.forEach(lsDel); ready = Promise.resolve(null); return; }
+    ready = adoptSavedName();
   })();
+
+  // Personal phones that saved a typed name in an older app: if every saved name points to the
+  // same person on the Paycom roster, sign that person in so no app asks again.
+  function adoptSavedName() {
+    var keys = NAME_KEYS.concat(['su_name', 'rl_name']);
+    if (!lsGet('dq_fac') || lsGet('dq_fac') === QUIZ_FAC) keys.push('dq_name');
+    var names = [];
+    keys.forEach(function (k) { var v = lsGet(k); if (v && v.trim() && names.indexOf(v.trim()) < 0) names.push(v.trim()); });
+    if (!names.length) return Promise.resolve(null);
+    return loadRoster().then(function (rows) {
+      if (get()) return get();
+      var hits = [];
+      names.forEach(function (n) { var r = uniqueMatch(n, rows || [], function (x) { return x.d; }); if (r && hits.indexOf(r) < 0) hits.push(r); });
+      if (hits.length !== 1) return null;
+      return set(rowToUser(hits[0]));
+    }).catch(function () { return null; });
+  }
 
   /* ---------- idle timeout (shared devices only) ---------- */
   var idleTimer, warnTimer, warnEl;
@@ -259,7 +318,7 @@
         list.querySelectorAll('[data-i]').forEach(function (b) {
           b.onclick = function () {
             var r = rows[+b.getAttribute('data-i')];
-            done({ employee_number: r.n, name: r.d, first: r.f, last: r.l, department: r.dp, position: r.p, roster_match: true });
+            done(rowToUser(r));
           };
         });
       }
@@ -295,7 +354,13 @@
     opts = opts || {}; cardOpts = opts;
     injectCss();
     var u = get();
-    if (!u && !autoOpened && opts.autoOpen !== false) { autoOpened = true; setTimeout(appPick, 120); }
+    if (!u && !autoOpened && opts.autoOpen !== false) {
+      autoOpened = true;
+      ready.then(function (m) {
+        if (m || get()) { if (typeof window.saveIdentity === 'function') window.saveIdentity(); }
+        else setTimeout(appPick, 120);
+      });
+    }
     return '<div class="msid-card"><h2>' + esc(opts.title || 'Who are you?') + '</h2>' +
       (opts.hint ? '<p>' + esc(opts.hint) + '</p>' : '') +
       '<button type="button" class="msid-bt" onclick="MS.identity._appPick()">' + (u ? 'Not ' + esc(u.first || u.name) + '? Tap your name' : 'Tap your name') + '</button>' +
@@ -310,6 +375,6 @@
     get: get, set: set, clear: clear, signOut: signOut, pick: pick, card: card, _appPick: appPick,
     dept: function (vocab) { var u = get(); return u ? mapDept(u, vocab) : ''; },
     mapDept: mapDept, device: device, isShared: isShared, setDevice: setDevice, touch: touch,
-    loadRoster: loadRoster, hub: HUB, version: 1
+    loadRoster: loadRoster, hub: HUB, ready: ready, matchName: matchName, version: 2
   };
 })();

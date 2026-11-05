@@ -13,7 +13,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Morning Star Staff Apps</title>
 <link rel="stylesheet" href="ms-ui.css?v=3">
-<script src="ms-identity.js?v=1"></script>
+<script src="ms-identity.js?v=2"></script>
 <script src="ms-ui.js?v=1" defer></script>
 <style>
 /* page-specific */
@@ -73,6 +73,28 @@ html.no-icons .secbar .fb{display:block}
 html[data-device="shared"] .secbar .lbl{font-size:13px}
 html[data-device="shared"] .secbar svg{width:24px;height:24px}
 html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
+/* Leaving the building banner (11/5/26): appointments + discharges, today and the next 7 days.
+   Room-bed + name code only. Needs a device key (shared iPads, issued in device setup) or the leadership PIN. */
+.leave{padding:14px 16px;border-left:5px solid var(--g-leader)}
+.leave-h{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15.5px}
+.leave-h .cnt{margin-left:auto;display:flex;gap:6px}
+.leave-day{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-foreground);margin:12px 0 4px}
+.leave-day.today{color:var(--primary)}
+.lv{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:15px}
+.lv:first-of-type{border-top:0}
+.lv .k{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.lv .k svg{width:17px;height:17px}
+.lv .k.appt{background:#0b7285}.lv .k.dc{background:#6741d9}
+.lv .k .fb{display:none}html.no-icons .lv .k .fb{display:block}
+.lv .who{font-weight:800;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv .who small{font-weight:600;color:var(--muted-foreground);margin-left:6px}
+.lv .when{font-weight:700;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.lv .when small{display:block;font-weight:500;color:var(--muted-foreground);font-size:12.5px}
+.leave .more-days{margin-top:8px}
+.leave .more-days summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--primary);list-style:none}
+.leave-off{font-size:13px;color:var(--muted-foreground);display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--border);border-radius:var(--radius-sm)}
+html[data-device="shared"] .lv{font-size:17px;padding:9px 0}
+html[data-device="shared"] .leave-h{font-size:18px}
 </style>
 </head>
 <body class="has-tabbar">
@@ -83,6 +105,8 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 <main class="ms-page">
 
   <div id="whoBar"></div>
+
+  <section class="section" id="leaving" hidden></section>
 
   <section class="section" id="today" hidden>
     <div class="section-title">Today</div>
@@ -182,7 +206,7 @@ function checkPin(g){
   if(sha256(v)===GATES[g].hash){
     if(SHARED){ if(g==='leader'){ssSet('msLeaderSession','1');if(ID)ID.touch();} }
     else lsSet(GATES[g].ls,'1');
-    showGate(g);layout();loadToday();buildBar();
+    showGate(g);layout();loadLeaving();loadToday();buildBar();
   }else{
     document.getElementById('pinErr_'+g).style.display='block';
     document.getElementById('pinInput_'+g).value='';
@@ -214,15 +238,24 @@ function renderWho(){
       '<div class="who-txt"><div class="who-k">'+(SHARED?'Using this iPad':'Signed in')+'</div><div class="who-n">'+esc(u.name)+'</div></div>'+
       '<button class="btn sm secondary" onclick="whoPick()">Switch</button>'+
       '<button class="btn sm ghost" onclick="whoOut()">Log out</button></div>';
-  }else if(SHARED){
-    el.innerHTML='<div class="card whobar empty-who"><i data-lucide="user-round"></i><div class="who-txt"><div class="who-k">Shared iPad</div>'+
-      '<div class="who-n">Who’s using this iPad?</div></div><button class="btn sm" onclick="whoPick()">Tap your name</button></div>';
   }else{
-    el.innerHTML='';
+    el.innerHTML='<div class="card whobar empty-who"><i data-lucide="user-round"></i><div class="who-txt"><div class="who-k">'+(SHARED?'Shared iPad':'Start here')+'</div>'+
+      '<div class="who-n">'+(SHARED?'Who’s using this iPad?':'Who are you?')+'</div></div><button class="btn sm" onclick="whoPick()">Tap your name</button></div>';
   }
   icons();
 }
-function whoPick(){ID.pick().then(function(u){if(u){renderWho();loadToday()}})}
+function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();loadToday()}})}
+// Picking your name is the first thing on the hub. Every app then uses it, so nobody is asked again.
+// Shared iPads ask every time the hub opens with nobody signed in; personal phones ask once per visit.
+function askOnOpen(){
+  if(!ID)return;
+  ID.ready.then(function(){
+    renderWho();buildBar();
+    if(ID.get())return;
+    if(!SHARED){if(ssGet('msHubAsked'))return;ssSet('msHubAsked','1')}
+    whoPick();
+  });
+}
 function whoOut(){ID.clear();location.reload()}
 
 /* ---------- bottom bar: jump to each section + Log out ---------- */
@@ -310,7 +343,11 @@ function openSetup(){
       '<button class="btn block secondary" data-mode="">Cancel</button></div>';
     o.querySelectorAll('[data-mode]').forEach(function(b){b.onclick=function(){
       var m=b.getAttribute('data-mode'); if(!m){o.remove();return}
-      if(ID)ID.setDevice(m); location.reload();
+      if(ID)ID.setDevice(m);
+      if(m!=='shared'){try{localStorage.removeItem('ms_dev_key')}catch(e){} location.reload(); return}
+      // Each shared iPad gets its own revocable key so it can show the leaving-the-building list (room-bed + name code).
+      rpc('ms_device_key_issue',{p_pin:pin.value.trim(),p_label:'Shared iPad '+new Date().toLocaleDateString('en-CA')})
+        .then(function(k){if(k)lsSet('ms_dev_key',k)}).then(function(){location.reload()});
     }});
     o.querySelectorAll('.btn.block').forEach(function(b){b.style.whiteSpace='normal';b.style.height='auto';b.style.minHeight='54px';b.style.padding='12px 18px'});
     icons();
@@ -362,6 +399,54 @@ function loadToday(){
     h+=stat('repairs/','Open repairs',repairs,repairs?'Waiting on maintenance':'Nothing open',repairs?'warning':'success');
     grid.innerHTML=h; sec.hidden=!h;
   });
+}
+
+
+/* ---------- Leaving the building: appointments + discharges, today and the next 7 days ---------- */
+// Entered in Transportation & Discharges (trips/). Shared iPads use the device key from device setup;
+// a leader's phone uses the saved leadership PIN. Without either the banner stays off (dates + rooms are PHI).
+function leaveKey(){return SHARED?lsGet('ms_dev_key'):(lsGet('su_pin')||null)}
+function hm12(t){if(!t)return '';var p=t.split(':'),h=+p[0];return ((h+11)%12+1)+':'+p[1]+(h<12?' AM':' PM')}
+function addD(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+function leaveDay(d,today){
+  if(d===today)return 'Today';if(d===addD(today,1))return 'Tomorrow';
+  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'numeric',day:'numeric'});
+}
+function lvRow(r){
+  var A=r.kind==='appt', when, sub;
+  if(A){when=r.pickup?'Out '+hm12(r.pickup):(r.time?'Appt '+hm12(r.time):'');sub=(r.time&&r.pickup?'appt '+hm12(r.time):'')+(r.back?(r.time&&r.pickup?' · ':'')+'back ~'+hm12(r.back):'')}
+  else{when=r.time?hm12(r.time):'';sub=r.pickup?'pickup '+hm12(r.pickup):''}
+  return '<div class="lv"><span class="k '+r.kind+'"><i data-lucide="'+(A?'bus':'door-open')+'"></i><span class="fb">'+(A?'🚐':'🏠')+'</span></span>'+
+    '<span class="who">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+'<small>'+(A?'Appointment':'Discharge')+'</small></span>'+
+    '<span class="when">'+esc(when)+(sub?'<small>'+esc(sub)+'</small>':'')+'</span></div>';
+}
+var leaveTok=0;
+function loadLeaving(){
+  var sec=document.getElementById('leaving'), key=leaveKey(), tok=++leaveTok;
+  if(!key){
+    if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>The “leaving the building” list is off on this iPad. A leader can turn it on: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}
+    else{sec.hidden=true}
+    return;
+  }
+  rpc('trips_board',{p_key:key,p_days:7}).then(function(b){
+    if(tok!==leaveTok)return;
+    if(!b||!b.rows){sec.hidden=true;return}
+    var rows=b.rows, today=b.today, nA=rows.filter(function(r){return r.kind==='appt'}).length, nD=rows.length-nA;
+    var h='<div class="card leave"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Leaving the building · next 7 days'+
+      '<span class="cnt">'+(nA?'<span class="badge info">'+nA+' appt</span>':'')+(nD?'<span class="badge purple">'+nD+' discharge</span>':'')+'</span></div>';
+    if(!rows.length){h+='<div class="muted small mt-1">No appointments or discharges scheduled.</div>'}
+    var days=[];rows.forEach(function(r){if(days.indexOf(r.date)<0)days.push(r.date)});
+    // Today and tomorrow always show; later days fold under "Show the rest of the week" once the list gets long.
+    var near=days.filter(function(d){return d<=addD(today,1)}), far=days.filter(function(d){return d>addD(today,1)});
+    var fold=rows.length>8&&far.length;
+    function block(d){return '<div class="leave-day'+(d===today?' today':'')+'">'+esc(leaveDay(d,today))+'</div>'+rows.filter(function(r){return r.date===d}).map(lvRow).join('')}
+    h+=near.map(block).join('');
+    if(!near.length&&rows.length)h+='<div class="muted small mt-1">Nobody leaving today or tomorrow.</div>';
+    if(fold)h+='<details class="more-days"><summary>Show the rest of the week ('+rows.filter(function(r){return r.date>addD(today,1)}).length+')</summary>'+far.map(block).join('')+'</details>';
+    else h+=far.map(block).join('');
+    if(leaderUnlocked())h+='<a class="btn sm outline mt-2" href="trips/">Open Transportation &amp; Discharges</a>';
+    sec.innerHTML=h+'</div>';sec.hidden=false;icons();
+  }).catch(function(){sec.hidden=true});
 }
 
 function shareApply(){
@@ -427,7 +512,9 @@ function sha256(ascii){
 });
 if(leaderUnlocked())showGate('leader');
 if(!SHARED&&lsGet(GATES.hr.ls)==='1')showGate('hr');
-layout();renderWho();renderDevicePill();loadToday();buildBar();
+layout();renderWho();renderDevicePill();loadLeaving();loadToday();buildBar();askOnOpen();
+setInterval(function(){if(!document.hidden)loadLeaving()},600000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)loadLeaving()});
 window.addEventListener('ms:identity',function(){renderWho();buildBar()});
 </script>
 </body>

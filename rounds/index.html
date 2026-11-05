@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Morning Star Post Acute - Room Rounds</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:10px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -469,8 +470,11 @@ var LAL_SETTING_ITEM='LAL mattress pump setting matches posted weight card';
 var LAL_NOTIFY_URL=SUPABASE_URL+'/functions/v1/lal-notify';
 var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
 var CHK_MARK='\u2713';
+// Shared sign-in (ms-identity.js): use the leader already signed in on the hub instead of asking again.
+function msLeader(names){try{return (window.MS&&MS.identity&&MS.identity.matchName(names))||null}catch(e){return null}}
+function msSignOut(){try{if(window.MS&&MS.identity)MS.identity.clear()}catch(e){}}
 function resetForm(keepName){
- formState={step:0,submitted:false,name:keepName||'',room:'',date:today(),
+ formState={step:0,submitted:false,name:keepName||msLeader(ROSTER.map(function(x){return x.name}))||'',room:'',date:today(),
  selectedBeds:[],
  envRoom:ROOM_ENV_ITEMS.map(function(){return false}),
  envBeds:{},

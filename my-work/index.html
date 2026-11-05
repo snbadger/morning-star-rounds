@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — My Work</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#1f8a5b;--success-bg:#e7f5ee;--danger:#b3261e;--danger-bg:#fdeceb;--warn:#b57b00;--warn-bg:#fdf3e0;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#6b7a8a;--border:#dfe4ea;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -141,6 +142,9 @@ async function rpc(fn,args){
 async function guard(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){if(e.message!=='bad_pin')toast('Not saved: '+e.message)}finally{S.busy=false}}
 
 // ---------- start / PIN / who ----------
+// Shared sign-in (ms-identity.js): use the leader already signed in on the hub instead of asking again.
+function msLeader(names){try{return (window.MS&&MS.identity&&MS.identity.matchName(names))||null}catch(e){return null}}
+function msSignOut(){try{if(window.MS&&MS.identity)MS.identity.clear()}catch(e){}}
 async function start(){
   S.pin=ls('su_pin');
   if(!S.pin)return showPin();
@@ -149,7 +153,11 @@ async function start(){
 async function boot(){
   S.roster=await rpc('work_roster',{p_pin:S.pin});
   var key=ls('mw_owner');
-  if(!key){ // first visit: match the name other leadership apps already know
+  if(!key){ // first visit: the leader signed in on the hub, else a name other leadership apps know
+    var mine=msLeader(S.roster.owners.map(function(o){return o.display_name}));
+    if(mine)key=(S.roster.owners.filter(function(o){return o.display_name===mine})[0]||{}).owner_key;
+  }
+  if(!key){
     var nm=ls('su_name')||ls('rl_name')||ls('ii_name')||'';
     var hit=S.roster.owners.filter(function(o){return o.display_name.toLowerCase()===nm.toLowerCase()})[0];
     if(hit)key=hit.owner_key;
@@ -181,7 +189,7 @@ function showWho(){
 }
 async function pickWho(k){S.me=S.roster.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();S.view='mine';S.list=null;S.item=null;await refresh();route()}
 function switchUser(){if(!S.pin)return;S.me=null;ls('mw_owner',null);setWho();showWho()}
-function logOut(){ls('mw_owner',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+function logOut(){msSignOut();ls('mw_owner',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
 
 // ---------- data ----------
 async function refresh(){

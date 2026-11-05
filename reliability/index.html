@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — Staff Reliability</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--success:#1f8a5b;--success-bg:#e7f5ee;--danger:#b3261e;--danger-bg:#fdeceb;--warn:#b57b00;--warn-bg:#fdf3e0;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#6b7785;--border:#dce1e6;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -139,8 +140,11 @@ async function rpc(fn,args){
 async function guard(fn){if(S.busy)return;S.busy=true;try{await fn()}catch(e){if(e.message!=='bad_pin')toast(e.message)}finally{S.busy=false}}
 
 // ---------- start / sign-in (shares the Standup Log's leadership PIN + name) ----------
+// Shared sign-in (ms-identity.js): use the leader already signed in on the hub instead of asking again.
+function msLeader(names){try{return (window.MS&&MS.identity&&MS.identity.matchName(names))||null}catch(e){return null}}
+function msSignOut(){try{if(window.MS&&MS.identity)MS.identity.clear()}catch(e){}}
 async function start(){
-  S.pin=ls('su_pin');S.name=ls('rl_name');
+  S.pin=ls('su_pin');S.name=ls('rl_name')||msLeader(ROSTER.map(function(x){return x.name}));if(S.name)ls('rl_name',S.name);
   var p=ROSTER.filter(function(x){return x.name===S.name})[0];S.role=p?p.role:null;setWho();
   if(!S.pin)return showPin();
   try{await boot()}catch(e){if(e.message!=='bad_pin')app().innerHTML='<div class="card load">Could not load. Check the connection and refresh.<br><span class="muted">'+esc(e.message)+'</span></div>'}
@@ -170,7 +174,7 @@ function showWho(){
 }
 async function pickWho(i){S.name=ROSTER[i].name;S.role=ROSTER[i].role;ls('rl_name',S.name);setWho();await boot()}
 function switchUser(){if(!S.pin)return;S.name=null;S.role=null;ls('rl_name',null);setWho();showWho()}
-function logOut(){ls('rl_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+function logOut(){msSignOut();ls('rl_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
 
 async function loadMonth(){S.data=await rpc('reliability_month',{p_pin:S.pin,p_month:S.month})}
 async function loadQueue(){S.queue=await rpc('reliability_ot_queue',{p_pin:S.pin})}

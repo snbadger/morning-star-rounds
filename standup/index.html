@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Morning Star — Standup Log</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=2"></script>
 <style>
 :root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#1f8a5b;--success-bg:#e7f5ee;--danger:#b3261e;--danger-bg:#fdeceb;--warn:#b57b00;--warn-bg:#fdf3e0;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#6b7785;--border:#dce1e6;--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -130,8 +131,11 @@ async function rpc(fn,args){
 }
 
 // ---------- start ----------
+// Shared sign-in (ms-identity.js): use the leader already signed in on the hub instead of asking again.
+function msLeader(names){try{return (window.MS&&MS.identity&&MS.identity.matchName(names))||null}catch(e){return null}}
+function msSignOut(){try{if(window.MS&&MS.identity)MS.identity.clear()}catch(e){}}
 async function start(){
-  S.pin=ls('su_pin');S.name=ls('su_name');
+  S.pin=ls('su_pin');S.name=ls('su_name')||msLeader(ROSTER.map(function(x){return x.name}));if(S.name)ls('su_name',S.name);
   var p=ROSTER.filter(function(x){return x.name===S.name})[0];S.role=p?p.role:null;
   setWho();
   if(!S.pin)return showPin();
@@ -167,7 +171,7 @@ function showWho(){
 }
 async function pickWho(i){S.name=ROSTER[i].name;S.role=ROSTER[i].role;ls('su_name',S.name);setWho();S.view='mine';await refresh();route()}
 function switchUser(){if(!S.pin)return;S.name=null;S.role=null;ls('su_name',null);setWho();showWho()}
-function logOut(){ls('su_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+function logOut(){msSignOut();ls('su_name',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
 
 // ---------- coverage helpers ----------
 function cov(k){return (S.data&&S.data.coverage&&S.data.coverage[k])||{}}
