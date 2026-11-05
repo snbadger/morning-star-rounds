@@ -85,6 +85,10 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 .lv .k{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
 .lv .k svg{width:17px;height:17px}
 .lv .k.appt{background:#0b7285}.lv .k.dc{background:#6741d9}
+/* Arriving (Admissions app, 11/5/26): room-bed + type + time + readiness only */
+.leave.arrive{border-left-color:#2f9e44}
+.lv .k.adm{background:#2f9e44}.lv .k.ret{background:#c2570c}
+.lv .when small.late{color:var(--destructive);font-weight:700}
 .lv .k .fb{display:none}html.no-icons .lv .k .fb{display:block}
 .lv .who{font-weight:800;min-width:0;flex:1;white-space:nowrap}
 .lv .who small{font-weight:600;color:var(--muted-foreground);margin-left:6px}
@@ -107,6 +111,7 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
   <div id="whoBar"></div>
 
   <section class="section" id="leaving" hidden></section>
+  <section class="section" id="arriving" hidden></section>
 
   <section class="section" id="today" hidden>
     <div class="section-title">Today</div>
@@ -176,6 +181,7 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
       <a class="tile leader" href="my-work/" data-id="my-work" data-group="leader" id="tile_mywork"><span class="tile-icon"><i data-lucide="circle-check-big"></i><span class="fb">✅</span></span><span class="name">My Work</span><span class="desc">Your action items, lists, and what's due today</span><span class="tbadge" id="mwBadge"></span></a>
       <a class="tile leader" href="trips/?tab=appt" data-id="trips" data-group="leader"><span class="tile-icon"><i data-lucide="bus"></i><span class="fb">🚐</span></span><span class="name">Transportation</span><span class="desc">Schedule an appointment and the ride</span></a>
       <a class="tile leader" href="trips/?tab=dc" data-id="trips-dc" data-group="leader"><span class="tile-icon"><i data-lucide="door-open"></i><span class="fb">🏠</span></span><span class="name">Discharges</span><span class="desc">Planned discharges · starts the SS checklist</span></a>
+      <a class="tile leader" href="admits/" data-id="admits" data-group="leader"><span class="tile-icon"><i data-lucide="log-in"></i><span class="fb">🛏️</span></span><span class="name">Admissions</span><span class="desc">Expected admissions · starts the readiness checklist</span></a>
       <a class="tile leader" href="rounds/" data-id="rounds" data-group="leader"><span class="tile-icon"><i data-lucide="bed-double"></i><span class="fb">🏥</span></span><span class="name">Room Rounds</span><span class="desc">Rounds completed, compliance, start a round</span></a>
       <a class="tile leader" href="standup/" data-id="standup" data-group="leader"><span class="tile-icon"><i data-lucide="list-todo"></i><span class="fb">📋</span></span><span class="name">Standup Log</span><span class="desc">Update your standup tabs before 9 AM</span></a>
       <a class="tile leader" href="reliability/" data-id="reliability" data-group="leader"><span class="tile-icon"><i data-lucide="shield-check"></i><span class="fb">⭐</span></span><span class="name">Staff Reliability</span><span class="desc">Approve OT · monthly clean-month list</span></a>
@@ -249,7 +255,7 @@ function checkPin(g){
   if(sha256(v)===GATES[g].hash){
     if(SHARED){ if(g==='leader'){ssSet('msLeaderSession','1');if(ID)ID.touch();} }
     else lsSet(GATES[g].ls,'1');
-    showGate(g);layout();loadLeaving();loadToday();buildBar();
+    showGate(g);layout();loadLeaving();loadArriving();loadToday();buildBar();
   }else{
     document.getElementById('pinErr_'+g).style.display='block';
     document.getElementById('pinInput_'+g).value='';
@@ -463,6 +469,33 @@ function lvRow(r){
     '<span class="who">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+'<small>'+(A?'Appointment':'Discharge')+'</small></span>'+
     '<span class="when">'+esc(when)+(sub?'<small>'+esc(sub)+'</small>':'')+'</span></div>';
 }
+// Arriving · next 7 days (Admissions app). Same access as the leaving list: shared-iPad key or leadership PIN.
+// Shows room-bed, new vs return, expected time and how much of the readiness checklist is done. No name codes.
+var arriveTok=0;
+function loadArriving(){
+  var sec=document.getElementById('arriving'), key=leaveKey(), tok=++arriveTok;
+  if(!key){sec.hidden=true;return}
+  rpc('admits_board',{p_key:key,p_days:7}).then(function(b){
+    if(tok!==arriveTok)return;
+    var rows=(b&&b.rows)||[];
+    if(!rows.length){sec.hidden=true;return}
+    var today=b.today, days=[];rows.forEach(function(r){var d=r.late?today:r.date;if(days.indexOf(d)<0)days.push(d)});
+    var h='<div class="card leave arrive"><div class="leave-h"><i data-lucide="log-in" class="icon-sm"></i>Arriving · next 7 days'+
+      '<span class="cnt"><span class="badge success">'+rows.length+' admission'+(rows.length==1?'':'s')+'</span></span></div>';
+    function aRow(r){
+      var R=r.type==='return', ready=r.steps?r.ready+' of '+r.steps+' ready':'';
+      return '<div class="lv"><span class="k '+(R?'ret':'adm')+'"><i data-lucide="'+(R?'rotate-ccw':'log-in')+'"></i><span class="fb">'+(R?'↩':'🛏')+'</span></span>'+
+        '<span class="who">Rm '+esc(r.room)+'<small>'+(R?'Return from hospital':'New admission')+'</small></span>'+
+        '<span class="when">'+(r.time?hm12(r.time):'Time TBD')+(r.late?'<small class="late">past date · not in PCC yet</small>':(ready?'<small>'+esc(ready)+'</small>':''))+'</span></div>';
+    }
+    days.forEach(function(d){
+      h+='<div class="leave-day'+(d===today?' today':'')+'">'+esc(leaveDay(d,today))+'</div>'+
+        rows.filter(function(r){return (r.late?today:r.date)===d}).map(aRow).join('');
+    });
+    if(leaderUnlocked())h+='<a class="btn sm outline mt-2" href="admits/">Open Admissions</a>';
+    sec.innerHTML=h+'</div>';sec.hidden=false;icons();
+  }).catch(function(){sec.hidden=true});
+}
 var leaveTok=0;
 function loadLeaving(){
   var sec=document.getElementById('leaving'), key=leaveKey(), tok=++leaveTok;
@@ -555,9 +588,9 @@ function sha256(ascii){
 });
 if(leaderUnlocked())showGate('leader');
 if(!SHARED&&lsGet(GATES.hr.ls)==='1')showGate('hr');
-layout();renderWho();renderDevicePill();loadLeaving();loadToday();buildBar();askOnOpen();
-setInterval(function(){if(!document.hidden)loadLeaving()},600000);
-document.addEventListener('visibilitychange',function(){if(!document.hidden)loadLeaving()});
+layout();renderWho();renderDevicePill();loadLeaving();loadArriving();loadToday();buildBar();askOnOpen();
+setInterval(function(){if(!document.hidden){loadLeaving();loadArriving()}},600000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden){loadLeaving();loadArriving()}});
 window.addEventListener('ms:identity',function(){renderWho();buildBar()});
 </script>
 </body>

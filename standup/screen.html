@@ -264,8 +264,9 @@ function poll(){
 }
 async function load(){
   var r=await Promise.all([rpc('standup_today',{p_pin:S.pin,p_date:null}),rpc('standup_live',{p_pin:S.pin}),
-    rpc('trips_board',{p_key:S.pin,p_days:7}).catch(function(){return null})]);
-  S.day=r[0];S.live=r[1];S.trips=r[2];S.loadedAt=new Date();
+    rpc('trips_board',{p_key:S.pin,p_days:7}).catch(function(){return null}),
+    rpc('admits_board',{p_key:S.pin,p_days:7}).catch(function(){return null})]);
+  S.day=r[0];S.live=r[1];S.trips=r[2];S.admits=r[3];S.loadedAt=new Date();
   var a=(S.day.entries||[]).filter(function(e){return e.tab_key==='attendance'})[0];
   S.att={};S.attId=a?a.id:null;
   if(a){(a.data.present||[]).forEach(function(n){S.att[n]='p'});(a.data.late||[]).forEach(function(n){S.att[n]='l'})}
@@ -389,7 +390,7 @@ function badge(c){
 var CARD_ICONS={'Census':'bed-double','Admissions & Discharges':'arrow-left-right','Admission Mini Packets':'folder-check','Medicare Day-4 Rates':'badge-dollar-sign',
  'Nursing Hours PPD':'stethoscope','Overtime':'timer','Call-offs & HR':'phone-off','Floor Rounds & Environment':'clipboard-check','Repairs & Room Changes':'wrench',
  'Google Rating':'star','Needs an Owner Today':'siren','Department Updates':'users','Falls':'triangle-alert','Grievances':'message-square-warning',
- 'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Leaving the Building':'bus','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
+ 'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Leaving the Building':'bus','Arriving':'log-in','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
 function cardHtml(c){
   var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.span2?' span2':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
   var hero=c.hero?'<div class="hero"><b'+(String(c.hero[0]).length>4?' class="sm"':'')+'>'+esc(c.hero[0])+'</b>'+(c.hero[1]?'<span>'+esc(c.hero[1])+'</span>':'')+'</div>':'';
@@ -472,6 +473,18 @@ function buildCards(){
     body:tRows.slice(0,6).map(function(r){var A=r.kind==='appt';return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+
       '<small>'+(A?'appt':'discharge')+'</small></span><span class="v">'+dLbl(r.date)+(A&&r.pickup?' · out '+h12(r.pickup):r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(tRows.length,6),
     foot:'Valerie / Lucy enter these · discharges clear when PCC shows them'});
+
+  // Arriving (Admissions app, 11/5/26): expected admissions for 7 days with readiness-checklist progress.
+  // Room-bed only (no name code). Amber when someone arrives today or is past date and the checklist is not done.
+  var ab=S.admits,aRows=(ab&&ab.rows)||[],aSoon=aRows.filter(function(r){return r.late||r.date===S.today}),
+      aGap=aSoon.filter(function(r){return r.late||r.ready<r.steps}).length;
+  cards.push({title:'Arriving',sub:'Admissions app · 7 days',status:ab?(aGap?'warn':'good'):null,
+    label:aGap?aGap+' not ready / past date':aSoon.length?aSoon.length+' arriving today':'None today',
+    hero:[aRows.length,'expected · '+aRows.filter(function(r){return r.type==='return'}).length+' returning from hospital'],
+    missing:!ab,
+    body:aRows.slice(0,6).map(function(r){return '<div class="row'+(r.late||r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+
+      '<small>'+(r.type==='return'?'return':'new')+(r.steps?' · '+r.ready+'/'+r.steps+' ready':'')+'</small></span><span class="v">'+(r.late?'past date':dLbl(r.date))+(r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(aRows.length,6),
+    foot:'Randy enters these · they clear when PCC shows the admission'});
 
   // 4 Send-outs (Stephen 11/3) — from the 24-hr reports (same day) instead of the lagging ADT export; AMA still from PCC ADT
   var rt=auto('rta24')||{},rta=rt.rows||[],ama=rowsOf('ama'),rtOut=rta.filter(function(r){return r.still_out}).length;
@@ -642,7 +655,7 @@ function buildCards(){
 
 // ---------- flow: sections in meeting order (Stephen 11/3/26) ----------
 var SECTIONS=[
- {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Admission Mini Packets','Medicare Day-4 Rates']},
+ {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Arriving','Admission Mini Packets','Medicare Day-4 Rates']},
  {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Call-offs & HR']},
  {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Google Rating']},
  {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},

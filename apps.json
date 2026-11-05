@@ -309,6 +309,24 @@
    }
   },
   {
+   "id": "admits",
+   "registry": {
+    "app": "Admissions",
+    "url": "`/admits/`",
+    "audience": "Leadership PIN (shares `su_pin`, `mw_owner`). Randy Bago (Admissions) enters once a referral is accepted and has a date",
+    "data": "Supabase `resident_admits` (RLS on, anon revoked; room-bed + name code only, never a name). RPCs `admits_list`, `admits_save`, `admits_set_status` (PIN), `admits_board` (PIN or shared-iPad key). A new admission starts an 8-step readiness checklist in My Work (`work_lists` template `admission`; Business Office, Maintenance/EVS, Nursing ×2, Dietary, Admissions, Social Services, MDS; `sync_status='local'`). PCC ADT trigger `_admits_arrive_from_adt` marks it arrived on AA/RA/RL from that room-bed (±3 days). Hub \"Arriving\" list shows room-bed, type, time and readiness only (no name code)",
+    "status": "Built 11/5/26"
+   },
+   "tile": {
+    "group": "leader",
+    "href": "admits/",
+    "icon": "log-in",
+    "fb": "🛏️",
+    "name": "Admissions",
+    "desc": "Expected admissions · starts the readiness checklist"
+   }
+  },
+  {
    "id": "rounds",
    "registry": {
     "app": "Room Rounds",

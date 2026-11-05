@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Admissions</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../ms-identity.js?v=2"></script>
+<link rel="stylesheet" href="../ms-ui.css?v=3">
+<script src="../ms-ui.js?v=1"></script>
+<style>
+/* Admissions (11/5/26), modeled on Transportation & Discharges. Residents appear as room-bed + name code only.
+   Saving an expected admission starts the readiness checklist in My Work, one step per department head. */
+body{padding-bottom:96px}
+.page{max-width:640px;margin:0 auto;padding:16px 14px 24px}
+.day-h{display:flex;align-items:baseline;gap:8px;margin:18px 2px 8px;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)}
+.day-h.today{color:var(--primary)}
+.day-h .n{margin-left:auto;font-weight:700;letter-spacing:0;text-transform:none}
+.adm{display:flex;gap:12px;align-items:center;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer}
+.adm:active{transform:scale(.99)}
+.adm .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff;background:#2f9e44}
+.adm .ic.return{background:#c2570c}
+.adm .b{flex:1;min-width:0}
+.adm .t1{font-weight:800;font-size:16px}
+.adm .t2{font-size:13.5px;color:var(--muted-foreground);margin-top:2px}
+.adm .r{text-align:right;font-size:13.5px;font-weight:700;white-space:nowrap}
+.adm .r small{display:block;font-weight:500;color:var(--muted-foreground)}
+.adm.late{border-color:#f0b4b4;background:#fff7f7}
+.adm.dim{opacity:.6}
+.ready{display:inline-flex;align-items:center;gap:6px}
+.bar{width:54px;height:6px;border-radius:3px;background:var(--muted);overflow:hidden;display:inline-block}
+.bar>span{display:block;height:100%;background:var(--success)}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:50;display:flex;gap:10px;width:min(612px,calc(100% - 28px))}
+.fab .btn{flex:1;min-height:52px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.form label{display:block;margin:16px 0 6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
+.form .input,.form .select,.form .textarea{font-size:17px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.fld{min-width:0}
+.fld .input{width:100%}
+.codebox{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--muted);font-size:14px}
+.codebox b{font-size:20px;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.fs{margin-top:22px;padding-top:4px;border-top:1px solid var(--border)}
+.fs-h{font-size:15px;font-weight:800;margin-top:14px;display:flex;align-items:center;gap:8px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;font-size:15px;margin-top:10px}
+.kv dt{color:var(--muted-foreground);font-weight:600}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.steps{margin-top:10px}
+.step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);font-size:14.5px}
+.step:first-child{border-top:0}
+.step .ck{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex:none;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.step.done .ck{background:var(--success);border-color:var(--success);color:#fff}
+.step.done .st{color:var(--muted-foreground);text-decoration:line-through}
+.step .who{font-size:12.5px;color:var(--muted-foreground)}
+.note{font-size:13px;color:var(--muted-foreground);margin-top:8px}
+.actions{display:grid;gap:10px;margin-top:18px}
+@media(max-width:420px){.kv{grid-template-columns:110px 1fr}}
+</style>
+</head>
+<body>
+<div class="ms-header">
+  <div><h1><i data-lucide="log-in"></i>Admissions</h1><div class="sub">Morning Star Post Acute · residents arriving</div></div>
+  <div class="who" id="whoChip" onclick="pickWho()"></div>
+</div>
+<main class="page" id="app"><div class="card pad"><div class="skeleton line"></div></div></main>
+<div class="fab" id="fab" hidden>
+  <button class="btn" onclick="openForm()"><i data-lucide="calendar-plus"></i>New admission</button>
+</div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co', SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+var S={pin:null,me:null,owners:[],rows:[],today:null,busy:false,form:null};
+var PAYERS=['Medicare A','Managed care (HMO)','Medi-Cal','Private pay','Hospice','VA','Other'];
+var AUTH=[['pending','Pending'],['approved','Approved'],['not_needed','Not needed']];
+var NEEDS=['Oxygen','CPAP / BiPAP','IV','Wound vac','Isolation','Bariatric bed','1:1 sitter','Dialysis','Tube feeding','Special diet','Respiratory therapy'];
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function app(){return document.getElementById('app')}
+function icons(){if(window.MS&&MS.icons)MS.icons()}
+function toast(m,type){if(window.MS&&MS.toast)MS.toast(m,{type:type||''});else alert(m)}
+function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+function dayLabel(d){
+  if(d===S.today)return 'Today';
+  if(d===addDays(S.today,1))return 'Tomorrow';
+  if(d===addDays(S.today,-1))return 'Yesterday';
+  var x=new Date(d+'T12:00:00');return x.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});
+}
+function t12(t){if(!t)return '';var p=String(t).split(':'),h=+p[0],m=p[1];return ((h+11)%12+1)+':'+m+(h<12?' AM':' PM')}
+// Name code = first 3 letters of the last name + first initial, no space (SMIJ). Only the code is saved.
+function nameCode(last,first){
+  var l=String(last||'').toUpperCase().replace(/[^A-Z]/g,''),f=String(first||'').toUpperCase().replace(/[^A-Z]/g,'');
+  return l&&f?l.slice(0,3)+f[0]:'';
+}
+function normRoom(v){return String(v||'').toUpperCase().replace(/[^0-9A-Z]/g,'')}
+function authLabel(v){var a=AUTH.filter(function(x){return x[0]===v})[0];return a?a[1]:''}
+function typeLabel(v){return v==='return'?'Return from hospital':'New admission'}
+
+async function rpc(fn,args){
+  if(!sb)throw new Error('offline');
+  var r=await sb.rpc(fn,args);
+  if(r.error){
+    if(String(r.error.message).indexOf('bad_pin')>=0){ls('su_pin',null);S.pin=null;showPin('That PIN did not work.');throw new Error('bad_pin')}
+    throw new Error(r.error.message);
+  }
+  return r.data;
+}
+
+/* ---------- start: leadership PIN (same as Standup / My Work), then who you are ---------- */
+async function start(){
+  S.pin=ls('su_pin');
+  if(!S.pin)return showPin();
+  try{await boot()}catch(e){if(e.message!=='bad_pin')app().innerHTML='<div class="alert destructive"><i data-lucide="wifi-off"></i><div>Could not load. Check the connection and refresh.<div class="small">'+esc(e.message)+'</div></div></div>';icons()}
+}
+function showPin(msg){
+  document.getElementById('fab').hidden=true;
+  app().innerHTML='<div class="card pad"><div class="card-title">Leadership PIN</div><div class="card-desc mt-1">Same PIN as the leadership tools on the hub.</div>'+
+    (msg?'<div class="help error mt-2">'+esc(msg)+'</div>':'')+
+    '<div class="row mt-2"><input id="pinIn" class="input pin-input" type="tel" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="PIN"><button class="btn" onclick="submitPin()">Open</button></div></div>';
+  var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
+}
+async function submitPin(){
+  var v=document.getElementById('pinIn').value.trim();if(!v)return;
+  try{await rpc('work_roster',{p_pin:v});S.pin=v;
+    // Shared iPads never remember the PIN; personal phones do (same rule as the hub).
+    if(!(window.MS&&MS.identity&&MS.identity.isShared()))ls('su_pin',v);
+    await boot()}catch(e){if(e.message!=='bad_pin')showPin('Could not connect: '+e.message)}
+}
+async function boot(){
+  var r=await rpc('work_roster',{p_pin:S.pin});
+  S.owners=(r.owners||[]).filter(function(o){return o.active!==false});
+  var key=ls('mw_owner');
+  if(!key&&window.MS&&MS.identity){
+    var hit=MS.identity.matchName(S.owners.map(function(o){return o.display_name}));
+    if(hit)key=(S.owners.filter(function(o){return o.display_name===hit})[0]||{}).owner_key;
+  }
+  S.me=S.owners.filter(function(o){return o.owner_key===key})[0]||null;
+  setWho();
+  if(!S.me)return pickWho();
+  await refresh();render();
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.me&&!S.form)refresh().then(render)});
+}
+function setWho(){var c=document.getElementById('whoChip');c.textContent=S.me?S.me.display_name:'';c.style.display=S.me?'':'none'}
+function pickWho(){
+  if(!S.owners.length)return;
+  document.getElementById('fab').hidden=true;
+  app().innerHTML='<div class="card pad"><div class="card-title">Who is entering admissions?</div><div class="card-desc mt-1">Your name is saved with each entry.</div>'+
+    '<div class="list mt-2">'+S.owners.map(function(o){return '<div class="list-item" onclick="setMe(\''+o.owner_key+'\')"><div class="body"><div class="title">'+esc(o.display_name)+'</div><div class="meta">'+esc(o.department||'')+'</div></div><i data-lucide="chevron-right" class="chev"></i></div>'}).join('')+'</div></div>';
+  icons();
+}
+async function setMe(k){S.me=S.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();await refresh();render()}
+
+async function refresh(){
+  var d=await rpc('admits_list',{p_pin:S.pin});
+  S.today=d.today;S.rows=d.rows||[];
+}
+function byId(id){return S.rows.filter(function(r){return r.id===id})[0]}
+
+/* ---------- list ---------- */
+function render(){
+  S.form=null;
+  document.getElementById('fab').hidden=false;
+  var exp=S.rows.filter(function(r){return r.status==='expected'});
+  var late=exp.filter(function(r){return r.admit_date<S.today});
+  var up=exp.filter(function(r){return r.admit_date>=S.today});
+  var h='';
+  if(late.length){
+    h+='<div class="day-h" style="color:var(--destructive)">Past date · not arrived in PCC<span class="n">'+late.length+'</span></div>';
+    h+=late.map(function(r){return admRow(r,'late')}).join('');
+    h+='<div class="note">These close on their own when PCC shows the admission. If the date moved, open it and change the date. If they are not coming, cancel it.</div>';
+  }
+  if(!up.length&&!late.length){
+    h+='<div class="empty mt-3"><i data-lucide="bed-double"></i><div class="e-title">No admissions expected</div><div class="e-desc">Tap “New admission” once a referral is accepted and has a date. It starts the readiness checklist in My Work and shows on the iPad banner.</div></div>';
+  }
+  var cur=null;
+  up.forEach(function(r){
+    if(r.admit_date!==cur){cur=r.admit_date;var n=up.filter(function(x){return x.admit_date===cur}).length;
+      h+='<div class="day-h'+(cur===S.today?' today':'')+'">'+esc(dayLabel(cur))+(cur>addDays(S.today,7)?' · not on banner yet':'')+'<span class="n">'+n+'</span></div>'}
+    h+=admRow(r,'');
+  });
+  var closed=S.rows.filter(function(r){return r.status!=='expected'});
+  if(closed.length){
+    h+='<details class="mt-3"><summary class="day-h" style="cursor:pointer">Arrived or cancelled · last 14 days<span class="n">'+closed.length+'</span></summary>'+
+      closed.map(function(r){return admRow(r,'dim')}).join('')+'</details>';
+  }
+  app().innerHTML=h;icons();
+}
+function readyHtml(r){
+  if(!r.list_total)return '';
+  var done=r.list_total-r.list_open,p=Math.round(100*done/r.list_total);
+  return '<span class="ready"><span class="bar"><span style="width:'+p+'%"></span></span>'+done+' of '+r.list_total+' ready</span>';
+}
+function admRow(r,cls){
+  if(!r)return '';
+  var who='Rm '+esc(r.room_bed)+(r.code?' · '+esc(r.code):'');
+  var sub=[typeLabel(r.admit_type),r.from_place,r.payer].filter(Boolean).map(esc).join(' · ');
+  var right=(r.eta?t12(r.eta):'Time TBD')+'<small>'+(r.status==='expected'?readyHtml(r):'')+'</small>';
+  if(r.status==='arrived')right='<span class="badge success">'+(r.arrived_source==='pcc'?'Arrived · PCC':'Arrived')+'</span>';
+  if(r.status==='cancelled')right='<span class="badge outline">Cancelled</span>';
+  if(r.status==='expected'&&r.auth_status==='pending')sub+=' · <span style="color:#b9770e;font-weight:700">auth pending</span>';
+  return '<div class="adm '+cls+'" onclick="openDetail(\''+r.id+'\')"><span class="ic '+(r.admit_type==='return'?'return':'')+'"><i data-lucide="'+(r.admit_type==='return'?'rotate-ccw':'log-in')+'"></i></span>'+
+    '<div class="b"><div class="t1">'+who+(cls?' <span class="muted small">'+esc(dayLabel(r.admit_date))+'</span>':'')+'</div><div class="t2">'+sub+'</div></div><div class="r">'+right+'</div></div>';
+}
+
+/* ---------- detail ---------- */
+function openDetail(id){
+  var r=byId(id);if(!r)return;
+  S.form={detail:id};document.getElementById('fab').hidden=true;
+  function kv(k,v){return v?'<dt>'+k+'</dt><dd>'+v+'</dd>':''}
+  var h='<span class="back" onclick="render()"><i data-lucide="chevron-left"></i>Back</span>'+
+    '<div class="card pad"><div class="row between"><div class="card-title">Rm '+esc(r.room_bed)+(r.code?' · '+esc(r.code):'')+'</div>'+
+    '<span class="badge '+(r.admit_type==='return'?'warning':'success')+'">'+typeLabel(r.admit_type)+'</span></div><dl class="kv">'+
+    kv('Date',esc(dayLabel(r.admit_date)))+kv('Arriving about',t12(r.eta))+kv('Coming from',esc(r.from_place))+
+    kv('Payer',esc(r.payer))+kv('Authorization',esc(authLabel(r.auth_status)))+
+    kv('Needs',esc((r.needs||[]).join(', ')))+kv('Notes',esc(r.notes).replace(/\n/g,'<br>'))+
+    kv('Entered by',esc(ownerName(r.created_by)))+(r.updated_by&&r.updated_by!==r.created_by?kv('Last change',esc(ownerName(r.updated_by))):'')+
+    '</dl></div>';
+  if((r.steps||[]).length){
+    h+='<div class="card pad mt-3"><div class="row between"><div class="card-title">Readiness checklist</div><span class="small muted">'+readyHtml(r)+'</span></div>'+
+      '<div class="steps">'+r.steps.map(function(s){return '<div class="step'+(s.done?' done':'')+'"><span class="ck">'+(s.done?'✓':'')+'</span><div><div class="st">'+esc(s.title)+'</div><div class="who">'+esc(s.who||'')+(s.due&&!s.done?' · due '+esc(dayLabel(s.due)):'')+'</div></div></div>'}).join('')+'</div>'+
+      '<div class="note">Each department head checks off their step in <a href="../my-work/">My Work</a>.</div></div>';
+  }
+  h+='<div class="actions">';
+  if(r.status==='expected'){
+    h+='<button class="btn outline block" onclick="openForm(\''+r.id+'\')"><i data-lucide="pencil"></i>Edit</button>';
+    h+='<button class="btn success block" onclick="setStatus(\''+r.id+'\',\'arrived\')"><i data-lucide="check"></i>Resident has arrived</button>';
+    h+='<button class="btn ghost block" style="color:var(--destructive)" onclick="setStatus(\''+r.id+'\',\'cancelled\')"><i data-lucide="x"></i>Not coming · cancel admission</button>';
+  }else{
+    h+='<button class="btn outline block" onclick="setStatus(\''+r.id+'\',\'expected\')"><i data-lucide="rotate-ccw"></i>Put back as expected</button>';
+  }
+  app().innerHTML=h+'</div>';icons();window.scrollTo(0,0);
+}
+function ownerName(k){var o=S.owners.filter(function(x){return x.owner_key===k})[0];return o?o.display_name:(k==='pcc'?'PCC feed':k||'')}
+async function setStatus(id,st){
+  if(st==='cancelled'){
+    var msg='This also cancels the readiness checklist in My Work and takes it off the iPad banner.';
+    var ok=window.MS&&MS.confirm?await MS.confirm({title:'Cancel this admission?',desc:msg,confirmText:'Yes, cancel',cancelText:'Keep it',destructive:true}):confirm(msg);
+    if(!ok)return;
+  }
+  if(S.busy)return;S.busy=true;
+  try{await rpc('admits_set_status',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:id,p_status:st});await refresh();
+    toast(st==='arrived'?'Marked arrived':st==='cancelled'?'Cancelled':'Back on the expected list','success');render()}
+  catch(e){if(e.message!=='bad_pin')toast('Not saved: '+e.message,'destructive')}
+  finally{S.busy=false}
+}
+
+/* ---------- form ---------- */
+function opt(list,v){var h='<option value="">Choose…</option>',found=false;list.forEach(function(x){var k=Array.isArray(x)?x[0]:x,l=Array.isArray(x)?x[1]:x;if(k===v)found=true;h+='<option value="'+esc(k)+'"'+(k===v?' selected':'')+'>'+esc(l)+'</option>'});if(v&&!found)h+='<option selected>'+esc(v)+'</option>';return h}
+function inp(id,label,v,type,ph,extra){return '<div class="fld"><label for="'+id+'">'+label+'</label><input class="input" id="'+id+'" type="'+(type||'text')+'" value="'+esc(v||'')+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+(extra||'')+'></div>'}
+function tm(v){return v?String(v).slice(0,5):''}
+function openForm(id){
+  var r=id?byId(id):{admit_date:S.today,admit_type:'new',needs:[]};
+  S.form={id:id||null,type:r.admit_type||'new',needs:(r.needs||[]).slice()};
+  document.getElementById('fab').hidden=true;
+  var h='<span class="back" onclick="'+(id?'openDetail(\''+id+'\')':'render()')+'"><i data-lucide="chevron-left"></i>'+(id?'Back':'Cancel')+'</span>'+
+    '<div class="card pad form"><div class="card-title">'+(id?'Edit admission':'New admission')+'</div>'+
+    '<div class="card-desc mt-1">'+(id?'Changing the date moves every checklist step with it.':'Saving starts the readiness checklist in My Work: Business Office, Housekeeping, Nursing, Dietary, Admissions, Social Services and MDS each get their step.')+'</div>'+
+    '<div class="fs-h mt-3"><i data-lucide="user-round" class="icon-sm"></i>Resident</div>'+
+    '<div class="two">'+inp('f_room','Room-bed',r.room_bed,'text','12A',' autocapitalize="characters" maxlength="4"')+
+      '<div><label>Name code</label><div class="codebox" style="margin-top:0;min-height:48px"><b id="codeOut">'+esc(r.code||'—')+'</b></div></div></div>'+
+    '<div class="two">'+inp('f_last','Last name','','text','Not saved',' autocomplete="off" autocapitalize="words"')+inp('f_first','First name','','text','Not saved',' autocomplete="off" autocapitalize="words"')+'</div>'+
+    '<div class="note">Only the room-bed and the code (first 3 letters of the last name + first initial) are saved. The name you type here is not stored.'+(id?' Leave the name blank to keep the current code.':'')+'</div>'+
+    '<div class="fs"><div class="fs-h"><i data-lucide="calendar" class="icon-sm"></i>Arrival</div>'+
+    '<label>Type</label><div class="chips" id="typeChips">'+[['new','New admission'],['return','Return from hospital']].map(function(t){return '<button type="button" class="chip'+(S.form.type===t[0]?' on':'')+'" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>'+
+    '<div class="two">'+inp('f_date','Admission date',r.admit_date,'date')+inp('f_eta','Arriving about',tm(r.eta),'time')+'</div>'+
+    inp('f_from','Coming from',r.from_place,'text','Hospital or facility')+
+    '<div class="two"><div class="fld"><label for="f_payer">Payer</label><select class="select" id="f_payer">'+opt(PAYERS,r.payer)+'</select></div>'+
+      '<div class="fld"><label for="f_auth">Authorization</label><select class="select" id="f_auth">'+opt(AUTH,r.auth_status)+'</select></div></div></div>'+
+    '<div class="fs"><div class="fs-h"><i data-lucide="package" class="icon-sm"></i>Special needs</div>'+
+    '<div class="chips mt-2" id="needChips">'+NEEDS.map(function(n){return '<button type="button" class="chip'+(S.form.needs.indexOf(n)>=0?' on':'')+'" data-n="'+esc(n)+'">'+esc(n)+'</button>'}).join('')+'</div>'+
+    '<div class="note">These go on the Housekeeping and Nursing steps so the room and equipment are ready.</div>'+
+    '<label for="f_notes">Notes</label><textarea class="textarea" id="f_notes" placeholder="Anything the team should know before arrival">'+esc(r.notes||'')+'</textarea></div>'+
+    '<div class="help error mt-2" id="fErr" hidden></div>'+
+    '<div class="actions"><button class="btn block lg" id="saveBtn" onclick="saveForm()"><i data-lucide="check"></i>Save</button></div></div>';
+  app().innerHTML=h;icons();window.scrollTo(0,0);
+  function upd(){var c=nameCode(val('f_last'),val('f_first'));document.getElementById('codeOut').textContent=c||(r.code&&!val('f_last')&&!val('f_first')?r.code:'—')}
+  ['f_last','f_first'].forEach(function(i){document.getElementById(i).addEventListener('input',upd)});
+  document.getElementById('typeChips').addEventListener('click',function(e){var b=e.target.closest('[data-t]');if(!b)return;S.form.type=b.getAttribute('data-t');
+    [].forEach.call(this.children,function(c){c.classList.toggle('on',c===b)})});
+  document.getElementById('needChips').addEventListener('click',function(e){var b=e.target.closest('[data-n]');if(!b)return;var n=b.getAttribute('data-n'),i=S.form.needs.indexOf(n);
+    if(i>=0)S.form.needs.splice(i,1);else S.form.needs.push(n);b.classList.toggle('on',i<0)});
+}
+function val(id){var e=document.getElementById(id);return e?e.value.trim():''}
+async function saveForm(){
+  var f=S.form,old=f.id?byId(f.id):null,err=document.getElementById('fErr');
+  function bad(m){err.textContent=m;err.hidden=false;err.scrollIntoView({block:'center',behavior:'smooth'})}
+  var room=normRoom(val('f_room'));
+  if(!/^[0-9]{1,2}[A-H]$/.test(room))return bad('Enter the room-bed like 12A.');
+  var code=nameCode(val('f_last'),val('f_first'));
+  if((val('f_last')||val('f_first'))&&!code)return bad('Enter both the last and first name to make the code, or leave both blank.');
+  if(!code&&old)code=old.code;
+  if(!code)return bad('Enter the resident’s last and first name so the code can be made.');
+  if(!val('f_date'))return bad('Pick the admission date.');
+  var row={id:f.id,admit_date:val('f_date'),eta:val('f_eta'),room_bed:room,code:code,admit_type:f.type,
+    from_place:val('f_from'),payer:val('f_payer'),auth_status:val('f_auth'),needs:f.needs.slice(),notes:val('f_notes')};
+  if(S.busy)return;S.busy=true;var b=document.getElementById('saveBtn');b.disabled=true;
+  try{
+    var id=await rpc('admits_save',{p_pin:S.pin,p_actor:S.me.owner_key,p_row:row});
+    await refresh();
+    toast(f.id?'Saved':'Saved · readiness checklist started in My Work','success');
+    openDetail(id);
+  }catch(e){if(e.message!=='bad_pin')bad('Not saved: '+e.message)}
+  finally{S.busy=false;if(b)b.disabled=false}
+}
+// Bottom bar Back (ms-nav.js): leave a form or detail first, then the hub.
+window.msNavBack=function(){if(S.form){if(S.form.id){openDetail(S.form.id)}else render();return true}return false};
+start();
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
+</body>
+</html>
