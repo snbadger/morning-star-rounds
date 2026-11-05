@@ -56,6 +56,19 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9px;background:#eef1f4;color:var(--text-light);text-transform:uppercase;letter-spacing:.3px}
 .tag.hot{background:#fdecea;color:var(--danger)}
 .tag.done{background:#eafaf1;color:var(--success)}
+/* Status + notes on open repairs (11/5/26) */
+.tag.prog{background:#e8f1fb;color:#1f6fb2}
+.tag.wait{background:#fff4dc;color:#9a6700}
+.rnotes{margin-top:8px;padding:8px 10px;background:#f6f8fa;border-radius:8px;font-size:12.5px;line-height:1.45;color:var(--text)}
+.rnotes .ln{margin:2px 0}.rnotes .ln b{color:var(--text-light);font-weight:700}
+.rnotes .more{border:0;background:none;color:var(--primary);font:inherit;font-weight:700;padding:2px 0;cursor:pointer}
+.redit{margin-top:10px;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:#fff}
+.redit .sts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.redit .sts button{padding:8px 11px;border-radius:18px;border:1.5px solid var(--border);background:#fff;font:inherit;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer}
+.redit .sts button.on{border-color:var(--primary);background:#e9f6f7;color:var(--primary)}
+.redit textarea{min-height:64px}
+.redit .row{display:flex;gap:8px;margin-top:8px;align-items:center}
+.redit .pin{max-width:120px;letter-spacing:3px;text-align:center}
 .load{text-align:center;color:var(--text-light);padding:34px;font-size:14px}
 .rep.pickup{border-left-color:var(--primary-light)}
 .rep.long{border-left-color:var(--danger)}
@@ -231,13 +244,13 @@ function thanksView(){
 async function loadOpen(){
   var since=new Date(Date.now()-1000*60*60*24*30).toISOString();
   var res=await sb.from('equipment_repairs').select('*')
-    .or('status.in.(new,in_progress),and(status.eq.fixed,fixed_at.gte.'+since+')')
+    .or('status.in.(new,in_progress,waiting),and(status.eq.fixed,fixed_at.gte.'+since+')')
     .order('created_at',{ascending:false}).limit(100);
   open=res.data||[];openLoaded=true;render();
 }
 function openView(){
   if(!openLoaded)return tabs('open')+'<div class="load">Loading…</div>';
-  var act=open.filter(function(r){return r.status==='new'||r.status==='in_progress'});
+  var act=open.filter(function(r){return r.status==='new'||r.status==='in_progress'||r.status==='waiting'});
   var done=open.filter(function(r){return r.status==='fixed'});
   var h=tabs('open');
   h+='<div class="card">';
@@ -258,9 +271,80 @@ function repCard(r){
    '<div class="meta">'+
    (r.status==='fixed'?'<span class="tag done">Fixed '+fmtDate(r.fixed_at)+'</span>':'<span class="tag'+((r.urgent||r.issue_type==='safety_hazard')?' hot':'')+'">'+esc(issueLabel(r.issue_type))+'</span>')+
    (r.urgent&&r.status!=='fixed'?'<span class="tag hot">Urgent</span>':'')+
-   (r.status==='in_progress'?'<span class="tag">In progress</span>':'')+
+   (r.status==='in_progress'?'<span class="tag prog">In progress</span>':'')+
+   (r.status==='waiting'?'<span class="tag wait">Waiting on parts</span>':'')+
    '<span>· '+esc(r.reporter_name)+'</span><span>· '+fmtDate(r.created_at)+'</span>'+
-   '</div></div>';
+   '</div>'+notesHtml(r)+
+   (r.status==='fixed'?'':editing===r.id?editHtml(r):'<div class="acts"><button class="mini" onclick="startEdit(\''+r.id+'\')">✏️ Update status / add note</button></div>')+
+   '</div>';
+}
+
+// ── Status + notes (11/5/26). Maintenance (Sebastian) and leaders update a repair from here; the same
+// note and status show on the repair's My Work item and back. Saving needs the leadership PIN, which a
+// personal phone remembers (su_pin, shared with the leadership apps) and a shared iPad never keeps.
+var editing=null, editStatus=null, editNote='', notesOpen={};
+var R_STATUS=[{v:'new',l:'New'},{v:'in_progress',l:'In progress'},{v:'waiting',l:'Waiting on parts'},{v:'fixed',l:'Fixed'},{v:'wont_fix',l:'Won\'t fix'}];
+function isShared(){return !!(window.MS&&MS.identity&&MS.identity.isShared())}
+// Shared iPad: the PIN is kept for this tab only and tied to the person who entered it, so it stops
+// working the moment they sign out or the iPad times out — even on an older cached ms-identity.js.
+function whoKey(){var u=window.MS&&MS.identity&&MS.identity.get();return u?(u.picked_at||'')+'|'+u.name:''}
+function savedPin(){try{
+  if(!isShared())return localStorage.getItem('su_pin');
+  var o=JSON.parse(sessionStorage.getItem('msLeaderPin')||'null');
+  return o&&o.w&&o.w===whoKey()?o.p:null;
+}catch(e){return null}}
+function keepPin(v){try{if(isShared())sessionStorage.setItem('msLeaderPin',JSON.stringify({p:v,w:whoKey()}));else localStorage.setItem('su_pin',v)}catch(e){}}
+function dropPin(){try{sessionStorage.removeItem('msLeaderPin');if(!isShared())localStorage.removeItem('su_pin')}catch(e){}}
+function noteLines(r){return String(r.work_notes||'').split('\n').filter(function(l){return l.trim()})}
+function notesHtml(r){
+  var ls=noteLines(r); if(!ls.length)return '';
+  var all=!!notesOpen[r.id], shown=all?ls:ls.slice(-2);
+  var h='<div class="rnotes">'+shown.map(function(l){
+    var m=l.match(/^\[(\d\d\/\d\d) ([^\]]+)\]\s*(.*)$/);
+    return '<div class="ln">'+(m?'<b>'+esc(m[1])+' '+esc(m[2].split(' ')[0])+':</b> '+esc(m[3]):esc(l))+'</div>';
+  }).join('');
+  if(ls.length>2)h+='<button class="more" onclick="notesOpen[\''+r.id+'\']='+(!all)+';render()">'+(all?'Show fewer':'Show all '+ls.length+' notes')+'</button>';
+  return h+'</div>';
+}
+function editHtml(r){
+  var st=editStatus||r.status, pin=savedPin();
+  return '<div class="redit">'+
+    '<div class="sts">'+R_STATUS.map(function(x){return '<button type="button" class="'+(st===x.v?'on':'')+'" onclick="pickStatus(\''+x.v+'\')">'+esc(x.l)+'</button>'}).join('')+'</div>'+
+    '<textarea id="rNote" maxlength="1000" oninput="editNote=this.value" placeholder="Add a note (part ordered, vendor called, ETA…). No resident names.">'+esc(editNote)+'</textarea>'+
+    '<div class="row">'+(pin?'':'<input id="rPin" class="pin" type="tel" inputmode="numeric" maxlength="8" placeholder="PIN" autocomplete="off" aria-label="Leadership PIN">')+
+    '<button class="btn btn-primary" style="flex:1" id="rSave" onclick="saveEdit(\''+r.id+'\')">Save</button>'+
+    '<button class="btn btn-ghost" style="flex:none;width:auto;padding:0 16px" onclick="cancelEdit()">Cancel</button></div>'+
+    (pin?'':'<div class="hint" style="margin-top:6px">Leadership PIN — for Maintenance and department heads.</div>')+
+    '</div>';
+}
+function startEdit(id){
+  if(!me.name){toast('Tap your name first');editIdentity();return}
+  editing=id;editStatus=null;editNote='';render();
+  var t=document.getElementById('rNote');if(t)t.focus();
+}
+function pickStatus(v){editStatus=v;render()}
+function cancelEdit(){editing=null;editStatus=null;editNote='';render()}
+async function saveEdit(id){
+  if(busy)return;
+  var r=open.filter(function(x){return x.id===id})[0]; if(!r)return;
+  var note=(editNote=document.getElementById('rNote').value||'').trim();
+  var st=(editStatus&&editStatus!==r.status)?editStatus:null;
+  if(!st&&!note){toast('Pick a new status or type a note');return}
+  var pinEl=document.getElementById('rPin'), pin=savedPin()||(pinEl?pinEl.value.trim():'');
+  if(!pin){toast('Enter the leadership PIN');if(pinEl)pinEl.focus();return}
+  busy=true;var b=document.getElementById('rSave');b.disabled=true;b.textContent='Saving…';
+  var res=await sb.rpc('repair_update',{p_pin:pin,p_actor:me.name,p_id:id,p_status:st,p_note:note||null});
+  busy=false;
+  if(res.error){
+    var m=String(res.error.message||'');
+    b.disabled=false;b.textContent='Save';
+    if(m.indexOf('bad_pin')>=0){dropPin();toast('That PIN didn\'t work');render();return}
+    toast('Could not save — '+(m||'please try again'));return;
+  }
+  keepPin(pin);
+  var d=res.data||{}; r.status=d.status||r.status; r.work_notes=d.work_notes; if(r.status==='fixed'&&!r.fixed_at)r.fixed_at=new Date().toISOString();
+  editing=null;editStatus=null;editNote='';render();
+  toast(st?'Saved — '+R_STATUS.filter(function(x){return x.v===st})[0].l:'Note added');
 }
 
 // ── Rentals: rented equipment on the floor, so nothing stays on rent after it's needed.

@@ -46,6 +46,12 @@ Staff apps hub for Morning Star Post Acute. The site root is the landing page
   apps with other screen state define `window.msNavBack()` (My Work, Standup Log, Room Rounds — step by
   step — and Staff Reliability). On the first screen Back goes to the hub. An app with its own bottom
   tab bar (Shower Sheet) gets the three buttons merged into that bar. New apps: add the script tag.
+- **Repairs status + notes (11/5/26).** Open Repairs cards show status (New / In progress / Waiting on
+  parts) and the latest notes; "Update status / add note" saves through RPC `repair_update(p_pin, p_actor,
+  p_id, p_status, p_note)` (leadership PIN). Notes are `[MM/DD Name] …` lines in
+  `equipment_repairs.work_notes`; a note saved here also lands on the repair's My Work item, and notes
+  added in My Work copy back (trigger `trg_repair_notes_from_work`). `waiting` is repair-only (My Work
+  shows it as in progress). Hub "Open repairs" counts new + in progress + waiting.
 - **Shower Sheet** also stores `shower_logs.employee_number` for clean audit joins.
 - **Shout Outs** live inside Ideas (Shout Out + Wall tabs); `/shoutouts/` redirects.
 

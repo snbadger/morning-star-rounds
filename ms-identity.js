@@ -105,7 +105,7 @@
   function clear() {
     lsDel('ms_user');
     SIGNOUT_KEYS.forEach(lsDel);
-    if (isShared()) { SHARED_EXTRA.forEach(lsDel); try { sessionStorage.removeItem('msLeaderSession'); } catch (e) {} }
+    if (isShared()) { SHARED_EXTRA.forEach(lsDel); try { sessionStorage.removeItem('msLeaderSession'); sessionStorage.removeItem('msLeaderPin'); } catch (e) {} }
     dispatch('ms:identity', null);
   }
   function signOut() { clear(); location.href = HUB; }
@@ -187,7 +187,7 @@
   function idleOut() {
     if (!isShared() || !hasSession()) return;
     clear();
-    try { sessionStorage.removeItem('msLeaderSession'); } catch (e) {}
+    try { sessionStorage.removeItem('msLeaderSession'); sessionStorage.removeItem('msLeaderPin'); } catch (e) {}
     location.href = HUB;
   }
   function showWarn() {

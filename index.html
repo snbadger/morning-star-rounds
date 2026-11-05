@@ -421,7 +421,7 @@ function loadToday(){
   var lead=leaderUnlocked(), pin=lsGet('su_pin'), owner=lsGet('mw_owner');
   var jobs=[
     countOf('shower_logs?select=id&log_date=eq.'+day+'&shift=eq.'+shift),
-    countOf('equipment_repairs?select=id&status=eq.new'),
+    countOf('equipment_repairs?select=id&status=in.(new,in_progress,waiting)'),
     lead?fetch(SB+'v_today_rounding?select=count',{headers:hdrs({})}).then(function(r){return r.ok?r.json():null}).catch(function(){return null}):Promise.resolve(null),
     (lead&&pin&&owner)?rpc('work_mine',{p_pin:pin,p_owner:owner}):Promise.resolve(null)
   ];
