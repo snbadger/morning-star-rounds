@@ -254,8 +254,12 @@ function itemRow(it,opts){
     (opts.claim?'<button class="btn btn-ghost btn-sm" onclick="claim(\''+it.id+'\')">Claim</button>':'<div class="go">›</div>')+
     '</div>';
 }
+// Newest item on top of every group (Stephen, 11/6/26). The RPCs sort by due date; this re-sorts on the page.
+// Checklist steps (opts.keepOrder) stay in their set order.
+function newestFirst(items){return items.slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''))})}
 function group(title,items,cls,opts){
   if(!items.length)return '';
+  if(!(opts&&opts.keepOrder))items=newestFirst(items);
   return '<div class="h2 '+(cls||'')+'">'+esc(title)+'<span class="n">'+items.length+'</span></div><div class="card" style="padding:4px 13px">'+items.map(function(i){return itemRow(i,opts)}).join('')+'</div>';
 }
 function listRow(l){
@@ -274,7 +278,7 @@ function renderMine(){
   h+=group('Overdue',ov,'red')+group('Today',td,'amber')+group('This week',wk,'');
   if(later.length){
     h+='<div class="h2">Later<span class="n">'+later.length+'</span><span class="tog" onclick="S.showLater=!S.showLater;route()">'+(S.showLater?'Hide':'Show')+'</span></div>';
-    if(S.showLater)h+='<div class="card" style="padding:4px 13px">'+later.map(function(i){return itemRow(i)}).join('')+'</div>';
+    if(S.showLater)h+='<div class="card" style="padding:4px 13px">'+newestFirst(later).map(function(i){return itemRow(i)}).join('')+'</div>';
   }
   if(d.dept_unassigned.length)h+=group('Unassigned in '+S.me.department,d.dept_unassigned,'',{claim:true});
   if(d.lists.length)h+='<div class="h2">My lists<span class="n">'+d.lists.length+'</span></div><div class="card" style="padding:4px 13px">'+d.lists.map(listRow).join('')+'</div>';
@@ -451,7 +455,7 @@ function renderList(){
     '<div class="prog"><span style="width:'+pct+'%"></span></div>'+
     (hdr.length?'<div class="kv" style="margin-top:12px">'+hdr.map(function(k){return '<b>'+esc(k.replace(/_/g,' '))+'</b><span>'+esc(typeof l.header[k]==='object'?JSON.stringify(l.header[k]):l.header[k])+'</span>'}).join('')+'</div>':'')+
     '</div>';
-  order.forEach(function(k){h+=group(k?ownerName(k):'Unassigned · '+byOwner[k][0].department,byOwner[k],'',{claim:!k&&byOwner[k][0].department===S.me.department})});
+  order.forEach(function(k){h+=group(k?ownerName(k):'Unassigned · '+byOwner[k][0].department,byOwner[k],'',{claim:!k&&byOwner[k][0].department===S.me.department,keepOrder:true})});
   if(l.status==='open')h+='<div class="card"><label>Add a step to this list</label><input id="lsTitle" placeholder="What needs to happen" maxlength="200"><div class="row2"><div><label>Owner</label><select id="lsOwner">'+ownerOptions(l.owner_key||S.me.owner_key,true)+'</select></div><div><label>Due</label><input id="lsDue" type="date" value="'+esc(l.target_date||today())+'"></div></div><div style="height:12px"></div><button class="btn btn-ghost" onclick="lsAdd()">Add step</button></div>';
   if(l.status==='open'&&(isAdmin()||l.owner_key===S.me.owner_key))h+='<div class="card"><div class="row2"><div><label>Target date</label><input id="lsTarget" type="date" value="'+esc(l.target_date||'')+'"></div><div><label>&nbsp;</label><button class="btn btn-quiet" onclick="lsSaveTarget()">Save target</button></div></div><div style="height:10px"></div><button class="btn btn-danger btn-sm" onclick="lsCancel()">Cancel whole list</button></div>';
   app().innerHTML=h;
