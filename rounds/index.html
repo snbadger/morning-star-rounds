@@ -466,6 +466,7 @@ var ROOM_GROUPS=[
 var ROOM_ENV_ITEMS=['Room clean and free of odor','Bathroom clean and stocked','No safety hazards','Temperature comfortable','Name on door correct'];
 var BED_ENV_ITEMS=['Call light within reach','Personal items accessible','Bed in lowest position, brakes locked'];
 var O2_DATING_ITEM='O2 tubing dated within 7 days';
+var FOLEY_ITEM='Foley catheter privacy bag is covered';
 var LAL_SETTING_ITEM='LAL mattress pump setting matches posted weight card';
 var LAL_NOTIFY_URL=SUPABASE_URL+'/functions/v1/lal-notify';
 var CONCERN_ITEMS=['Meals / food quality','Pain management','Call light response time','Noise / sleep disruption','Feeling lonely or bored','Staff attitude or communication','Cleanliness / laundry'];
@@ -500,7 +501,7 @@ function getSelectedBeds(f){
 function initBedData(f){
  var beds=getSelectedBeds(f);
  beds.forEach(function(b){
- if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',lalInUse:'',lalOk:'',lalIssue:''};
+ if(!f.envBeds[b])f.envBeds[b]={items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',foleyInUse:'',foleyCovered:'',foleyIssue:'',lalInUse:'',lalOk:'',lalIssue:''};
  if(!f.residents[b])f.residents[b]={spoke:'',noReason:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  });
 }
@@ -640,7 +641,7 @@ function renderRoundsForm(){
  var beds=getSelectedBeds(f);
  initBedData(f);
  var activeBed=beds[f.envActiveBedTab]||beds[0]||'A';
- var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',lalInUse:'',lalOk:'',lalIssue:''};
+ var bedData=f.envBeds[activeBed]||{items:BED_ENV_ITEMS.map(function(){return ''}),issues:BED_ENV_ITEMS.map(function(){return ''}),other:'',allOk:false,o2InUse:'',o2Dated:'',o2Issue:'',foleyInUse:'',foleyCovered:'',foleyIssue:'',lalInUse:'',lalOk:'',lalIssue:''};
  var rd=f.residents[activeBed]||{spoke:'',noReason:'',mood:'',concerns:CONCERN_ITEMS.map(function(){return false}),quote:'',asked:'',done:false};
  var singleBed=beds.length<=1;
  // Bed tabs (combined completion = env done + resident done)
@@ -661,13 +662,14 @@ function renderRoundsForm(){
  var cardLabel=activeBed==='Private'?'Resident Area':'Bed '+activeBed;
  // -- Bed environment section --
  var calcAllOk=function(bd){
- return bd.items.every(function(x){return x==='yes'})&&(bd.o2InUse!=='yes'||bd.o2Dated==='yes')&&(bd.lalInUse!=='yes'||bd.lalOk==='yes');
+ return bd.items.every(function(x){return x==='yes'})&&(bd.o2InUse!=='yes'||bd.o2Dated==='yes')&&(bd.foleyInUse!=='yes'||bd.foleyCovered==='yes')&&(bd.lalInUse!=='yes'||bd.lalOk==='yes');
  };
  var allOkHandler=function(){
  var bd=f.envBeds[activeBed];var newVal=!bd.allOk;
  bd.allOk=newVal;bd.items=bd.items.map(function(){return newVal?'yes':''});
  if(newVal)bd.issues=bd.issues.map(function(){return ''});
  if(bd.o2InUse==='yes'){bd.o2Dated=newVal?'yes':'';if(newVal)bd.o2Issue=''}
+ if(bd.foleyInUse==='yes'){bd.foleyCovered=newVal?'yes':'';if(newVal)bd.foleyIssue=''}
  if(bd.lalInUse==='yes'){bd.lalOk=newVal?'yes':'';if(newVal)bd.lalIssue=''}
  };
  var itemHandler=function(idx,v){
@@ -683,6 +685,16 @@ function renderRoundsForm(){
  var o2DatedHandler=function(v){
  var bd=f.envBeds[activeBed];bd.o2Dated=v;
  if(v==='yes')bd.o2Issue='';
+ bd.allOk=calcAllOk(bd);
+ };
+ var foleyInUseHandler=function(v){
+ var bd=f.envBeds[activeBed];bd.foleyInUse=v;
+ if(v!=='yes'){bd.foleyCovered='';bd.foleyIssue=''}
+ bd.allOk=calcAllOk(bd);
+ };
+ var foleyCoveredHandler=function(v){
+ var bd=f.envBeds[activeBed];bd.foleyCovered=v;
+ if(v==='yes')bd.foleyIssue='';
  bd.allOk=calcAllOk(bd);
  };
  var lalInUseHandler=function(v){
@@ -703,6 +715,11 @@ function renderRoundsForm(){
  h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Is this resident on O2?'),
  mt(bedData.o2InUse,o2InUseHandler),
  bedData.o2InUse==='yes'?h('div',{style:{marginTop:'8px'}},ynRow(bedData.o2Dated,O2_DATING_ITEM,o2DatedHandler,bedData.o2Issue,function(e){f.envBeds[activeBed].o2Issue=e.target.value})):null
+ ),
+ h('div',{style:{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid var(--navy-200)'}},
+ h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Does this resident have a Foley catheter?'),
+ mt(bedData.foleyInUse,foleyInUseHandler),
+ bedData.foleyInUse==='yes'?h('div',{style:{marginTop:'8px'}},ynRow(bedData.foleyCovered,FOLEY_ITEM,foleyCoveredHandler,bedData.foleyIssue,function(e){f.envBeds[activeBed].foleyIssue=e.target.value})):null
  ),
  h('div',{style:{marginTop:'10px',paddingTop:'10px',borderTop:'1px solid var(--navy-200)'}},
  h('div',{style:{fontSize:'13px',fontWeight:'600',marginBottom:'6px'}},'Is this resident on a low air loss (LAL) mattress?'),
@@ -868,9 +885,10 @@ async function submitRound(){
  environment:{
  roomChecks:ROOM_ENV_ITEMS.reduce(function(o,item,i){o[item]=f.envRoom[i];return o},{}),
  perBed:Object.fromEntries(beds.map(function(b){
- var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return ''}),allOk:false,o2InUse:'',o2Dated:'',lalInUse:'',lalOk:''};
+ var bd=f.envBeds[b]||{items:BED_ENV_ITEMS.map(function(){return ''}),allOk:false,o2InUse:'',o2Dated:'',foleyInUse:'',foleyCovered:'',lalInUse:'',lalOk:''};
  var checks=BED_ENV_ITEMS.reduce(function(o,item,i){o[item]=bd.items[i];return o},{});
  if(bd.o2InUse==='yes')checks[O2_DATING_ITEM]=bd.o2Dated;
+ if(bd.foleyInUse==='yes')checks[FOLEY_ITEM]=bd.foleyCovered;
  if(bd.lalInUse==='yes')checks[LAL_SETTING_ITEM]=bd.lalOk;
  return[b,checks];
  })),
@@ -878,11 +896,13 @@ async function submitRound(){
  var bd=f.envBeds[b]||{};
  var iss=BED_ENV_ITEMS.reduce(function(o,item,i){if((bd.issues||[])[i])o[item]=bd.issues[i];return o},{});
  if(bd.o2InUse==='yes'&&bd.o2Issue)iss[O2_DATING_ITEM]=bd.o2Issue;
+ if(bd.foleyInUse==='yes'&&bd.foleyIssue)iss[FOLEY_ITEM]=bd.foleyIssue;
  if(bd.lalInUse==='yes'&&bd.lalIssue)iss[LAL_SETTING_ITEM]=bd.lalIssue;
  return[b,iss];
  })),
  perBedOther:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).other||'']})),
  o2Status:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).o2InUse||'']})),
+ foleyStatus:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).foleyInUse||'']})),
  lalStatus:Object.fromEntries(beds.map(function(b){return[b,(f.envBeds[b]||{}).lalInUse||'']})),
  notes:f.envNotes
  },
@@ -942,6 +962,7 @@ async function submitRound(){
  if(bd.items[i]==='no')envIssues.push(bl+item+' - NO'+((bd.issues||[])[i]?' ('+bd.issues[i]+')':''));
  });
  if(bd.o2InUse==='yes'&&bd.o2Dated==='no')envIssues.push(bl+O2_DATING_ITEM+' - NO'+(bd.o2Issue?' ('+bd.o2Issue+')':''));
+ if(bd.foleyInUse==='yes'&&bd.foleyCovered==='no')envIssues.push(bl+FOLEY_ITEM+' - NO'+(bd.foleyIssue?' ('+bd.foleyIssue+')':''));
  if(bd.lalInUse==='yes'&&bd.lalOk==='no'){
  envIssues.push(bl+LAL_SETTING_ITEM+' - NO'+(bd.lalIssue?' ('+bd.lalIssue+')':''));
  lalFails.push({bed:b,issue:bd.lalIssue||''});

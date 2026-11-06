@@ -76,7 +76,7 @@ var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 // One round of the whole building each day (Stephen, 10/23/26 — "we're not that big").
 // Failed items become Asana tasks: a database trigger adds an action item, asana-sync pushes it M–F 10 AM.
 var HALLS=[{key:'Building',rooms:'All halls, nurses stations and common areas'}];
-// Mitchell's JERICHO-STANDUP "FLOOR ROUNDS" checklist (14 items). Keys appear on the standup screen, so keep them readable.
+// Mitchell's JERICHO-STANDUP "FLOOR ROUNDS" checklist (13 items; Foley bags moved to Room Rounds per bed 11/6/26). Keys appear on the standup screen, so keep them readable.
 var ITEMS=[
  {key:'fire_extinguisher_clear',label:'Nothing is in front of the fire extinguisher'},
  {key:'equipment_one_side',label:'All equipment pushed to one side of the hall'},
@@ -90,7 +90,6 @@ var ITEMS=[
  {key:'no_food_at_station',label:'No food or drinks at the nurses stations'},
  {key:'oxygen_stored',label:'Oxygen tanks not in resident rooms — stored appropriately'},
  {key:'ebp_ppe_stocked',label:'EBP and PPE storage containers are stocked'},
- {key:'foley_bags_covered',label:'Foley catheter privacy bags are covered'},
  {key:'wheelchairs_stored',label:'Wheelchairs stored in their proper places'}
 ];
 var STAFF=["Sebastian Lopez","Elizabeth Estrada","Lee You","Lyelah Figueroa","Robert Sosa","Stephen Badger"];
