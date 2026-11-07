@@ -135,10 +135,12 @@ function logOut(){ls('pr_pin',null);location.href=new URL('../',location.href).h
 async function load(){
   S.data=await rpc('plaud_review_list',{p_pin:S.pin});
   render();
-  // Approved earlier but the Asana call never ran (page closed inside the undo window) -> finish it now.
-  S.data.recent.forEach(function(i){if(i.status==='approved'&&!i.asana_task_gid&&!i.asana_error&&!S.timers[i.id])createTask(i.id,true)});
+  // Approved earlier but the create call never ran (page closed inside the undo window) -> finish it now.
+  S.data.recent.forEach(function(i){if(i.status==='approved'&&!made(i)&&!i.asana_error&&!S.timers[i.id])createTask(i.id,true)});
 }
 
+// Approved rows from before 11/6/26 went to Asana; since then they go to My Work.
+function made(i){return !!(i.action_item_id||i.asana_task_gid)}
 function isSafety(i){return i.priority==='P1'||(i.flags||[]).indexOf('SAFETY')>=0}
 function isStephen(i){return /^Stephen/.test(i.route_label||'')}
 function dueNow(i){var d=i.due_date;return d&&d<=S.data.today}
@@ -186,7 +188,7 @@ function cardHtml(i){
     '<div class="edit"><label>Task</label><textarea id="t_'+i.id+'">'+esc(i.task_name)+'</textarea>'+
       '<label>Assign to</label><select id="a_'+i.id+'">'+opts+'</select>'+
       '<label>Due</label><input type="date" id="d_'+i.id+'" value="'+esc(i.due_date||'')+'">'+
-      '<label>Add a note <span style="text-transform:none;letter-spacing:0;font-weight:400">(goes in the Asana task)</span></label><textarea id="n_'+i.id+'" placeholder="Optional"></textarea>'+
+      '<label>Add a note <span style="text-transform:none;letter-spacing:0;font-weight:400">(goes in the My Work item)</span></label><textarea id="n_'+i.id+'" placeholder="Optional"></textarea>'+
       '<div class="row2"><button class="btn skip" onclick="closeEdit(\''+i.id+'\')">Cancel</button><button class="btn go" onclick="decide(\''+i.id+'\',\'approved\',true)">Create</button></div></div>'+
   '</div>';
 }
@@ -194,11 +196,11 @@ var LABEL={approved:'Created',already_done:'Already done',declined:'Skipped',exp
 function miniHtml(i){
   var right='',sub=LABEL[i.status]||i.status;
   if(i.status==='approved'){
-    if(i.asana_task_gid)right='<a href="https://app.asana.com/0/0/'+esc(i.asana_task_gid)+'/f" target="_blank" rel="noopener">Open</a>';
+    if(made(i))right='<a href="../my-work/">My Work</a>';
     else if(i.asana_error){sub='<span class="err">Not created: '+esc(i.asana_error)+'</span>';right='<button onclick="createTask(\''+i.id+'\')">Retry</button>'}
     else sub='Creating…';
   }
-  if(!i.asana_task_gid)right+='<button onclick="undo(\''+i.id+'\')">Undo</button>';
+  if(!made(i))right+='<button onclick="undo(\''+i.id+'\')">Undo</button>';
   return'<div class="mini"><div class="t">'+esc(i.final_task_name||i.task_name)+'<div class="s">'+sub+' · '+esc(i.route_label||'')+'</div></div>'+right+'</div>';
 }
 function toggle(id,b){var c=$('c_'+id);c.classList.toggle('open');b.textContent=c.classList.contains('open')?'Hide details':'Details'}
@@ -219,7 +221,7 @@ async function decide(id,status,edited){
       render();
     },220);
     if(status==='approved'){
-      // Hold the Asana call for the undo window so a mis-tap never leaves a stray task.
+      // Hold the create call for the undo window so a mis-tap never leaves a stray My Work item.
       S.timers[id]=setTimeout(function(){delete S.timers[id];createTask(id)},UNDO_MS);
       toast('Creating for '+row.route_label.replace(/ —.*/,'')+'…','Undo',function(){undo(id)},UNDO_MS);
     }else toast(LABEL[status],'Undo',function(){undo(id)},UNDO_MS);
@@ -233,17 +235,16 @@ async function undo(id){
     S.data.recent=S.data.recent.filter(function(x){return x.id!==id});
     S.data.pending=[row].concat(S.data.pending.filter(function(x){return x.id!==id}));
     render();toast('Back in the list');
-  }catch(e){if(e.message.indexOf('already_created')>=0)toast('Already in Asana. Delete it there if needed.');else if(e.message!=='bad_pin')toast('Undo failed: '+e.message)}
+  }catch(e){if(e.message.indexOf('already_created')>=0)toast('Already in My Work. Cancel it there if needed.');else if(e.message!=='bad_pin')toast('Undo failed: '+e.message)}
 }
 async function createTask(id,quiet){
   try{
-    var r=await fetch(SB_URL+'/functions/v1/plaud-review-create',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify({pin:S.pin,id:id})});
-    var j=await r.json();
+    var j=await rpc('plaud_review_create',{p_pin:S.pin,p_id:id});
     var it=S.data.recent.filter(function(x){return x.id===id})[0];
-    if(it){if(j.ok){it.asana_task_gid=j.asana_task;it.asana_error=null}else it.asana_error=j.error||('HTTP '+r.status)}
+    if(it){if(j.ok){it.action_item_id=j.action_item_id;it.asana_error=null}else it.asana_error=j.error}
     render();
-    if(!quiet)toast(j.ok?'Created in Asana':'Asana did not create it. Tap Retry below.');
-  }catch(e){toast('Network error. Tap Retry below.')}
+    if(!quiet)toast(j.ok?'Added to My Work':'Not added to My Work. Tap Retry below.');
+  }catch(e){if(e.message!=='bad_pin')toast('Network error. Tap Retry below.')}
 }
 start();
 </script>
