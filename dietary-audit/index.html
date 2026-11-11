@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Morning Star — Dietary Sanitation Audit</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../ms-identity.js?v=2"></script>
+<script src="../ms-ui.js?v=1" defer></script>
+<style>
+:root{--primary:#1a3c5e;--primary-light:#2980b9;--accent:#e67e22;--success:#27ae60;--danger:#e74c3c;--warn:#f39c12;--bg:#f0f2f5;--card:#fff;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e6;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;padding-bottom:80px}
+.header{background:linear-gradient(135deg,#0d2137,var(--primary));color:#fff;padding:14px 18px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:17px;font-weight:800;letter-spacing:.3px}
+.header .sub{font-size:11px;opacity:.75;margin-top:2px}
+.who{font-size:12px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:16px;cursor:pointer;white-space:nowrap}
+.page{max-width:640px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border)}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-light{background:#fff;color:var(--primary);border:1.5px solid var(--border)}
+.btn:disabled{opacity:.5}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+input,select,textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
+.hint{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.4}
+.section-title{font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 8px}
+.back{color:var(--primary-light);font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;display:inline-block}
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.big{font-size:40px;font-weight:800;line-height:1}
+.pass{color:var(--success)}.alert{color:var(--danger)}
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:10px;padding:2px 8px;vertical-align:2px}
+.pill.ok{background:#e8f6ee;color:var(--success)}.pill.bad{background:#fdeceb;color:var(--danger)}.pill.draft{background:#fef9e7;color:#a07708}
+.row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #f0f2f5;cursor:pointer}
+.row:last-child{border-bottom:none}
+.row .nm{flex:1}.row .nm b{display:block;font-size:15px;color:var(--primary)}.row .nm span{font-size:12px;color:var(--text-light)}
+.row .st{font-size:13px;font-weight:700;text-align:right}
+.bar{height:6px;background:#eef1f4;border-radius:3px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--primary-light)}
+.item{padding:12px 0;border-bottom:1px solid #f0f2f5}
+.item:last-child{border-bottom:none}
+.item .lbl{font-size:15px;line-height:1.35;font-weight:600}
+.item .lbl .n{color:var(--text-light);font-weight:800;margin-right:4px}
+.item .note{font-size:12.5px;color:var(--text-light);margin-top:3px;line-height:1.35}
+.mn{display:flex;gap:8px;margin-top:8px}
+.mn button{flex:1;padding:10px 4px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:inherit}
+.mn button.met.on{background:var(--success);border-color:var(--success);color:#fff}
+.mn button.not_met.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.mn button.na.on{background:#95a5a6;border-color:#95a5a6;color:#fff}
+.item textarea,.item input{margin-top:8px;font-size:15px;padding:10px}
+.cap{background:#fdf3f2;border:1px solid #f5c6c2;border-radius:10px;padding:10px;margin-top:8px}
+.cap label{margin-top:6px;color:var(--danger)}
+.temps{font-size:12.5px;border-collapse:collapse;margin-top:6px;width:100%}
+.temps td{border-bottom:1px solid #f0f2f5;padding:3px 4px;color:var(--text)}
+.sub-h{font-size:13px;font-weight:800;color:var(--primary);margin:14px 0 2px}
+.banner{padding:12px 16px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:12px;text-align:center}
+.banner.warn{background:#fef9e7;color:#a07708}.banner.bad{background:#fdeceb;color:var(--danger)}.banner.ok{background:#e8f6ee;color:var(--success)}
+.sticky{position:sticky;bottom:64px;z-index:50;margin-top:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600;margin-top:10px}
+.chk input{width:22px;height:22px;flex:none;margin-top:1px}
+.saved{font-size:11.5px;color:var(--text-light);text-align:right;margin-top:-4px;margin-bottom:8px}
+.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ph{position:relative;width:84px;height:84px;border-radius:9px;overflow:hidden;background:#eef1f4;border:1px solid var(--border)}
+.ph img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
+.ph .x{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:12px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:14px;font-weight:800;cursor:pointer;line-height:24px;padding:0}
+.ph.busy{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-light);font-weight:700}
+.addph{width:84px;height:84px;border-radius:9px;border:1.5px dashed var(--danger);background:#fff;color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:inherit}
+.addph b{font-size:22px;line-height:1}
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
+.viewer img{max-width:100%;max-height:100%;border-radius:6px}
+/* print */
+#print{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  .header,.page,.toast,.viewer,.ms-nav,#msNav,nav{display:none!important}
+  #print{display:block;font-size:10.5px;color:#000}
+  #print h1{font-size:15px;margin-bottom:4px}
+  #print h2{font-size:12px;margin:10px 0 3px;border-bottom:1px solid #000}
+  #print table{width:100%;border-collapse:collapse}
+  #print td,#print th{border:1px solid #888;padding:2px 4px;vertical-align:top;text-align:left}
+  #print th{background:#eee}
+  #print .c{text-align:center;width:38px}
+  #print .pgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  #print .pgrid img{width:2.3in;height:1.75in;object-fit:cover;border:1px solid #888}
+  #print .pitem{break-inside:avoid;margin-top:8px}
+}
+</style>
+<link rel="stylesheet" href="../ms-skin.css?v=1">
+</head>
+<body>
+<div class="header">
+  <div><h1><i data-lucide="utensils-crossed"></i><span class="fb">🍽️</span>Dietary Sanitation Audit</h1><div class="sub">Morning Star Post Acute · Monthly F812 audit</div></div>
+  <div class="who" id="whoChip" onclick="editIdentity()"></div>
+</div>
+<div class="page" id="app"></div>
+<div id="print"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
+var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+var FACILITY='Morning Star Post Acute';
+var PASSING=95;
+
+// Mirrors "Morning Star Dietary Sanitation/Infection Control Audit" (REVISED 10/15/25).
+// Item keys are stored in dietary_sanitation_audits.results — never renumber an existing key; add new ones instead.
+// Each item: [key, number shown, text, optional note]. {t:'temps'} shows the cooking-temperature table.
+var SECTIONS=[
+ {id:'A',title:'Section A — Storage of Food',groups:[
+  {title:'Refrigerators',sub:'All refrigerators storing resident food throughout the center',items:[
+   ['A_r1','1','Every refrigerator used to store resident food has an internal thermometer (includes Alzheimer care units, resident room refrigerators, nourishment pantries, nursing areas)'],
+   ['A_r2','2','All refrigerator units are at 41 °F or below (recommended 34–38 °F)','Record temperatures in the comment box.'],
+   ['A_r3','3','Temperatures recorded daily on a log (recommend beginning of each shift and end of the last shift)'],
+   ['A_r4','4','No employee food is stored in any refrigerator unit that contains resident food items throughout the center'],
+   ['A_r6a','6a','Shelves clean, free of rust and mold, no chipping paint'],
+   ['A_r6b','6b','Walls, bottom, doors (including handles) and gaskets clean, free of rust and mold'],
+   ['A_r6c','6c','Fans and fan guards clean, free of rust, dust and mold'],
+   ['A_r7a','7a','All items stored under refrigeration are covered, labeled and include a use-by date (excludes fresh fruits and vegetables that have not been prepared)'],
+   ['A_r7b','7b','Date checks show FIFO (first in, first out) is used to rotate food'],
+   ['A_r7c','7c','Date checks show no outdated (expired) purchased items such as milk, eggs, etc.'],
+   ['A_r7d','7d','Leftovers are no older than three days, or less if state specific'],
+   ['A_r7e','7e','Items stored for cooling (e.g., cooked roast beef) are divided into small pieces (20 lb divided into quarters). Labeled with name, prep date and use-by date. Company cooling procedure and log followed for PHF'],
+   ['A_r7f','7f','Frozen raw meat thawed under refrigeration is on the bottom shelf in a drip-proof container; item name, pull date and use-by date are on the item (not on the bin)'],
+   ['A_r7g','7g','Raw meat (delivered) is stored on the bottom shelf in a drip-proof container, below all other foods. Labeled with product name, delivery date and use-by date (e.g., fresh fish, fresh beef roasts)'],
+   ['A_r7h','7h','Precooked meat products (delivered) are stored below ready-to-serve foods and produce — labeled with item name and use-by date']
+  ]},
+  {title:'Freezers',sub:'All freezers storing resident food throughout the center',items:[
+   ['A_f1','1','Every freezer used to store resident food has an internal thermometer (includes Alzheimer care units, resident in-room units, nourishment pantries, nursing areas)'],
+   ['A_f2','2','All freezer units with frozen food are 0 °F or below; food frozen solid','Record temperatures in the comment box.'],
+   ['A_f3','3','Temperature recorded daily on a log (recommend beginning of each shift and end of the last shift)'],
+   ['A_f4','4','No employee food is stored in any freezer unit that contains resident food items throughout the center'],
+   ['A_f6a','6a','Shelves clean, free of rust and mold'],
+   ['A_f6b','6b','Walls, bottom, doors (including handles) and gaskets clean, free of rust and mold'],
+   ['A_f6c','6c','Fans and fan guards clean, free of rust and mold'],
+   ['A_f6d','6d','Free of ice and frost buildup'],
+   ['A_f7a','7a','All items are tightly sealed to prevent freezer burn'],
+   ['A_f7b','7b','Opened items are labeled with item name and date opened'],
+   ['A_f7c','7c','Date checks show FIFO (first in, first out) is used to rotate food. Items dated if state required'],
+   ['A_f7d','7d','Frozen items are stored immediately upon delivery'],
+   ['A_f7e','7e','Leftover items are stored in small, airtight containers (NSF approved) or freezer storage bags, labeled and dated with use-by date']
+  ]},
+  {title:'Storeroom — Dry Goods',sub:'All food storage areas on the property',items:[
+   ['A_d1','1','Storeroom is well ventilated and free from excessive heat or humidity. Room thermometer present in all dry storage areas. Temperature logs kept per state regulations'],
+   ['A_d2','2','No food is stored in locker rooms, mechanical rooms, toilet areas, garbage rooms, under open stairwells, or with chemicals'],
+   ['A_d3','3','Paper items are stored in a separate area of the storeroom from food'],
+   ['A_d4','4','Shelving is clean and nonporous, free of rust or chipping'],
+   ['A_d5','5','All items are stored 6" above the floor or on rolling dollies (no milk crates or wooden pallets)'],
+   ['A_d6','6','Floor is clean; walls clean and free of stains and mold'],
+   ['A_d7','7','Stock is rotated first in / first out (FIFO). Items dated with delivery date, if state required'],
+   ['A_d8','8','No cans dented on seams or edges, leaking or bulging. Designated location for damaged/distressed items to be returned to vendor'],
+   ['A_d9','9','Chemicals are stored in a separate room away from food, paper supplies or prep area'],
+   ['A_d10','10','Food is stored 18" from the ceiling and clear of sprinkler heads, vents, sewer and waste pipes'],
+   ['A_d11','11','Storeroom and all food storage areas are free of signs of pests such as mice, rats, roaches and flies'],
+   ['A_d12','12','Containers are seamless or plastic with tight-fitting covers, NSF (National Sanitation Foundation) approved'],
+   ['A_d13','13','Food is stored in clean containers, tightly covered, labeled with contents and dated with the date product was placed in the container'],
+   ['A_d14','14','All opened items (e.g., gelatin, cake mixes) are in sealed containers or food-grade bags and show the date opened'],
+   ['A_d15','15','Bulk items stored in large bins (such as flour, sugar) are taken out of the original container and placed in a clean bin'],
+   ['A_d16','16','No scoops or cups left in containers with food items'],
+   ['A_d17','17','No employee personal items are stored in food prep, storage or dishwashing areas']
+  ]}
+ ]},
+ {id:'B',title:'Section B — Food Preparation and Food Handling',groups:[
+  {title:'Food Preparation and Handling',items:[
+   ['B_1','1','Department does not prepare home-cooked or home-canned items for residents'],
+   ['B_2','2','Unauthorized associates and visitors are not allowed in the food preparation or storage areas of the kitchen'],
+   ['B_3','3','All staff entering and working in food service wear a hairnet with all hair covered and, if applicable, beard restraints'],
+   ['B_4','4','Staff working in or touring the department are not chewing gum, tobacco, etc.'],
+   ['B_5','5','Dining staff are not wearing any jewelry except a plain wedding band'],
+   ['B_6','6','Staff are wearing clean uniforms and aprons'],
+   ['B_7','7','Fingernails are clean, short and without nail polish (no artificial nails)'],
+   ['B_8','8','Staff wash hands before using disposable gloves for food handling. Gloves are changed between tasks'],
+   ['B_9','9','No bare-hand food contact (gloves or utensils are used)'],
+   ['B_10','10','Hands are washed thoroughly and frequently (between each food preparation, and as they become soiled or contaminated)'],
+   ['B_11','11','Potentially hazardous foods are not sitting out at room temperature except during the actual preparation of that item'],
+   ['B_12','12','Cold potentially hazardous foods are handled in small batches during preparation (e.g., egg salad for sandwiches, 20–30 portions out at one time)'],
+   ['B_13','13','Raw fruits and vegetables are washed before use (does not apply to packaged items clearly labeled prewashed)'],
+   ['B_14','14','Potentially hazardous foods are cooked to proper internal temperature and time. End cooking temperature recorded on the Production Worksheet',{t:'temps'}],
+   ['B_15','15','Hot food is placed on the steam table 30 minutes or less before resident meal service'],
+   ['B_16','16','Properly sanitized (after each food item), calibrated thermometers are used to take food temperatures'],
+   ['B_17','17','Temperatures of all hot and cold food and beverages are taken and recorded before meal service starts (including alternates, supplements, etc.)'],
+   ['B_18','18','Hot food is held at 135 °F or above during service'],
+   ['B_19','19','Cold food is held on the steam table or tray line on ice, in small batches of less than 50 servings'],
+   ['B_20','20','All food cooked and not continuously held at 135 °F is quickly reheated to 165 °F for 15 seconds (includes mechanical soft and pureed foods) and is reheated one time ONLY'],
+   ['B_21','21','All items saved as leftovers are temperature checked when removed from the serving line — hot items 135 °F or above, cold items 41 °F or below'],
+   ['B_22','22','Leftovers from meal service are stored immediately at the end of service in shallow containers (2" deep), labeled and dated with prep and use-by date'],
+   ['B_23','23','Potentially hazardous leftovers are cooled according to the company cooling procedure and log'],
+   ['B_24','24','All food is thawed safely: under refrigeration, submerged in cold running water (70 °F), or microwaved and then cooked and served immediately'],
+   ['B_25','25','No employee eating or drinking in the department other than taste testing products before service (refer to policy)'],
+   ['B_26','26','Thermometer calibration — employees know how and at what temperature (32 °F)'],
+   ['B_27','27','Puree foods are cooked following the recipe, pureed following the recipe, correct portion and appropriate texture'],
+   ['B_28','28','Mechanical soft textures are cooked and served according to recipe and spreadsheet'],
+   ['B_29','29','Large and small portions are served at the correct portion sizes'],
+   ['B_30','30','Sample trays checked have standing-order items provided as listed'],
+   ['B_31','31','All items listed on the cook\'s spreadsheet are served as stated unless otherwise noted'],
+   ['B_32','32','Food alternates on the steam table have temperatures recorded']
+  ]},
+  {title:'Sanitary Conditions — Preparation Area',items:[
+   ['B_p1','1','Department has dated, current cleaning schedules and uses them'],
+   ['B_p2','2','Work surfaces are cleaned and sanitized after use with the appropriate strength sanitizer (all cleaning cloths stored in clean sanitizing solution)'],
+   ['B_p3','3','Chemical test strips are available and used to test sanitizer strength'],
+   ['B_p4','4','Sanitizer strength (PPM) is recorded on a log at least each shift when solution is prepared (periodic testing during the shift to ensure proper PPM)'],
+   ['B_p5','5','Hand sinks have antiseptic soap, disposable towels and a trash can with an automatic/foot-pedal lid'],
+   ['B_p6','6','Hand-washing sink water temperature is at least 100 °F (not above 120 °F)','Record the temperature in the comment box.'],
+   ['B_p7','7','Proper hand-washing procedure is posted by the hand-washing sink and followed'],
+   ['B_p8','8','Food preparation sink is not used as a hand-washing sink'],
+   ['B_p9','9','Hand gels are not used in the kitchen to sanitize hands']
+  ]}
+ ]},
+ {id:'C',title:'Section C — Equipment Sanitation',groups:[
+  {title:'Equipment — clean and in good repair',items:[
+   ['C_a','a','Blender (including base) — Ninja'],['C_b','b','Robot Coupe'],['C_c','c','Cabinets (inside and outside)'],
+   ['C_d','d','Can opener (base and blade — blade not chipped)'],['C_e','e','Ceiling — clean and no stains'],['C_f','f','Containers'],
+   ['C_g','g','Coffee urn / machine'],['C_h','h','Counter tops (underside and lips of counters)'],['C_i','i','Cutting boards — free from stains and gouges'],
+   ['C_j','j','Doors'],['C_k','k','Drains (floor)'],['C_l','l','Drawers (inside and front)'],['C_m','m','Prep sink'],
+   ['C_n','n','Fans (wall, floor, etc.) clean and free from dust'],['C_o','o','Floors and grout'],['C_p','p','Fire extinguishers'],
+   ['C_q','q','Garbage cans cleaned, emptied frequently (no overflow), lids tightly closed'],['C_r','r','Garbage disposal area'],
+   ['C_s','s','Grill and grill drip pans'],['C_t','t','Grease traps, cleaned on schedule'],
+   ['C_u','u','Hand sink, faucet, pipes and wall behind (mirror if applicable)'],['C_v','v','Hood, exhaust fans, filters'],
+   ['C_w','w','Ice machine in good condition — no rust, leaks, stains'],
+   ['C_x','x','Ice machine internal components cleaned and sanitized per manufacturer\'s guidelines'],
+   ['C_y','y','Ice scoop cleaned daily and stored in a closed container that lets the scoop air dry'],
+   ['C_z','z','Lowerators'],['C_aa','aa','Microwave by coffee (inside, outside and under)'],['C_bb','bb','Microwave by cook (inside, outside and under)'],
+   ['C_cc','cc','Refrigerator shelves'],['C_dd','dd','Ovens (inside, racks and doors)'],['C_ee','ee','Pots and pans have no carbon buildup'],
+   ['C_ff','ff','Range top (burners / catch pans)'],['C_gg','gg','Scale'],['C_hh','hh','Shelves'],['C_ii','ii','Plastic wrap container'],
+   ['C_jj','jj','Steam table, hot and cold table, including shelves'],['C_kk','kk','Toaster (baskets, under and behind)'],
+   ['C_ll','ll','Tray carts, food delivery'],['C_mm','mm','Thermometers'],['C_nn','nn','Tray line'],['C_oo','oo','Utensil drawers'],
+   ['C_pp','pp','Utility carts'],['C_qq','qq','Vents'],['C_rr','rr','Walls']
+  ]},
+  {title:'General',items:[
+   ['C_1','1','Air gaps are present at ice machines, sinks and dish machines, where applicable'],
+   ['C_2','2','All lights properly covered, working and clean'],
+   ['C_3','3','No leakage of lubricants from equipment'],
+   ['C_4','4','Janitor\'s closet / mop room (mop sink and bucket clean)'],
+   ['C_5','5','Pest control: no evidence of pests — mice, rats, roaches, flies, gnats, etc.']
+  ]}
+ ]},
+ {id:'D',title:'Section D — Dishwashing',groups:[
+  {title:'Dish Room',items:[
+   ['D_1','1','Dish machine is clean, free of food particles inside and outside after each meal dish cycle'],
+   ['D_2','2','Dish machine, counter tops and walls are free of lime buildup and mold'],
+   ['D_3','3','Dish machine wash temperature: high-temp machine 150 °F; low-temp machine 120 °F (or manufacturer\'s or state requirement)','Record the wash temperature in the comment box.'],
+   ['D_4','4','Dish machine final rinse: high-temp machine 180 °F per gauge / 160 °F plate surface; low-temp machine 120 °F and 50 PPM hypochlorite (chlorine sanitizer)','Record rinse temperature (holding thermometer or plate strip) and PPM (chemical test strip) in the comment box.'],
+   ['D_5','5','Chemical supply is available when operating the dish machine'],
+   ['D_6','6','Chemical dispensers work properly'],
+   ['D_7','7','Holding thermometer or plate test strips are available for monitoring rinse temperatures'],
+   ['D_8','8','Dish machine temperatures and sanitizer PPM (if applicable) are taken and recorded before each dishwashing period (using empty racks)'],
+   ['D_9','9','Associates sanitize hands and remove the disposable apron before going from dirty to clean dishes; a new apron is put on before going back to dirty racking'],
+   ['D_10','10','Dishes are sprayed and presoaked before washing'],
+   ['D_11','11','Dishes and trays are racked individually during washing (not two or more to a slot)'],
+   ['D_12','12','All items (dishes, glasses, cups, trays, adaptive eating devices) air dry before being stored'],
+   ['D_13','13','All items (dishes, glasses, cups, trays, flatware, etc.) are stored protected from dust, splashes and other contamination'],
+   ['D_14','14','Dishes, glasses, cups and trays are free of stains, chips and cracks'],
+   ['D_15','15','Flatware is properly sanitized (see Policy and Procedure Manual, Sanitation)'],
+   ['D_16','16','Dish machine racks are stored off the floor at all times']
+  ]},
+  {title:'Pot and Pan Warewashing',items:[
+   ['D_p1','1','Pot and pan sinks and counter are clean, free of food particles and lime buildup after the meal washing cycle'],
+   ['D_p2','2','Pot and pan sink water temperatures: wash 110–120 °F; rinse 110–120 °F; heat sanitizing 170 °F for 30 seconds; chemical sanitizing at 75 °F water — 50–100 ppm chlorine, 12.5 ppm iodine, or 100–200 ppm quaternary. Check state and county rules for stricter requirements','Record temperatures and PPM in the comment box.'],
+   ['D_p3','3','All items washed in the pot and pan sink are sanitized by immersing the entire surface for at least 30 seconds, or per the manufacturer\'s directions for chemical sanitizing'],
+   ['D_p4','4','All items are stored inverted (hanging if acceptable under state regulations)'],
+   ['D_p5','5','All items are air dried before being stored. No wet nesting found'],
+   ['D_p6','6','All dishwashing area floors are clean, free of lime buildup and mold (check under sinks and dish machine)'],
+   ['D_p7','7','Pot and pan counters are not used as a food preparation area'],
+   ['D_p8','8','Walls and backsplash are clean and free of lime buildup and mold'],
+   ['D_p9','9','Safety Data Sheets are on file for all chemicals, where associates have immediate access'],
+   ['D_p10','10','Chemical test strips are available and used to monitor proper chemical strength']
+  ]}
+ ]},
+ {id:'E',title:'Section E — Miscellaneous',groups:[
+  {title:'Infection Control',items:[
+   ['E_1','1','Food is purchased from an approved source'],
+   ['E_2','2','Staff wash hands before distributing beverages or any food items in dining rooms or room service'],
+   ['E_3','3','Food servers in dining areas and room service are not handling food with bare hands'],
+   ['E_4','4','Food servers transport trays and food down the halls with all items covered'],
+   ['E_5','5','Food servers in dining areas and room service have long hair pulled back to prevent it falling in food'],
+   ['E_6','6','Food servers in dining areas and rooms wash hands between assisting residents (positioning, etc.), collecting dirty dishes and serving food'],
+   ['E_7','7','Bulk condiments used on dining tables are dated when opened and sanitized before each meal service'],
+   ['E_8','8','Potentially hazardous snacks delivered to resident areas and not served immediately are kept refrigerated or otherwise held at 41 °F or below (ice)'],
+   ['E_9','9','Items for medication pass are dated when sent out (e.g., applesauce) and dated when opened (2.0 supplement, pre-thickened beverages in box)']
+  ]}
+ ]}
+];
+var TEMPS=[['Poultry, stuffed meats, stuffed pasta, stuffing','165 °F','15 sec'],['Ground beef','155 °F','15 sec'],['Pork, ham, bacon','155 °F','15 sec'],
+ ['Beef and pork roast','145 °F','3 min'],['Fish','145 °F','15 sec'],['Eggs — unpasteurized','155 °F','15 sec'],['Pasteurized egg mix & shell','No end cooking requirement',''],['Plant foods','135 °F','15 sec']];
+var ALL=[];SECTIONS.forEach(function(s){s.groups.forEach(function(g){g.items.forEach(function(it){ALL.push({key:it[0],num:it[1],text:it[2],extra:it[3],sec:s.id,group:g.title})})})});
+
+var me={name:''};
+var view='home', audits=[], cur=null, openSec=null, saving=false, dirty=false, saveTimer=null, lastSaved=null;
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2800)}
+function pad(n){return String(n).padStart(2,'0')}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function today(){return ymd(new Date())}
+function monthKey(off){var d=new Date();d.setDate(1);d.setMonth(d.getMonth()+(off||0));return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01'}
+function monthName(k){var p=k.split('-');return new Date(+p[0],+p[1]-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
+function fmtDate(s){if(!s)return '';var p=s.split('-');return (+p[1])+'/'+(+p[2])+'/'+p[0].slice(2)}
+function firstName(n){return String(n||'').split(' ')[0]}
+function whoChip(){document.getElementById('whoChip').textContent=me.name?('👤 '+firstName(me.name)):'Sign in'}
+function editIdentity(){view='identity';render()}
+
+// Score per the form: met ÷ (met + not met) × 100; N/A items leave the denominator.
+function score(a){var m=0,n=0,x=0;ALL.forEach(function(i){var v=a.results[i.key];if(v==='met')m++;else if(v==='not_met')n++;else if(v==='na')x++});
+  return {met:m,not:n,na:x,done:m+n+x,total:ALL.length,pct:(m+n)?Math.round(m/(m+n)*1000)/10:null}}
+function secScore(a,sid){var m=0,n=0,d=0,t=0;ALL.forEach(function(i){if(i.sec!==sid)return;t++;var v=a.results[i.key];if(v)d++;if(v==='met')m++;if(v==='not_met')n++});return {m:m,n:n,d:d,t:t}}
+function auditFor(k){return audits.find(function(a){return a.audit_month===k})||null}
+
+async function loadData(){
+  var r=await sb.from('dietary_sanitation_audits').select('*').eq('facility',FACILITY).order('audit_month',{ascending:false}).limit(24);
+  if(r.error){toast('Could not load — check connection');return}
+  audits=r.data||[];
+}
+
+function render(){
+  whoChip();
+  var el=document.getElementById('app');
+  if(!me.name||view==='identity'){el.innerHTML=identityView();return}
+  if(view==='audit'){el.innerHTML=auditView();return}
+  if(view==='summary'){el.innerHTML=summaryView();return}
+  el.innerHTML=homeView();
+}
+window.msNavBack=function(){
+  if(view==='audit'&&openSec){openSec=null;render();window.scrollTo(0,0);return true}
+  if(view==='audit'||view==='summary'){flushSave();view='home';refresh();return true}
+  return false;
+};
+
+// ---- Sign-in via the hub's Paycom roster (ms-identity.js) ----
+function identityView(){
+  if(!window.MS||!MS.identity)return legacyIdentityView();
+  return MS.identity.card({"title":"Who is doing the audit?","hint":"Your name goes on the audit as the evaluator.","chip":"Culinary"});
+}
+function saveIdentity(){
+  if(!window.MS||!MS.identity)return legacySaveIdentity();
+  var u=MS.identity.get();if(!u){MS.identity._appPick();return}
+  me.name=u.name;view='home';refresh();
+}
+function logout(){flushSave();if(window.MS&&MS.identity)return MS.identity.signOut();location.href='../'}
+function legacyIdentityView(){
+  return '<div class="card"><div style="font-weight:800;font-size:16px;color:var(--primary)">Who are you?</div>'+
+  '<label>Your name</label><input id="idName" placeholder="Your full name" value="'+esc(me.name)+'" autocomplete="off">'+
+  '<div style="margin-top:18px"><button class="btn btn-primary" onclick="saveIdentity()">Continue</button></div></div>';
+}
+function legacySaveIdentity(){var n=document.getElementById('idName').value.trim();if(!n){toast('Please enter your name');return}me.name=n;view='home';refresh()}
+
+// ---- Home ----
+function statusLine(a){
+  if(!a)return '<span class="pill draft">Not started</span>';
+  var s=score(a);
+  if(a.status==='draft')return '<span class="pill draft">In progress · '+s.done+'/'+s.total+'</span>';
+  return '<span class="pill '+(a.score_pct>=PASSING?'ok':'bad')+'">'+a.score_pct+'%'+(a.score_pct>=PASSING?' · Pass':' · Dietary alert')+'</span>';
+}
+function homeView(){
+  var k=monthKey(0),a=auditFor(k),pk=monthKey(-1),pa=auditFor(pk);
+  var h='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(monthName(k))+'</div>';
+  if(a&&a.status==='complete'){
+    h+='<div style="display:flex;align-items:flex-end;gap:12px;margin-top:8px"><div class="big '+(a.score_pct>=PASSING?'pass':'alert')+'">'+a.score_pct+'%</div><div class="hint" style="margin-bottom:4px">'+(a.score_pct>=PASSING?'Pass':'Dietary alert — below 95%')+' · done '+fmtDate(a.completed_date)+' by '+esc(firstName(a.evaluator))+'</div></div>'+
+      '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-light" onclick="openSummary(\''+k+'\')">View report</button><button class="btn btn-light" onclick="openAudit(\''+k+'\')">Edit</button></div>';
+  }else{
+    var s=a?score(a):null;
+    h+='<div class="hint" style="margin-top:4px">Monthly F812 snapshot of the kitchen. Best done in one day; you can split it over up to three days — your answers save as you go.</div>';
+    if(s)h+='<div class="bar"><i style="width:'+Math.round(s.done/s.total*100)+'%"></i></div><div class="hint">'+s.done+' of '+s.total+' items answered</div>';
+    h+='<div style="margin-top:14px"><button class="btn btn-primary" onclick="openAudit(\''+k+'\')">'+(a?'Continue this month\'s audit':'Start this month\'s audit')+'</button></div>';
+  }
+  h+='</div>';
+  if(new Date().getDate()<=10&&(!pa||pa.status!=='complete')){
+    h+='<div class="banner warn" style="cursor:pointer" onclick="openAudit(\''+pk+'\')">'+esc(monthName(pk))+' audit '+(pa?'is not finished':'was not done')+' — tap to '+(pa?'finish':'complete')+' it</div>';
+  }
+  var past=audits.filter(function(x){return x.audit_month!==k});
+  if(past.length){
+    h+='<div class="section-title">Monthly scores — for QAPI</div><div class="card" style="padding:4px 12px">';
+    past.forEach(function(x){
+      h+='<div class="row" onclick="'+(x.status==='complete'?'openSummary':'openAudit')+'(\''+x.audit_month+'\')"><div class="nm"><b>'+esc(monthName(x.audit_month))+'</b><span>'+(x.evaluator?esc(x.evaluator):'')+(x.completed_date?' · '+fmtDate(x.completed_date):'')+'</span></div><div class="st">'+statusLine(x)+'</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="card"><div style="font-weight:800;color:var(--primary);font-size:14px">How it\'s scored</div><div class="hint">Score = items Met ÷ (Met + Not Met) × 100. Items marked N/A (equipment you don\'t have) don\'t count. Passing is 95%. Below 95% is a <b>dietary alert</b>: tell the Administrator right away and write a corrective action plan with goal dates for each Not Met item. The matching refresher in-services are assigned to the dietary team automatically. Scores are reviewed at the monthly QAPI meeting.</div></div>';
+  h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; <span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
+  return h;
+}
+
+// ---- Audit ----
+function blank(k){return {facility:FACILITY,audit_month:k,status:'draft',results:{},comments:{},corrections:{},photos:{},evaluator:me.name,administrator_notified:false}}
+function openAudit(k){
+  var a=auditFor(k);
+  cur=a?JSON.parse(JSON.stringify(a)):blank(k);
+  cur.results=cur.results||{};cur.comments=cur.comments||{};cur.corrections=cur.corrections||{};cur.photos=cur.photos||{};
+  openSec=null;view='audit';render();window.scrollTo(0,0);
+}
+function auditView(){
+  var s=score(cur);
+  var h='<span class="back" onclick="msNavBack()">‹ '+(openSec?'Sections':'Back')+'</span>';
+  if(!openSec){
+    if(cur.status==='complete')h+='<div class="banner warn">Editing a finished audit — tap "Finish audit" again to update the score.</div>';
+    h+='<div class="card"><div style="font-size:22px;font-weight:800;color:var(--primary)">'+esc(monthName(cur.audit_month))+'</div>'+
+      '<div class="hint">Evaluator: '+esc(cur.evaluator||me.name)+'</div><div class="bar"><i style="width:'+Math.round(s.done/s.total*100)+'%"></i></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;font-weight:700"><span>'+s.done+'/'+s.total+' answered</span><span>'+(s.pct==null?'—':'Score so far '+s.pct+'%')+'</span></div></div>';
+    h+='<div class="saved" id="savedNote">'+savedText()+'</div>';
+    h+='<div class="card" style="padding:4px 12px">';
+    SECTIONS.forEach(function(sec){
+      var q=secScore(cur,sec.id),done=q.d===q.t;
+      h+='<div class="row" onclick="openSection(\''+sec.id+'\')"><div class="nm"><b>'+esc(sec.title)+'</b><span>'+sec.groups.map(function(g){return esc(g.title)}).join(' · ')+'</span></div>'+
+        '<div class="st" style="color:'+(q.n?'var(--danger)':done?'var(--success)':'var(--primary-light)')+'">'+q.d+'/'+q.t+(q.n?'<br>'+q.n+' not met':done?' ✓':'')+'</div></div>';
+    });
+    h+='</div>';
+    h+='<div class="sticky"><button class="btn btn-success" id="finBtn" onclick="finish()">Finish audit</button></div>';
+    return h;
+  }
+  var sec=SECTIONS.find(function(x){return x.id===openSec});
+  h+='<div class="card"><div style="font-size:19px;font-weight:800;color:var(--primary)">'+esc(sec.title)+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span class="hint" style="margin:0">Met · Not Met · N/A for each item</span>'+
+    '<span style="font-size:13px;font-weight:700;color:var(--primary-light);cursor:pointer" onclick="markRestMet()">Mark the rest Met</span></div></div>';
+  sec.groups.forEach(function(g){
+    h+='<div class="sub-h">'+esc(g.title)+'</div>'+(g.sub?'<div class="hint" style="margin:0 0 6px">'+esc(g.sub)+'</div>':'');
+    h+='<div class="card" style="padding:4px 16px">';
+    g.items.forEach(function(it){h+=itemHtml(it[0],it[1],it[2],it[3])});
+    h+='</div>';
+  });
+  var idx=SECTIONS.indexOf(sec),nx=SECTIONS[idx+1];
+  h+='<div class="saved" id="savedNote">'+savedText()+'</div>';
+  h+=nx?'<button class="btn btn-primary" onclick="openSection(\''+nx.id+'\')">Next: '+esc(nx.title.split(' — ')[0])+' ›</button>'
+       :'<button class="btn btn-primary" onclick="openSec=null;render();window.scrollTo(0,0)">Back to sections</button>';
+  return h;
+}
+function itemHtml(k,num,text,extra){
+  var v=cur.results[k],c=cur.corrections[k]||{};
+  var h='<div class="item" id="it_'+k+'"><div class="lbl"><span class="n">'+esc(num)+'.</span>'+esc(text)+'</div>';
+  if(extra&&extra.t==='temps'){h+='<table class="temps">'+TEMPS.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td><b>'+esc(r[1])+'</b></td><td>'+esc(r[2])+'</td></tr>'}).join('')+'</table>'}
+  else if(extra){h+='<div class="note">'+esc(extra)+'</div>'}
+  h+='<div class="mn">'+
+    '<button class="met'+(v==='met'?' on':'')+'" onclick="setItem(\''+k+'\',\'met\')">✓ Met</button>'+
+    '<button class="not_met'+(v==='not_met'?' on':'')+'" onclick="setItem(\''+k+'\',\'not_met\')">✗ Not Met</button>'+
+    '<button class="na'+(v==='na'?' on':'')+'" onclick="setItem(\''+k+'\',\'na\')">N/A</button></div>';
+  var showC=v==='not_met'||cur.comments[k]||(extra&&typeof extra==='string'&&/Record/.test(extra));
+  if(showC)h+='<textarea rows="2" placeholder="Comments / readings (no resident names)" oninput="setComment(\''+k+'\',this.value)">'+esc(cur.comments[k]||'')+'</textarea>';
+  else h+='<div class="hint" style="cursor:pointer;color:var(--primary-light);font-weight:700" onclick="cur.comments[\''+k+'\']=\' \';rerenderItem(\''+k+'\')">+ Add comment</div>';
+  if(v==='not_met'){
+    h+='<div class="cap"><label>Correction (what will be done)</label><textarea rows="2" placeholder="Corrective action" oninput="setCorr(\''+k+'\',\'action\',this.value)">'+esc(c.action||'')+'</textarea>'+
+      '<label>Goal date</label><input type="date" value="'+esc(c.goal_date||'')+'" onchange="setCorr(\''+k+'\',\'goal_date\',this.value)">'+
+      '<div class="chk"><input type="checkbox" '+(c.corrected?'checked':'')+' onchange="setCorr(\''+k+'\',\'corrected\',this.checked)"><span>Corrected on the spot</span></div>'+
+      '<label>Photos</label>'+photoStrip(k,true)+'</div>';
+  }
+  return h+'</div>';
+}
+
+// ---- Photos for Not Met findings (bucket dietary-audit-photos, private; paths in .photos[key]) ----
+var MAX_PHOTOS=4, urlCache={}, uploading={};
+function photoStrip(k,editable){
+  var list=(cur.photos&&cur.photos[k])||[];
+  var h='<div class="photos" id="ph_'+k+'">';
+  list.forEach(function(p,i){
+    var u=urlCache[p];
+    h+='<div class="ph">'+(u?'<img src="'+esc(u)+'" onclick="viewPhoto(\''+esc(p)+'\')" alt="Photo '+(i+1)+'">':'')+
+      (editable?'<button class="x" title="Remove photo" onclick="removePhoto(\''+k+'\','+i+')">×</button>':'')+'</div>';
+  });
+  for(var n=0;n<(uploading[k]||0);n++)h+='<div class="ph busy">Uploading…</div>';
+  if(editable&&list.length+(uploading[k]||0)<MAX_PHOTOS)
+    h+='<label class="addph" style="margin:0;text-transform:none;letter-spacing:0"><b>📷</b>Add photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(\''+k+'\',this)"></label>';
+  h+='</div>';
+  if(editable)h+='<div class="hint">Kitchen and equipment only — no residents or faces. Up to '+MAX_PHOTOS+'.</div>';
+  var missing=list.filter(function(p){return !urlCache[p]});
+  if(missing.length)signPhotos(missing).then(function(){var el=document.getElementById('ph_'+k);if(el){var w=document.createElement('div');w.innerHTML=photoStrip(k,editable);el.replaceWith(w.firstChild)}});
+  return h;
+}
+async function signPhotos(paths){
+  paths=paths.filter(function(p){return !urlCache[p]});if(!paths.length)return;
+  var r=await sb.storage.from('dietary-audit-photos').createSignedUrls(paths,3600);
+  (r.data||[]).forEach(function(x){if(x.signedUrl)urlCache[x.path]=x.signedUrl});
+}
+function shrink(file){
+  // Phone photos are 3–12 MB; resize to 1600 px JPEG before upload.
+  return new Promise(function(res,rej){
+    var img=new Image(),u=URL.createObjectURL(file);
+    img.onload=function(){var m=1600,w=img.naturalWidth,h=img.naturalHeight,s=Math.min(1,m/Math.max(w,h));
+      var c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(u);c.toBlob(function(b){b?res(b):rej(new Error('Could not read photo'))},'image/jpeg',0.82)};
+    img.onerror=function(){URL.revokeObjectURL(u);rej(new Error('Could not read photo'))};
+    img.src=u;
+  });
+}
+async function addPhoto(k,input){
+  var f=input.files&&input.files[0];input.value='';if(!f)return;
+  uploading[k]=(uploading[k]||0)+1;rerenderItem(k);
+  try{
+    var blob=await shrink(f);
+    var path=cur.audit_month.slice(0,7)+'/'+k+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.jpg';
+    var r=await sb.storage.from('dietary-audit-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+    if(r.error)throw r.error;
+    urlCache[path]=URL.createObjectURL(blob);
+    cur.photos=cur.photos||{};(cur.photos[k]=cur.photos[k]||[]).push(path);
+    queueSave();
+  }catch(e){toast('Photo upload failed — try again')}
+  uploading[k]--;rerenderItem(k);
+}
+async function removePhoto(k,i){
+  if(!confirm('Remove this photo?'))return;
+  var p=cur.photos[k][i];cur.photos[k].splice(i,1);if(!cur.photos[k].length)delete cur.photos[k];
+  rerenderItem(k);queueSave();
+  sb.storage.from('dietary-audit-photos').remove([p]);
+}
+function viewPhoto(p){var u=urlCache[p];if(!u)return;var v=document.createElement('div');v.className='viewer';v.innerHTML='<img src="'+esc(u)+'" alt="Photo">';v.onclick=function(){v.remove()};document.body.appendChild(v)}
+function rerenderItem(k){var it=ALL.find(function(i){return i.key===k});var el=document.getElementById('it_'+k);if(!el)return render();
+  var w=document.createElement('div');w.innerHTML=itemHtml(it.key,it.num,it.text,it.extra);el.replaceWith(w.firstChild)}
+function openSection(id){openSec=id;render();window.scrollTo(0,0)}
+function setItem(k,v){if(cur.results[k]===v)delete cur.results[k];else cur.results[k]=v;rerenderItem(k);queueSave()}
+function setComment(k,t){cur.comments[k]=t;queueSave()}
+function setCorr(k,f,val){cur.corrections[k]=cur.corrections[k]||{};cur.corrections[k][f]=val;queueSave()}
+function markRestMet(){ALL.forEach(function(i){if(i.sec===openSec&&!cur.results[i.key])cur.results[i.key]='met'});render();queueSave()}
+
+function savedText(){return saving?'Saving…':dirty?'Unsaved changes':lastSaved?'Saved '+lastSaved.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}
+function noteSaved(){var n=document.getElementById('savedNote');if(n)n.textContent=savedText()}
+function queueSave(){dirty=true;noteSaved();clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,1500)}
+function flushSave(){if(dirty){clearTimeout(saveTimer);saveDraft()}}
+function cleanJson(o){var r={};Object.keys(o||{}).forEach(function(k){var v=o[k];if(typeof v==='string'){v=v.trim();if(v)r[k]=v}else if(v&&typeof v==='object'){var s=cleanJson(v);if(Object.keys(s).length)r[k]=s}else if(v===true)r[k]=v});return r}
+function rowFrom(a,extra){
+  var s=score(a);
+  return Object.assign({facility:FACILITY,audit_month:a.audit_month,status:a.status,results:a.results,comments:cleanJson(a.comments),corrections:cleanJson(a.corrections),photos:a.photos||{},
+    met_count:s.met,not_met_count:s.not,na_count:s.na,score_pct:s.pct,evaluator:a.evaluator||me.name,completed_date:a.completed_date||null,
+    administrator_notified:!!a.administrator_notified,source:'staff-app',updated_at:new Date().toISOString()},extra||{});
+}
+async function saveDraft(){
+  if(!cur)return;
+  if(saving){queueSave();return}
+  saving=true;dirty=false;noteSaved();
+  var res=await sb.from('dietary_sanitation_audits').upsert(rowFrom(cur),{onConflict:'facility,audit_month'});
+  saving=false;
+  if(res.error){dirty=true;noteSaved();toast('Save failed — check connection');return}
+  lastSaved=new Date();noteSaved();
+}
+async function finish(){
+  var s=score(cur);
+  if(s.done<s.total){
+    var miss=ALL.filter(function(i){return !cur.results[i.key]});
+    var secs=[];miss.forEach(function(i){if(secs.indexOf(i.sec)<0)secs.push(i.sec)});
+    toast(miss.length+' item'+(miss.length>1?'s':'')+' left — Section '+secs.join(', '));return;
+  }
+  var noCap=ALL.filter(function(i){return cur.results[i.key]==='not_met'&&!((cur.corrections[i.key]||{}).action||'').trim()});
+  if(noCap.length){openSec=noCap[0].sec;render();var el=document.getElementById('it_'+noCap[0].key);if(el)el.scrollIntoView({block:'center'});toast('Add a correction for each Not Met item');return}
+  var noDate=ALL.filter(function(i){var c=cur.corrections[i.key]||{};return cur.results[i.key]==='not_met'&&!c.corrected&&!c.goal_date});
+  if(noDate.length){openSec=noDate[0].sec;render();var el2=document.getElementById('it_'+noDate[0].key);if(el2)el2.scrollIntoView({block:'center'});toast('Add a goal date (or check "Corrected on the spot")');return}
+  clearTimeout(saveTimer);
+  var btn=document.getElementById('finBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}
+  cur.status='complete';cur.completed_date=cur.completed_date||today();if(!cur.evaluator)cur.evaluator=me.name;
+  saving=true;
+  // finished_at fires the Administrator summary email; the snapshot gives it the item wording.
+  var snap={sections:SECTIONS.map(function(sec){var q=secScore(cur,sec.id);return {id:sec.id,title:sec.title,met:q.m,not_met:q.n}}),
+    not_met:notMetList(cur).map(function(i){return {key:i.key,where:secLabel(i),text:i.text}})};
+  var res=await sb.from('dietary_sanitation_audits').upsert(rowFrom(cur,{finished_at:new Date().toISOString(),finish_snapshot:snap}),{onConflict:'facility,audit_month'});
+  saving=false;
+  if(res.error){cur.status='draft';toast('Save failed: '+res.error.message);if(btn){btn.disabled=false;btn.textContent='Finish audit'}return}
+  dirty=false;await loadData();openSummary(cur.audit_month);
+  toast(s.pct>=PASSING?'✓ Audit saved — '+s.pct+'%':'Saved — '+s.pct+'% is a dietary alert');
+}
+
+// ---- Summary / corrective action plan ----
+function openSummary(k){cur=JSON.parse(JSON.stringify(auditFor(k)));view='summary';render();window.scrollTo(0,0)}
+function notMetList(a){return ALL.filter(function(i){return a.results[i.key]==='not_met'})}
+function secLabel(i){var s=SECTIONS.find(function(x){return x.id===i.sec});return s.title.split(' — ')[0]+' · '+i.group+' #'+i.num}
+function summaryView(){
+  var a=cur,s=score(a),pass=s.pct>=PASSING,nm=notMetList(a);
+  var h='<span class="back" onclick="msNavBack()">‹ Back</span>';
+  h+='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(monthName(a.audit_month))+'</div>'+
+    '<div style="display:flex;align-items:flex-end;gap:12px;margin-top:8px"><div class="big '+(pass?'pass':'alert')+'">'+s.pct+'%</div><div class="hint" style="margin-bottom:4px">'+s.met+' met of '+(s.met+s.not)+' applicable · '+s.na+' N/A</div></div>'+
+    '<div class="hint">Evaluator: '+esc(a.evaluator)+' · completed '+fmtDate(a.completed_date)+'</div></div>';
+  if(!pass){
+    h+='<div class="banner bad">Dietary alert — score is below 95%</div>';
+    h+='<div class="card"><div style="font-weight:800;color:var(--danger)">Tell the Administrator right away</div><div class="hint">Then make sure each Not Met item below has a correction and goal date. This list is the written corrective action plan.</div>'+
+      '<div class="chk"><input type="checkbox" '+(a.administrator_notified?'checked':'')+' onchange="setNotified(this.checked)"><span>Administrator has been told</span></div></div>';
+    h+='<div class="card" id="retakeCard"><div style="font-weight:800;color:var(--primary)">Refresher in-services</div><div class="hint">Checking what was assigned…</div></div>';
+    setTimeout(loadRetakes,0);
+  }else h+='<div class="banner ok">Pass — 95% or better</div>';
+  h+='<div class="section-title">By section</div><div class="card" style="padding:4px 12px">';
+  SECTIONS.forEach(function(sec){var q=secScore(a,sec.id),app=q.m+q.n;
+    h+='<div class="row" style="cursor:default"><div class="nm"><b>'+esc(sec.title)+'</b></div><div class="st" style="color:'+(q.n?'var(--danger)':'var(--success)')+'">'+(app?Math.round(q.m/app*1000)/10+'%':'N/A')+(q.n?' · '+q.n+' not met':'')+'</div></div>'});
+  h+='</div>';
+  if(nm.length){
+    h+='<div class="section-title">Corrective action plan — '+nm.length+' item'+(nm.length>1?'s':'')+'</div><div class="card" style="padding:4px 16px">';
+    nm.forEach(function(i){var c=a.corrections[i.key]||{};
+      h+='<div class="item"><div class="note" style="margin:0 0 2px;font-weight:700">'+esc(secLabel(i))+'</div><div class="lbl">'+esc(i.text)+'</div>'+
+        (a.comments[i.key]?'<div class="note">Finding: '+esc(a.comments[i.key])+'</div>':'')+
+        '<div class="note" style="color:var(--text)"><b>Correction:</b> '+esc(c.action||'—')+'</div>'+
+        '<div class="note"><b>'+(c.corrected?'Corrected on the spot':'Goal date: '+esc(fmtDate(c.goal_date)||'—'))+'</b></div>'+
+        (((a.photos||{})[i.key]||[]).length?photoStrip(i.key,false):'')+'</div>'});
+    h+='</div>';
+  }
+  h+='<div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-light" onclick="printAudit()">🖨️ Print</button><button class="btn btn-light" onclick="openAudit(\''+a.audit_month+'\')">Edit</button></div>';
+  return h;
+}
+// Refresher in-services: a database trigger assigns them when an audit is finished below 95%
+// (dietary_retake_assignments → In-Service Quiz app; dietary-retake-notify emails part-time staff + Elizabeth/Stephen).
+var MODULE_TITLES={2:'Personal Hygiene, Handwashing & Glove Use',3:'Safe Cooking Temperatures & Thermometer Use',4:'Cooling Foods, Holding & Leftovers',
+  5:'Food Storage, Labeling & Preventing Cross-Contamination',10:'Sanitation: Dish Machine, 3-Compartment Sink & Sanitizers',11:'Infection Control: Employee Illness, PPE & Isolation Trays'};
+async function loadRetakes(tries){
+  var el=document.getElementById('retakeCard');if(!el||!cur)return;
+  var r=await sb.rpc('dietary_audit_retakes',{p_facility:FACILITY,p_audit_month:cur.audit_month});
+  if(!document.getElementById('retakeCard'))return;
+  var rows=(r.data||[]);
+  if((!rows.length||!rows[0].mode)&&(tries||0)<4){setTimeout(function(){loadRetakes((tries||0)+1)},2500);return}
+  var h='<div style="font-weight:800;color:var(--primary)">Refresher in-services</div>';
+  if(!rows.length){h+='<div class="hint">None assigned yet. If this stays empty, tell the Administrator.</div>'}
+  else{
+    var em=rows[0].emailed,ft=rows[0].full_time;
+    h+='<div class="hint">Assigned '+fmtDate(rows[0].assigned_date)+' to the dietary team in the In-Service Quiz app. '+
+      (rows[0].mode==='dry'?'Emails are in test mode — nobody was emailed.':rows[0].mode?em+' part-time staff emailed; '+ft+' full-time take them at work.':'Emails are being sent.')+'</div>'+
+      '<ul style="margin:8px 0 0 18px;font-size:14px;line-height:1.5">'+rows.map(function(x){return '<li>'+esc(MODULE_TITLES[x.module_number]||('Module '+x.module_number))+'</li>'}).join('')+'</ul>';
+  }
+  document.getElementById('retakeCard').innerHTML=h;
+}
+async function setNotified(v){
+  cur.administrator_notified=v;
+  var r=await sb.from('dietary_sanitation_audits').update({administrator_notified:v,updated_at:new Date().toISOString()}).eq('facility',FACILITY).eq('audit_month',cur.audit_month);
+  if(r.error){toast('Save failed — check connection');return}
+  var a=auditFor(cur.audit_month);if(a)a.administrator_notified=v;toast(v?'Noted — Administrator told':'Updated');
+}
+function mark(v){return v==='met'?'✓':v==='not_met'?'✗':v==='na'?'N/A':''}
+async function printAudit(){
+  var a=cur,s=score(a),ph=a.photos||{};
+  var withPh=notMetList(a).filter(function(i){return (ph[i.key]||[]).length});
+  var allP=[];withPh.forEach(function(i){allP=allP.concat(ph[i.key])});
+  if(allP.length){toast('Getting photos ready…');await signPhotos(allP)}
+  var h='<h1>Morning Star Dietary Sanitation / Infection Control Audit — '+esc(monthName(a.audit_month))+'</h1>'+
+    '<div>Date of completion: <b>'+esc(fmtDate(a.completed_date))+'</b> &nbsp; Evaluator: <b>'+esc(a.evaluator)+'</b> &nbsp; Final score: <b>'+s.pct+'%</b> ('+s.met+' met / '+(s.met+s.not)+' applicable; '+s.na+' N/A) &nbsp; '+(s.pct>=PASSING?'PASS':'DIETARY ALERT'+(a.administrator_notified?' — Administrator notified':''))+'</div>';
+  SECTIONS.forEach(function(sec){
+    h+='<h2>'+esc(sec.title)+'</h2>';
+    sec.groups.forEach(function(g){
+      h+='<table><tr><th style="width:30px">#</th><th>'+esc(g.title)+'</th><th class="c">Met</th><th class="c">Not Met</th><th style="width:22%">Comments</th><th style="width:22%">Corrections</th></tr>';
+      g.items.forEach(function(it){var k=it[0],v=a.results[k],c=a.corrections[k]||{};
+        h+='<tr><td>'+esc(it[1])+'</td><td>'+esc(it[2])+'</td><td class="c">'+(v==='met'?'✓':v==='na'?'N/A':'')+'</td><td class="c">'+(v==='not_met'?'✗':'')+'</td><td>'+esc(a.comments[k]||'')+'</td><td>'+
+          (v==='not_met'?esc(c.action||'')+(c.corrected?' (corrected on the spot)':c.goal_date?' — goal '+esc(fmtDate(c.goal_date)):''):'')+'</td></tr>'});
+      h+='</table>';
+    });
+  });
+  if(withPh.length){
+    h+='<h2>Photos — Not Met items</h2>';
+    withPh.forEach(function(i){h+='<div class="pitem"><b>'+esc(secLabel(i))+'</b> — '+esc(i.text)+'<div class="pgrid">'+
+      ph[i.key].map(function(p){return urlCache[p]?'<img src="'+esc(urlCache[p])+'">':''}).join('')+'</div></div>'});
+  }
+  h+='<div style="margin-top:8px">Form revised 10/15/25 · Printed '+esc(new Date().toLocaleDateString('en-US'))+' from the Morning Star Staff Apps</div>';
+  var box=document.getElementById('print');box.innerHTML=h;
+  // Wait for photos to load so they show on paper.
+  await Promise.all(Array.prototype.map.call(box.querySelectorAll('img'),function(im){return im.complete?0:new Promise(function(r){im.onload=im.onerror=r;setTimeout(r,8000)})}));
+  window.print();
+}
+
+async function refresh(){await loadData();render()}
+window.addEventListener('beforeunload',function(){flushSave()});
+document.addEventListener('visibilitychange',function(){if(document.hidden)flushSave()});
+(function init(){
+  var u=window.MS&&MS.identity&&MS.identity.get();
+  if(u)me.name=u.name;
+  refresh();
+})();
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
+</body>
+</html>
