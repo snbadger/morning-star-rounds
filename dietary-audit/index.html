@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Morning Star — Dietary Sanitation Audit</title>
+<title>Dietary Sanitation Audit</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../ms-identity.js?v=2"></script>
 <script src="../ms-ui.js?v=1" defer></script>
@@ -71,6 +71,24 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .addph b{font-size:22px;line-height:1}
 .viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
 .viewer img{max-width:100%;max-height:100%;border-radius:6px}
+.seg{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.seg button{flex:1;min-width:0;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:13.5px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:inherit;white-space:nowrap}
+.seg button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+@media (max-width:480px){.seg{display:grid;grid-template-columns:1fr 1fr}}
+.kpis{display:flex;gap:8px;margin-bottom:4px}
+.kpi{flex:1;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center}
+.kpi b{display:block;font-size:24px;color:var(--primary)}.kpi span{font-size:11.5px;color:var(--text-light);font-weight:600}
+.kpi.bad b{color:var(--danger)}
+.grid{overflow-x:auto}
+.grid table{border-collapse:collapse;font-size:13px;width:100%}
+.grid th,.grid td{border:1px solid #eef1f4;padding:8px 4px;text-align:center;min-width:38px}
+.grid th{color:var(--text-light);font-weight:700}
+.grid td.h{text-align:left;font-weight:700;color:var(--primary);white-space:nowrap;padding-left:6px}
+.grid td.ok,.grid td.bad,.grid td.dr,.grid td.none{cursor:pointer;font-weight:800}
+.grid td.ok{background:#e8f6ee;color:var(--success)}.grid td.bad{background:#fdeceb;color:var(--danger)}
+.grid td.dr{background:#fef9e7;color:#a07708}.grid td.none{color:#c3cad1}
+.donebtn{margin-top:8px;padding:8px 12px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--primary);cursor:pointer;font-family:inherit}
+.donebtn.on{background:#e8f6ee;border-color:var(--success);color:var(--success)}
 /* print */
 #print{display:none}
 @media print{
@@ -92,7 +110,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 </head>
 <body>
 <div class="header">
-  <div><h1><i data-lucide="utensils-crossed"></i><span class="fb">🍽️</span>Dietary Sanitation Audit</h1><div class="sub">Morning Star Post Acute · Monthly F812 audit</div></div>
+  <div><h1><i data-lucide="utensils-crossed"></i><span class="fb">🍽️</span>Dietary Sanitation Audit</h1><div class="sub" id="hdrSub">Monthly F812 audit</div></div>
   <div class="who" id="whoChip" onclick="editIdentity()"></div>
 </div>
 <div class="page" id="app"></div>
@@ -103,7 +121,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-var FACILITY='Morning Star Post Acute';
+// Elizabeth Olivares (RD) audits these four buildings (names match v_dining_quiz_distribution and the quiz app).
+var BUILDINGS=['Morning Star Post Acute','Covenant','Keystone','Majestic Mountain'];
+var SHORT={'Morning Star Post Acute':'Morning Star','Covenant':'Covenant','Keystone':'Keystone','Majestic Mountain':'Majestic'};
+var FACILITY=(function(){try{var f=localStorage.getItem('da_fac');if(BUILDINGS.indexOf(f)>=0)return f}catch(e){}return BUILDINGS[0]})();
+var selMonth=null, allAudits=[], refreshers=[];
 var PASSING=95;
 
 // Mirrors "Morning Star Dietary Sanitation/Infection Control Audit" (REVISED 10/15/25).
@@ -310,9 +332,10 @@ function secScore(a,sid){var m=0,n=0,d=0,t=0;ALL.forEach(function(i){if(i.sec!==
 function auditFor(k){return audits.find(function(a){return a.audit_month===k})||null}
 
 async function loadData(){
-  var r=await sb.from('dietary_sanitation_audits').select('*').eq('facility',FACILITY).order('audit_month',{ascending:false}).limit(24);
+  var r=await sb.from('dietary_sanitation_audits').select('*').gte('audit_month',monthKey(-13)).order('audit_month',{ascending:false});
   if(r.error){toast('Could not load — check connection');return}
-  audits=r.data||[];
+  allAudits=r.data||[];
+  audits=allAudits.filter(function(a){return a.facility===FACILITY});
 }
 
 function render(){
@@ -321,11 +344,12 @@ function render(){
   if(!me.name||view==='identity'){el.innerHTML=identityView();return}
   if(view==='audit'){el.innerHTML=auditView();return}
   if(view==='summary'){el.innerHTML=summaryView();return}
+  if(view==='dash'){el.innerHTML=dashView();return}
   el.innerHTML=homeView();
 }
 window.msNavBack=function(){
   if(view==='audit'&&openSec){openSec=null;render();window.scrollTo(0,0);return true}
-  if(view==='audit'||view==='summary'){flushSave();view='home';refresh();return true}
+  if(view==='audit'||view==='summary'||view==='dash'){flushSave();view='home';refresh();return true}
   return false;
 };
 
@@ -354,32 +378,111 @@ function statusLine(a){
   if(a.status==='draft')return '<span class="pill draft">In progress · '+s.done+'/'+s.total+'</span>';
   return '<span class="pill '+(a.score_pct>=PASSING?'ok':'bad')+'">'+a.score_pct+'%'+(a.score_pct>=PASSING?' · Pass':' · Dietary alert')+'</span>';
 }
+function setBuilding(f){FACILITY=f;try{localStorage.setItem('da_fac',f)}catch(e){}audits=allAudits.filter(function(a){return a.facility===FACILITY});selMonth=null;render()}
+function monthOptions(){var o=[];for(var i=0;i>=-12;i--)o.push(monthKey(i));return o}
 function homeView(){
-  var k=monthKey(0),a=auditFor(k),pk=monthKey(-1),pa=auditFor(pk);
-  var h='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(monthName(k))+'</div>';
+  document.getElementById('hdrSub').textContent=FACILITY+' · Monthly F812 audit';
+  var k=selMonth||monthKey(0),a=auditFor(k),pk=monthKey(-1),pa=auditFor(pk);
+  var h='<div class="seg">'+BUILDINGS.map(function(b){return '<button class="'+(b===FACILITY?'on':'')+'" onclick="setBuilding(\''+b+'\')">'+esc(SHORT[b])+'</button>'}).join('')+'</div>';
+  h+='<div class="card"><label style="margin-top:0">Building</label><div style="font-size:18px;font-weight:800;color:var(--primary)">'+esc(FACILITY)+'</div>'+
+    '<label>Month being audited</label><select onchange="selMonth=this.value;render()">'+monthOptions().map(function(m){var x=auditFor(m);
+      return '<option value="'+m+'"'+(m===k?' selected':'')+'>'+esc(monthName(m))+(x?(x.status==='complete'?' — '+x.score_pct+'%':' — in progress'):'')+'</option>'}).join('')+'</select>';
   if(a&&a.status==='complete'){
-    h+='<div style="display:flex;align-items:flex-end;gap:12px;margin-top:8px"><div class="big '+(a.score_pct>=PASSING?'pass':'alert')+'">'+a.score_pct+'%</div><div class="hint" style="margin-bottom:4px">'+(a.score_pct>=PASSING?'Pass':'Dietary alert — below 95%')+' · done '+fmtDate(a.completed_date)+' by '+esc(firstName(a.evaluator))+'</div></div>'+
+    h+='<div style="display:flex;align-items:flex-end;gap:12px;margin-top:14px"><div class="big '+(a.score_pct>=PASSING?'pass':'alert')+'">'+a.score_pct+'%</div><div class="hint" style="margin-bottom:4px">'+(a.score_pct>=PASSING?'Pass':'Dietary alert — below 95%')+' · done '+fmtDate(a.completed_date)+' by '+esc(firstName(a.evaluator))+'</div></div>'+
       '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-light" onclick="openSummary(\''+k+'\')">View report</button><button class="btn btn-light" onclick="openAudit(\''+k+'\')">Edit</button></div>';
   }else{
     var s=a?score(a):null;
-    h+='<div class="hint" style="margin-top:4px">Monthly F812 snapshot of the kitchen. Best done in one day; you can split it over up to three days — your answers save as you go.</div>';
+    h+='<div class="hint" style="margin-top:10px">Snapshot of the kitchen for F812. Best done in one day; you can split it over up to three days — answers save as you go.</div>';
     if(s)h+='<div class="bar"><i style="width:'+Math.round(s.done/s.total*100)+'%"></i></div><div class="hint">'+s.done+' of '+s.total+' items answered</div>';
-    h+='<div style="margin-top:14px"><button class="btn btn-primary" onclick="openAudit(\''+k+'\')">'+(a?'Continue this month\'s audit':'Start this month\'s audit')+'</button></div>';
+    h+='<div style="margin-top:14px"><button class="btn btn-primary" onclick="openAudit(\''+k+'\')">'+(a?'Continue':'Start')+' '+esc(SHORT[FACILITY])+' — '+esc(monthName(k))+'</button></div>';
   }
   h+='</div>';
-  if(new Date().getDate()<=10&&(!pa||pa.status!=='complete')){
-    h+='<div class="banner warn" style="cursor:pointer" onclick="openAudit(\''+pk+'\')">'+esc(monthName(pk))+' audit '+(pa?'is not finished':'was not done')+' — tap to '+(pa?'finish':'complete')+' it</div>';
+  if(!selMonth&&new Date().getDate()<=10&&(!pa||pa.status!=='complete')){
+    h+='<div class="banner warn" style="cursor:pointer" onclick="selMonth=\''+pk+'\';render()">'+esc(SHORT[FACILITY])+' '+esc(monthName(pk))+' audit '+(pa?'is not finished':'was not done')+' — tap to '+(pa?'finish':'complete')+' it</div>';
   }
+  h+='<button class="btn btn-light" style="margin-bottom:12px" onclick="openDash()">📊 Dashboard — all four buildings</button>';
   var past=audits.filter(function(x){return x.audit_month!==k});
   if(past.length){
-    h+='<div class="section-title">Monthly scores — for QAPI</div><div class="card" style="padding:4px 12px">';
+    h+='<div class="section-title">'+esc(SHORT[FACILITY])+' — monthly scores</div><div class="card" style="padding:4px 12px">';
     past.forEach(function(x){
       h+='<div class="row" onclick="'+(x.status==='complete'?'openSummary':'openAudit')+'(\''+x.audit_month+'\')"><div class="nm"><b>'+esc(monthName(x.audit_month))+'</b><span>'+(x.evaluator?esc(x.evaluator):'')+(x.completed_date?' · '+fmtDate(x.completed_date):'')+'</span></div><div class="st">'+statusLine(x)+'</div></div>';
     });
     h+='</div>';
   }
-  h+='<div class="card"><div style="font-weight:800;color:var(--primary);font-size:14px">How it\'s scored</div><div class="hint">Score = items Met ÷ (Met + Not Met) × 100. Items marked N/A (equipment you don\'t have) don\'t count. Passing is 95%. Below 95% is a <b>dietary alert</b>: tell the Administrator right away and write a corrective action plan with goal dates for each Not Met item. The matching refresher in-services are assigned to the dietary team automatically. Scores are reviewed at the monthly QAPI meeting.</div></div>';
+  h+='<div class="card"><div style="font-weight:800;color:var(--primary);font-size:14px">How it\'s scored</div><div class="hint">Score = items Met ÷ (Met + Not Met) × 100. Items marked N/A (equipment the building doesn\'t have) don\'t count. Passing is 95%. Below 95% is a <b>dietary alert</b>: tell the building\'s Administrator right away and write a corrective action plan with goal dates for each Not Met item. The matching refresher in-services are assigned to that building\'s dietary team automatically, and the Administrator gets a summary email whenever an audit is finished. Scores are reviewed at the monthly QAPI meeting.</div></div>';
   h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; <span style="color:#e74c3c;font-weight:700;cursor:pointer;text-decoration:underline" onclick="logout()">Done — log out</span></div>';
+  return h;
+}
+
+// ---- Dashboard (all buildings) ----
+async function openDash(){
+  view='dash';render();window.scrollTo(0,0);
+  var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-3);
+  var r=await sb.rpc('dietary_audit_refresher_status',{p_since:ymd(d)});
+  refreshers=r.data||[];if(view==='dash')render();
+}
+function openFrom(f,m,done){setBuilding(f);if(done)openSummary(m);else openAudit(m)}
+function capOpen(){
+  // Not Met items from finished audits (last 6 months) that weren't fixed on the spot and aren't marked done.
+  var out=[],t=today(),since=monthKey(-6);
+  allAudits.forEach(function(a){
+    if(a.status!=='complete'||a.audit_month<since)return;
+    Object.keys(a.results||{}).forEach(function(k){
+      if(a.results[k]!=='not_met')return;
+      var c=(a.corrections||{})[k]||{};if(c.corrected||c.done)return;
+      var it=ALL.find(function(i){return i.key===k});
+      out.push({a:a,k:k,text:it?it.text:k,where:it?secLabel(it):'',action:c.action||'',goal:c.goal_date||'',over:!!(c.goal_date&&c.goal_date<t)});
+    });
+  });
+  return out.sort(function(x,y){return (y.over-x.over)||String(x.goal||'9').localeCompare(String(y.goal||'9'))});
+}
+function dashView(){
+  document.getElementById('hdrSub').textContent='All buildings · Monthly F812 audit';
+  var months=[];for(var i=-5;i<=0;i++)months.push(monthKey(i));
+  var cur0=monthKey(0),byKey={};allAudits.forEach(function(a){byKey[a.facility+'|'+a.audit_month]=a});
+  var h='<span class="back" onclick="msNavBack()">‹ Back</span>';
+  var doneNow=BUILDINGS.filter(function(b){var a=byKey[b+'|'+cur0];return a&&a.status==='complete'}).length;
+  var alerts=BUILDINGS.filter(function(b){var a=byKey[b+'|'+cur0];return a&&a.status==='complete'&&a.score_pct<PASSING}).length;
+  var caps=capOpen(),over=caps.filter(function(c){return c.over}).length;
+  h+='<div class="kpis"><div class="kpi"><b>'+doneNow+'/4</b><span>audited in '+esc(monthName(cur0).split(' ')[0])+'</span></div>'+
+    '<div class="kpi'+(alerts?' bad':'')+'"><b>'+alerts+'</b><span>dietary alert'+(alerts===1?'':'s')+' this month</span></div>'+
+    '<div class="kpi'+(over?' bad':'')+'"><b>'+caps.length+'</b><span>open corrections'+(over?' · '+over+' overdue':'')+'</span></div></div>';
+  h+='<div class="section-title">Scores by month — tap to open</div><div class="card grid" style="padding:8px"><table><tr><th></th>'+
+    months.map(function(m){var p=m.split('-');return '<th>'+new Date(+p[0],+p[1]-1,1).toLocaleDateString('en-US',{month:'short'})+'</th>'}).join('')+'</tr>';
+  BUILDINGS.forEach(function(b){
+    h+='<tr><td class="h">'+esc(SHORT[b])+'</td>';
+    months.forEach(function(m){var a=byKey[b+'|'+m];
+      if(!a)h+='<td class="none" onclick="openFrom(\''+b+'\',\''+m+'\',false)">—</td>';
+      else if(a.status!=='complete')h+='<td class="dr" onclick="openFrom(\''+b+'\',\''+m+'\',false)">…</td>';
+      else h+='<td class="'+(a.score_pct>=PASSING?'ok':'bad')+'" onclick="openFrom(\''+b+'\',\''+m+'\',true)">'+(+a.score_pct)+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</table><div class="hint" style="padding:6px 4px 0">Green = 95% or better · red = dietary alert · … = in progress · — = not done</div></div>';
+  h+='<div class="section-title">Open corrective actions</div>';
+  if(!caps.length)h+='<div class="card hint" style="margin-top:0">None open. Items fixed on the spot or marked done don\'t show here.</div>';
+  else{
+    h+='<div class="card" style="padding:4px 16px">';
+    caps.forEach(function(c){
+      h+='<div class="item" style="cursor:pointer" onclick="openFrom(\''+c.a.facility+'\',\''+c.a.audit_month+'\',true)"><div class="note" style="margin:0 0 2px;font-weight:700">'+esc(SHORT[c.a.facility])+' · '+esc(monthName(c.a.audit_month))+' · '+esc(c.where)+'</div>'+
+        '<div class="lbl" style="font-size:14px">'+esc(c.text)+'</div><div class="note" style="color:var(--text)"><b>Correction:</b> '+esc(c.action||'—')+'</div>'+
+        '<div class="note" style="font-weight:700;color:'+(c.over?'var(--danger)':'var(--text-light)')+'">'+(c.goal?(c.over?'Overdue — goal ':'Goal ')+esc(fmtDate(c.goal)):'No goal date')+'</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="section-title">Refresher in-services — staff finished</div>';
+  if(!refreshers.length)h+='<div class="card hint" style="margin-top:0">No refreshers assigned in the last 3 months.</div>';
+  else{
+    h+='<div class="card" style="padding:4px 16px">';
+    refreshers.forEach(function(r){var pct=r.staff_total?Math.round(r.staff_done/r.staff_total*100):0;
+      h+='<div class="item"><div class="note" style="margin:0 0 2px;font-weight:700">'+esc(SHORT[r.facility]||r.facility)+' · assigned '+esc(fmtDate(r.assigned_date))+'</div>'+
+        '<div class="lbl" style="font-size:14px">'+esc(MODULE_TITLES[r.module_number]||('Module '+r.module_number))+'</div>'+
+        '<div class="bar"><i style="width:'+pct+'%;background:'+(pct===100?'var(--success)':'var(--primary-light)')+'"></i></div>'+
+        '<div class="hint">'+r.staff_done+' of '+r.staff_total+' dietary staff passed since it was assigned</div></div>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="hint" style="text-align:center;margin-top:10px">Counts only — names are in the Friday quiz report.</div>';
   return h;
 }
 
@@ -396,7 +499,7 @@ function auditView(){
   var h='<span class="back" onclick="msNavBack()">‹ '+(openSec?'Sections':'Back')+'</span>';
   if(!openSec){
     if(cur.status==='complete')h+='<div class="banner warn">Editing a finished audit — tap "Finish audit" again to update the score.</div>';
-    h+='<div class="card"><div style="font-size:22px;font-weight:800;color:var(--primary)">'+esc(monthName(cur.audit_month))+'</div>'+
+    h+='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(cur.facility)+'</div><div style="font-size:22px;font-weight:800;color:var(--primary)">'+esc(monthName(cur.audit_month))+'</div>'+
       '<div class="hint">Evaluator: '+esc(cur.evaluator||me.name)+'</div><div class="bar"><i style="width:'+Math.round(s.done/s.total*100)+'%"></i></div>'+
       '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;font-weight:700"><span>'+s.done+'/'+s.total+' answered</span><span>'+(s.pct==null?'—':'Score so far '+s.pct+'%')+'</span></div></div>';
     h+='<div class="saved" id="savedNote">'+savedText()+'</div>';
@@ -487,7 +590,7 @@ async function addPhoto(k,input){
   uploading[k]=(uploading[k]||0)+1;rerenderItem(k);
   try{
     var blob=await shrink(f);
-    var path=cur.audit_month.slice(0,7)+'/'+k+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.jpg';
+    var path=cur.facility.toLowerCase().replace(/[^a-z]+/g,'-')+'/'+cur.audit_month.slice(0,7)+'/'+k+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.jpg';
     var r=await sb.storage.from('dietary-audit-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
     if(r.error)throw r.error;
     urlCache[path]=URL.createObjectURL(blob);
@@ -518,7 +621,7 @@ function flushSave(){if(dirty){clearTimeout(saveTimer);saveDraft()}}
 function cleanJson(o){var r={};Object.keys(o||{}).forEach(function(k){var v=o[k];if(typeof v==='string'){v=v.trim();if(v)r[k]=v}else if(v&&typeof v==='object'){var s=cleanJson(v);if(Object.keys(s).length)r[k]=s}else if(v===true)r[k]=v});return r}
 function rowFrom(a,extra){
   var s=score(a);
-  return Object.assign({facility:FACILITY,audit_month:a.audit_month,status:a.status,results:a.results,comments:cleanJson(a.comments),corrections:cleanJson(a.corrections),photos:a.photos||{},
+  return Object.assign({facility:a.facility||FACILITY,audit_month:a.audit_month,status:a.status,results:a.results,comments:cleanJson(a.comments),corrections:cleanJson(a.corrections),photos:a.photos||{},
     met_count:s.met,not_met_count:s.not,na_count:s.na,score_pct:s.pct,evaluator:a.evaluator||me.name,completed_date:a.completed_date||null,
     administrator_notified:!!a.administrator_notified,source:'staff-app',updated_at:new Date().toISOString()},extra||{});
 }
@@ -563,12 +666,12 @@ function secLabel(i){var s=SECTIONS.find(function(x){return x.id===i.sec});retur
 function summaryView(){
   var a=cur,s=score(a),pass=s.pct>=PASSING,nm=notMetList(a);
   var h='<span class="back" onclick="msNavBack()">‹ Back</span>';
-  h+='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(monthName(a.audit_month))+'</div>'+
+  h+='<div class="card"><div style="font-size:12px;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.6px">'+esc(a.facility)+' · '+esc(monthName(a.audit_month))+'</div>'+
     '<div style="display:flex;align-items:flex-end;gap:12px;margin-top:8px"><div class="big '+(pass?'pass':'alert')+'">'+s.pct+'%</div><div class="hint" style="margin-bottom:4px">'+s.met+' met of '+(s.met+s.not)+' applicable · '+s.na+' N/A</div></div>'+
     '<div class="hint">Evaluator: '+esc(a.evaluator)+' · completed '+fmtDate(a.completed_date)+'</div></div>';
   if(!pass){
     h+='<div class="banner bad">Dietary alert — score is below 95%</div>';
-    h+='<div class="card"><div style="font-weight:800;color:var(--danger)">Tell the Administrator right away</div><div class="hint">Then make sure each Not Met item below has a correction and goal date. This list is the written corrective action plan.</div>'+
+    h+='<div class="card"><div style="font-weight:800;color:var(--danger)">Tell the '+esc(SHORT[a.facility]||a.facility)+' Administrator right away</div><div class="hint">Then make sure each Not Met item below has a correction and goal date. This list is the written corrective action plan.</div>'+
       '<div class="chk"><input type="checkbox" '+(a.administrator_notified?'checked':'')+' onchange="setNotified(this.checked)"><span>Administrator has been told</span></div></div>';
     h+='<div class="card" id="retakeCard"><div style="font-weight:800;color:var(--primary)">Refresher in-services</div><div class="hint">Checking what was assigned…</div></div>';
     setTimeout(loadRetakes,0);
@@ -584,6 +687,7 @@ function summaryView(){
         (a.comments[i.key]?'<div class="note">Finding: '+esc(a.comments[i.key])+'</div>':'')+
         '<div class="note" style="color:var(--text)"><b>Correction:</b> '+esc(c.action||'—')+'</div>'+
         '<div class="note"><b>'+(c.corrected?'Corrected on the spot':'Goal date: '+esc(fmtDate(c.goal_date)||'—'))+'</b></div>'+
+        (c.corrected?'':'<button class="donebtn'+(c.done?' on':'')+'" onclick="toggleCapDone(\''+i.key+'\')">'+(c.done?'✓ Done '+esc(fmtDate(c.done))+' — tap to undo':'Mark correction done')+'</button>')+
         (((a.photos||{})[i.key]||[]).length?photoStrip(i.key,false):'')+'</div>'});
     h+='</div>';
   }
@@ -596,7 +700,7 @@ var MODULE_TITLES={2:'Personal Hygiene, Handwashing & Glove Use',3:'Safe Cooking
   5:'Food Storage, Labeling & Preventing Cross-Contamination',10:'Sanitation: Dish Machine, 3-Compartment Sink & Sanitizers',11:'Infection Control: Employee Illness, PPE & Isolation Trays'};
 async function loadRetakes(tries){
   var el=document.getElementById('retakeCard');if(!el||!cur)return;
-  var r=await sb.rpc('dietary_audit_retakes',{p_facility:FACILITY,p_audit_month:cur.audit_month});
+  var r=await sb.rpc('dietary_audit_retakes',{p_facility:cur.facility,p_audit_month:cur.audit_month});
   if(!document.getElementById('retakeCard'))return;
   var rows=(r.data||[]);
   if((!rows.length||!rows[0].mode)&&(tries||0)<4){setTimeout(function(){loadRetakes((tries||0)+1)},2500);return}
@@ -610,9 +714,17 @@ async function loadRetakes(tries){
   }
   document.getElementById('retakeCard').innerHTML=h;
 }
+async function toggleCapDone(k){
+  var c=cur.corrections[k]=cur.corrections[k]||{};
+  if(c.done)delete c.done;else c.done=today();
+  var r=await sb.from('dietary_sanitation_audits').update({corrections:cleanJson(cur.corrections),updated_at:new Date().toISOString()}).eq('facility',cur.facility).eq('audit_month',cur.audit_month);
+  if(r.error){toast('Save failed — check connection');return}
+  var a=auditFor(cur.audit_month);if(a)a.corrections=JSON.parse(JSON.stringify(cur.corrections));
+  var y=window.scrollY;render();window.scrollTo(0,y);toast(c.done?'Marked done':'Reopened');
+}
 async function setNotified(v){
   cur.administrator_notified=v;
-  var r=await sb.from('dietary_sanitation_audits').update({administrator_notified:v,updated_at:new Date().toISOString()}).eq('facility',FACILITY).eq('audit_month',cur.audit_month);
+  var r=await sb.from('dietary_sanitation_audits').update({administrator_notified:v,updated_at:new Date().toISOString()}).eq('facility',cur.facility).eq('audit_month',cur.audit_month);
   if(r.error){toast('Save failed — check connection');return}
   var a=auditFor(cur.audit_month);if(a)a.administrator_notified=v;toast(v?'Noted — Administrator told':'Updated');
 }
@@ -622,7 +734,7 @@ async function printAudit(){
   var withPh=notMetList(a).filter(function(i){return (ph[i.key]||[]).length});
   var allP=[];withPh.forEach(function(i){allP=allP.concat(ph[i.key])});
   if(allP.length){toast('Getting photos ready…');await signPhotos(allP)}
-  var h='<h1>Morning Star Dietary Sanitation / Infection Control Audit — '+esc(monthName(a.audit_month))+'</h1>'+
+  var h='<h1>'+esc(a.facility)+' — Dietary Sanitation / Infection Control Audit — '+esc(monthName(a.audit_month))+'</h1>'+
     '<div>Date of completion: <b>'+esc(fmtDate(a.completed_date))+'</b> &nbsp; Evaluator: <b>'+esc(a.evaluator)+'</b> &nbsp; Final score: <b>'+s.pct+'%</b> ('+s.met+' met / '+(s.met+s.not)+' applicable; '+s.na+' N/A) &nbsp; '+(s.pct>=PASSING?'PASS':'DIETARY ALERT'+(a.administrator_notified?' — Administrator notified':''))+'</div>';
   SECTIONS.forEach(function(sec){
     h+='<h2>'+esc(sec.title)+'</h2>';
