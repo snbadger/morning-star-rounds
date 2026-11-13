@@ -77,6 +77,11 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .row:first-child{border-top:0}
 .row .l{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .row .v{font-weight:700;white-space:nowrap}
+.card.twocol .rows .chart{min-height:0}.sub.dny,.flow .sub.dny{white-space:normal;font-size:18px;line-height:1.35;margin-top:4px}.sub.dny b{color:var(--text)}
+/* Nursing Hours PPD: scheduled today, one column per shift */
+.sch3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px}.sch3 .bh2{margin-top:4px}
+.sr{font-size:14px;line-height:1.3;padding:3px 0}.sr b{display:block;font-size:.82em;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}.sr em{font-style:normal;color:var(--bad)}
+.flow .sr{font-size:17px}
 .row.flag .v,.row.flag .l{color:var(--bad)}
 .hb{display:grid;grid-template-columns:118px 1fr 54px;align-items:center;gap:8px;font-size:16px;padding:3px 0}
 .hb .l{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -419,10 +424,15 @@ function buildCards(){
   var cenBody=function(cen){
     var bh=cen.bed_holds||[],rf=auto('referrals')||{},rfm=rf.mtd||{},rser=rf.series||[],rlast=rser[rser.length-1]||{},rgoal=rf.goal_minutes||10;
     var rsn=rf.reasons||[],rtot=rsn.reduce(function(a,x){return a+x.n},0),rcum=0;
+    // Latest entry's denial reasons (Stephen 11/13): Randy enters yesterday's referrals each morning, so today's entry = yesterday.
+    // Same categories as the MTD chart — counts only, never his free text.
+    var rl=rf.last||{},rlr=rl.reasons||[],rln=rl.declined!=null?rl.declined:rlr.reduce(function(a,x){return a+x.n},0);
     return '<div class="bh2">Bed holds · '+bh.length+'</div>'+(bh.length?bh.map(function(h){return '<div class="row'+(h.day>=6?' flag':'')+'"><span class="l">Rm '+esc(h.room||'—')+(h.code?' · '+esc(h.code):'')+(h.hospital?'<small>'+esc(h.hospital)+'</small>':'')+'</span><span class="v">day '+(h.day!=null?h.day:'?')+' of 7</span></div>'}).join(''):'<div class="sub">None</div>')+
       '<div class="bh2">Referrals · Randy</div><div class="row'+(rlast.min>20?' flag':'')+'"><span class="l">Response time'+(rlast.d?' '+md(rlast.d):'')+'<small>goal under '+rgoal+' · MTD avg '+num(rfm.avg_minutes)+'</small></span><span class="v">'+num(rlast.min)+' min</span></div>'+
       '<div class="row"><span class="l">MTD</span><span class="v">'+num(rfm.refs)+' referrals · '+num(rfm.accepted)+' accepted · '+num(rfm.admitted)+' admitted</span></div>'+
       (rser.length>1?'<div class="chart">'+datedLine(rser.map(function(p){return {d:p.d,v:p.min}}),{goal:rgoal,min:0})+'</div>':'')+
+      (rl.date?'<div class="bh2">'+(rl.date===S.today?'Denials yesterday':'Denials · '+md(rl.date)+' entry')+' · '+num(rln)+'</div>'+
+        '<div class="sub dny">'+(rlr.length?rlr.map(function(x){return esc(x.cat)+' <b>'+x.n+'</b>'}).join(' · '):(rln?'No reasons entered':'None'))+'</div>':'')+
       (rtot?'<div class="bh2">Denial reasons MTD · '+rtot+' · cumulative %</div><div class="par">'+hbars(rsn.slice(0,4).map(function(x){rcum+=x.n;return {l:x.cat,v:x.n,max:rsn[0].n,txt:x.n+' · '+Math.round(100*rcum/rtot)+'%'}}))+'</div>':'');
   };
   // census_now = latest PCC census (or newer census board) moved forward by later 24-hr reports; open = 57 - total
@@ -497,10 +507,21 @@ function buildCards(){
   var ppd=(T.ppd||[]),win=ppd.filter(function(p){return p.d<S.today&&p.d>=addDays(S.today,-14)}),past=win.filter(function(p){return p.act!=null&&!p.prov});
   var lastP=past[past.length-1]||{},todayP=ppd.filter(function(p){return p.d===S.today})[0]||{},provP=win.filter(function(p){return p.prov})[0];
   var openAhead=ppd.filter(function(p){return p.d>=S.today}).reduce(function(a,p){return a+(p.open||0)},0);
+  // Scheduled today by shift and role (Stephen 11/13): nurses and CNAs only, from Veras; open = unfilled shifts
+  var st=auto('sched_today')||{},stRows=st.rows||[],schedBody='';
+  if(st.date===S.today&&stRows.length){
+    ['Day','PM','NOC'].forEach(function(sh){
+      var rr=stRows.filter(function(r){return r.shift===sh});if(!rr.length)return;
+      schedBody+='<div><div class="bh2">'+sh+' · today</div>'+rr.map(function(r){var nm=r.names||[];
+        return '<div class="sr"><b>'+(r.role==='CNA'?'CNAs':'Nurses')+' · '+nm.length+(r.open?' <em>'+r.open+' open</em>':'')+'</b>'+esc(nm.join(', ')||'—')+'</div>'}).join('')+'</div>';
+    });
+    schedBody='<div class="sch3">'+schedBody+'</div>'+(st.as_of&&st.as_of<addDays(S.today,-1)?'<div class="sub">Veras schedule as of '+md(st.as_of)+'</div>':'');
+  }
   cards.push({title:'Nursing Hours PPD',sub:'Veras scheduled vs Paycom actual · goal 3.6 / CNA 2.4',status:statusBy(lastP.act,3.6,3.5,true),label:lastP.act!=null?num(lastP.act,2)+' on '+md(lastP.d):'',
     hero:[num(lastP.act,2),'actual vs '+num(lastP.sched,2)+' scheduled · CNA '+num(lastP.cna,2)],
     line:'Today scheduled '+num(todayP.sched,2)+' · '+openAhead+' open shifts ahead'+(provP?' · '+md(provP.d)+' partial (night punches not in yet)':''),
     chart:datedLine(win.map(function(p){return {d:p.d,v:p.act!=null&&!p.prov?+p.act:null}}),{goal:3.6,min:2.8,max:4.2,ref:win.map(function(p){return p.sched!=null?+p.sched:null})}),
+    body:schedBody,
     foot:'14 days · solid = actual · dotted = scheduled · dashed = goal 3.6'});
 
   // 6 Overtime (Stephen 11/3) — the daily OT alert's own summary (ot_alert_summary), so the screen matches the email.
@@ -655,12 +676,12 @@ function buildCards(){
 
 // ---------- flow: sections in meeting order (Stephen 11/3/26) ----------
 var SECTIONS=[
- {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Arriving','Admission Mini Packets','Medicare Day-4 Rates']},
+ {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Arriving','Leaving the Building','Medicare Day-4 Rates']},
  {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Call-offs & HR']},
  {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Google Rating']},
  {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},
  {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
- {t:'Clinical Highlights',cards:['Hospital Send-outs','Leaving the Building','Open Clinical & BO Lists','Leader Resident Rounds']}
+ {t:'Clinical Highlights',cards:['Hospital Send-outs','Admission Mini Packets','Open Clinical & BO Lists','Leader Resident Rounds']}
 ];
 var SEC_SECS=100;   // 10 minutes ÷ 6 sections
 var ESC='Needs an Owner Today';
