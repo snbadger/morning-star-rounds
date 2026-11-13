@@ -115,9 +115,9 @@ var toastTimer;
 function toast(msg,btn,fn,ms){var t=$('toast');$('toastMsg').textContent=msg;var b=$('toastBtn');b.textContent=btn||'';b.onclick=function(){hideToast();fn&&fn()};t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,ms||3000)}
 function hideToast(){$('toast').classList.remove('show')}
 
-var MSG={ratings_missing:'Pick all four ratings and enter the write-up count.',
+var MSG={ratings_missing:'Pick all four ratings.',
   sections_incomplete:'Every section needs text, and nothing left in [brackets].',
-  counts_missing:'Enter all four attendance numbers (0 is fine).',
+  counts_missing:'Enter all five numbers, including both write-up counts (0 is fine).',
   answers_missing:'Answer both questions.',dates_missing:'Enter both signature dates.',
   note_required:'Add a short note saying what to change.',not_open:'Already handled. Refreshing.',
   not_your_card:'This one isn’t yours anymore. Refreshing.',cannot_undo:'Too late to undo that one.',
@@ -261,7 +261,7 @@ function editorBody(c,k){
   if(d.returned_note)h+='<div class="note amber"><b>Stephen sent this back:</b> '+esc(d.returned_note)+'</div>';
   h+='<div class="note">This draft was written from coworker feedback. Coworkers’ names and words stay with Stephen. Correct anything, add what you know, and replace everything in <b>[brackets]</b>. This text goes on the form.</div>';
   var ac=d.attendance_counts;
-  h+=ac?'<div class="note">Attendance from Kelsey: '+ac.callins+' non-CA sick call-ins · '+ac.tardies+' tardies · '+ac.meal_penalties+' meal penalties · '+ac.writeups+' attendance write-ups</div>'
+  h+=ac?'<div class="note">Attendance from Kelsey: '+ac.callins+' non-CA sick call-ins · '+ac.tardies+' tardies · '+ac.meal_penalties+' meal penalties · '+ac.writeups+' attendance write-ups · '+ac.perf_writeups+' performance write-ups</div>'
        :'<div class="hint">Kelsey’s attendance numbers aren’t in yet. You can write the other sections now.</div>';
   h+=sectionsHtml(c,k,false);
   h+='<h2 style="margin-top:20px">Your ratings</h2>';
@@ -270,14 +270,12 @@ function editorBody(c,k){
     var cr=d.coworker_ratings&&d.coworker_ratings[x[0]];
     if(cr)h+='<div class="spread">Coworkers: '+cr[0]+' Below · '+cr[1]+' Standard · '+cr[2]+' Above</div>';
   });
-  h+='<label>Performance write-ups this period</label><input id="w_'+k+'" type="number" min="0" inputmode="numeric" value="'+esc(r.writeups==null?'':r.writeups)+'" oninput="markDirty(\''+k+'\')">';
   h+='<div class="row2"><button class="btn skip" onclick="saveEditor(\''+c.cycle_id+'\',\''+k+'\',\'save\')">Save for later</button>'+
      '<button class="btn go" onclick="saveEditor(\''+c.cycle_id+'\',\''+k+'\',\'submit\')">'+(S.data.me.key==='admin'?'Ready to approve':'Send to Stephen')+'</button></div>';
   return h;
 }
 function editorPayload(k){
   var r={};RAT.forEach(function(x){var v=segVal(k,x[0]);if(v)r[x[0]]=v});
-  var w=val('w_'+k);if(w!=='')r.writeups=+w;
   return{sections:readSections(k),ratings:r};
 }
 async function saveEditor(cycle,k,action){
@@ -288,9 +286,10 @@ async function saveEditor(cycle,k,action){
 function num(id,k,label,v,extra){return'<div><label>'+label+'</label><input id="'+id+'" type="number" min="0" step="any" inputmode="decimal" value="'+esc(v==null?'':v)+'" oninput="markDirty(\''+k+'\')">'+(extra||'')+'</div>'}
 function attBody(c,k){
   var v=c.data.values||{},hi=c.data.hints||{},h='';
+  if(v.callins!=null&&v.perf_writeups==null)h+='<div class="note amber">Performance write-ups now come from you too. Your other numbers are saved. Add this one and tap Done.</div>';
   var meal=hi.meal_violations!=null?'<div class="hint">Paycom shows '+hi.meal_violations+' meal-break violation'+(hi.meal_violations===1?'':'s')+' since '+fmtD(hi.meal_from)+(hi.meal_from>c.period_start?' (partial period)':'')+'. <button onclick="$(\'a_'+k+'_meal\').value='+hi.meal_violations+';markDirty(\''+k+'\')">Use</button></div>':'';
   h+='<div class="grid2">'+num('a_'+k+'_callins',k,'Non-CA sick call-ins',v.callins)+num('a_'+k+'_tardies',k,'Tardies',v.tardies)+
-     num('a_'+k+'_meal',k,'Meal penalties',v.meal_penalties,meal)+num('a_'+k+'_writeups',k,'Attendance write-ups',v.writeups)+'</div>';
+     num('a_'+k+'_meal',k,'Meal penalties',v.meal_penalties,meal)+num('a_'+k+'_writeups',k,'Attendance write-ups',v.writeups)+num('a_'+k+'_perfw',k,'Performance write-ups',v.perf_writeups)+'</div>';
   var rate=hi.current_rate!=null?'<div class="hint">Paycom: $'+esc(hi.current_rate)+(hi.rate_type?' '+esc(hi.rate_type):'')+'. <button onclick="$(\'a_'+k+'_rate\').value=\''+hi.current_rate+'\';'+(hi.rate_type?'$(\'a_'+k+'_rt\').value=\''+esc(hi.rate_type)+'\';':'')+'markDirty(\''+k+'\')">Use</button></div>':'';
   h+='<div class="grid2">'+num('a_'+k+'_rate',k,'Current rate ($)',v.current_rate,rate)+
      '<div><label>Pay type</label><select id="a_'+k+'_rt" onchange="markDirty(\''+k+'\')"><option value=""></option><option'+(v.rate_type==='hourly'?' selected':'')+'>hourly</option><option'+(v.rate_type==='salary'?' selected':'')+'>salary</option></select></div></div>';
@@ -301,7 +300,7 @@ function attBody(c,k){
 }
 async function saveAtt(cycle,k){
   var p='a_'+k+'_';
-  var values={callins:val(p+'callins'),tardies:val(p+'tardies'),meal_penalties:val(p+'meal'),writeups:val(p+'writeups'),
+  var values={callins:val(p+'callins'),tardies:val(p+'tardies'),meal_penalties:val(p+'meal'),writeups:val(p+'writeups'),perf_writeups:val(p+'perfw'),
     current_rate:val(p+'rate'),rate_type:val(p+'rt'),wage1_date:val(p+'w1d'),wage1_amount:val(p+'w1a'),wage2_date:val(p+'w2d'),wage2_amount:val(p+'w2a')};
   await act(cycle,'attendance','submit',{values:values},k,'Saved');
 }
