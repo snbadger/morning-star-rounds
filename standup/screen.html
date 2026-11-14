@@ -80,7 +80,7 @@ main{flex:1;min-height:0;padding:16px 28px 18px;display:grid;grid-template-colum
 .card.twocol .rows .chart{min-height:0}.sub.dny,.flow .sub.dny{white-space:normal;font-size:18px;line-height:1.35;margin-top:4px}.sub.dny b{color:var(--text)}
 /* Nursing Hours PPD: scheduled today, one column per shift */
 .sch3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 18px}.sch3 .bh2{margin-top:4px}
-.sr{font-size:14px;line-height:1.3;padding:3px 0}.sr b{display:block;font-size:.82em;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}.sr em{font-style:normal;color:var(--bad)}
+.sr{font-size:14px;line-height:1.3;padding:3px 0}.sr b{display:block;font-size:.82em;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}.sr em{font-style:normal;color:var(--bad)}.sr span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rows:has(.sch3){flex:0 0 auto}.card:has(.sch3)>.sub{flex-shrink:0}
 .flow .sr{font-size:17px}
 .row.flag .v,.row.flag .l{color:var(--bad)}
 .hb{display:grid;grid-template-columns:118px 1fr 54px;align-items:center;gap:8px;font-size:16px;padding:3px 0}
@@ -513,7 +513,7 @@ function buildCards(){
     ['Day','PM','NOC'].forEach(function(sh){
       var rr=stRows.filter(function(r){return r.shift===sh});if(!rr.length)return;
       schedBody+='<div><div class="bh2">'+sh+' · today</div>'+rr.map(function(r){var nm=r.names||[];
-        return '<div class="sr"><b>'+(r.role==='CNA'?'CNAs':'Nurses')+' · '+nm.length+(r.open?' <em>'+r.open+' open</em>':'')+'</b>'+esc(nm.join(', ')||'—')+'</div>'}).join('')+'</div>';
+        return '<div class="sr"><b>'+(r.role==='CNA'?'CNAs':'Nurses')+' · '+nm.length+(r.open?' <em>'+r.open+' open</em>':'')+'</b>'+(nm.length?nm.map(function(n){return '<span>'+esc(n)+'</span>'}).join(''):'—')+'</div>'}).join('')+'</div>';
     });
     schedBody='<div class="sch3">'+schedBody+'</div>'+(st.as_of&&st.as_of<addDays(S.today,-1)?'<div class="sub">Veras schedule as of '+md(st.as_of)+'</div>':'');
   }
