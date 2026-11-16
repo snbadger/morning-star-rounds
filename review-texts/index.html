@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Morning Star — Review Text Queue</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../ms-identity.js?v=2"></script>
+<link rel="stylesheet" href="../ms-ui.css?v=3">
+<script src="../ms-ui.js?v=1"></script>
+<style>
+/* Review Text Queue (11/16/26). Discharges Social Services checked for a thank-you / feedback text.
+   Administration and Social Services only (leadership PIN + department on the leader list).
+   Room-bed + name code only; the text itself is sent from Carefeed, then marked Sent here. */
+.page{max-width:640px;margin:0 auto;padding:16px 14px 40px}
+.tabs{margin-bottom:14px}
+.qrow{padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.qrow .top{display:flex;gap:12px;align-items:center}
+.qrow .b{flex:1;min-width:0}
+.qrow .t1{font-weight:800;font-size:16px}
+.qrow .t2{font-size:13.5px;color:var(--muted-foreground);margin-top:2px}
+.qrow .r{text-align:right;font-size:13.5px;font-weight:700;white-space:nowrap}
+.qrow .r small{display:block;font-weight:500;color:var(--muted-foreground)}
+.qrow.due{border-color:#9ec5e8;background:#f3f8fd}
+.qrow .acts{display:flex;gap:8px;margin-top:10px}
+.qrow .acts .btn{flex:1}
+.reason{margin-top:10px}
+.reason .input{width:100%;font-size:16px}
+.note{font-size:13px;color:var(--muted-foreground);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="ms-header">
+  <div><h1><i data-lucide="message-square-heart"></i>Review Text Queue</h1><div class="sub"><a href="../trips/?tab=dc" style="color:inherit">← Discharges</a> · Morning Star Post Acute</div></div>
+  <div class="who" id="whoChip" onclick="pickWho()"></div>
+</div>
+<main class="page" id="app"><div class="card pad"><div class="skeleton line"></div></div></main>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co', SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+var S={pin:null,me:null,owners:[],rows:[],today:null,filter:'queued',busy:false,skipFor:null};
+
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function app(){return document.getElementById('app')}
+function icons(){if(window.MS&&MS.icons)MS.icons()}
+function toast(m,type){if(window.MS&&MS.toast)MS.toast(m,{type:type||''});else alert(m)}
+function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+function dayLabel(d){
+  if(!d)return '';
+  if(d===S.today)return 'Today';
+  if(d===addDays(S.today,1))return 'Tomorrow';
+  if(d===addDays(S.today,-1))return 'Yesterday';
+  var x=new Date(d+'T12:00:00');return x.toLocaleDateString('en-US',{weekday:'short',month:'numeric',day:'numeric'});
+}
+function stamp(ts){if(!ts)return '';var x=new Date(ts);return x.toLocaleDateString('en-US',{month:'numeric',day:'numeric'})+' '+x.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function canRT(){return !!(S.me&&(S.me.department==='Administration'||S.me.department==='Social Services'))}
+function ownerName(k){var o=S.owners.filter(function(x){return x.owner_key===k})[0];return o?o.display_name:(k||'')}
+
+async function rpc(fn,args){
+  if(!sb)throw new Error('offline');
+  var r=await sb.rpc(fn,args);
+  if(r.error){
+    if(String(r.error.message).indexOf('bad_pin')>=0){ls('su_pin',null);S.pin=null;showPin('That PIN did not work.');throw new Error('bad_pin')}
+    throw new Error(r.error.message);
+  }
+  return r.data;
+}
+
+/* ---------- start: leadership PIN, then who you are (same as Transportation & Discharges) ---------- */
+async function start(){
+  S.pin=ls('su_pin');
+  if(!S.pin)return showPin();
+  try{await boot()}catch(e){if(e.message!=='bad_pin')failed(e)}
+}
+function failed(e){app().innerHTML='<div class="alert destructive"><i data-lucide="wifi-off"></i><div>Could not load. Check the connection and refresh.<div class="small">'+esc(e.message)+'</div></div></div>';icons()}
+function showPin(msg){
+  app().innerHTML='<div class="card pad"><div class="card-title">Leadership PIN</div><div class="card-desc mt-1">Same PIN as the leadership tools on the hub.</div>'+
+    (msg?'<div class="help error mt-2">'+esc(msg)+'</div>':'')+
+    '<div class="row mt-2"><input id="pinIn" class="input pin-input" type="tel" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="PIN"><button class="btn" onclick="submitPin()">Open</button></div></div>';
+  var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
+}
+async function submitPin(){
+  var v=document.getElementById('pinIn').value.trim();if(!v)return;
+  try{await rpc('work_roster',{p_pin:v});S.pin=v;
+    if(!(window.MS&&MS.identity&&MS.identity.isShared()))ls('su_pin',v);
+    await boot()}catch(e){if(e.message!=='bad_pin')showPin('Could not connect: '+e.message)}
+}
+async function boot(){
+  var r=await rpc('work_roster',{p_pin:S.pin});
+  S.owners=(r.owners||[]).filter(function(o){return o.active!==false});
+  var key=ls('mw_owner');
+  if(!key&&window.MS&&MS.identity){
+    var hit=MS.identity.matchName(S.owners.map(function(o){return o.display_name}));
+    if(hit)key=(S.owners.filter(function(o){return o.display_name===hit})[0]||{}).owner_key;
+  }
+  S.me=S.owners.filter(function(o){return o.owner_key===key})[0]||null;
+  setWho();
+  if(!S.me)return pickWho();
+  await load();
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&canRT()&&!S.skipFor)load().catch(function(){})});
+}
+function setWho(){var c=document.getElementById('whoChip');c.textContent=S.me?S.me.display_name:'';c.style.display=S.me?'':'none'}
+function pickWho(){
+  if(!S.owners.length)return;
+  app().innerHTML='<div class="card pad"><div class="card-title">Who are you?</div><div class="card-desc mt-1">This page is for Administration and Social Services.</div>'+
+    '<div class="list mt-2">'+S.owners.map(function(o){return '<div class="list-item" onclick="setMe(\''+o.owner_key+'\')"><div class="body"><div class="title">'+esc(o.display_name)+'</div><div class="meta">'+esc(o.department||'')+'</div></div><i data-lucide="chevron-right" class="chev"></i></div>'}).join('')+'</div></div>';
+  icons();
+}
+async function setMe(k){S.me=S.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();try{await load()}catch(e){failed(e)}}
+
+async function load(){
+  if(!canRT()){
+    app().innerHTML='<div class="empty mt-3"><i data-lucide="lock"></i><div class="e-title">Administration and Social Services only</div>'+
+      '<div class="e-desc">You are signed in as '+esc(S.me.display_name)+'. <a href="#" onclick="pickWho();return false">Not you?</a></div></div>';
+    icons();return;
+  }
+  var d=await rpc('review_text_list',{p_pin:S.pin,p_actor:S.me.owner_key});
+  S.today=d.today;S.rows=d.rows||[];render();
+}
+
+/* ---------- list ---------- */
+var LABEL={queued:'Queued',sent:'Sent',skipped:'Skipped'};
+function setFilter(f){S.filter=f;S.skipFor=null;render()}
+function render(){
+  var n={queued:0,sent:0,skipped:0};S.rows.forEach(function(r){n[r.status]++});
+  var h='<div class="tabs">'+['queued','sent','skipped'].map(function(f){
+      return '<button class="'+(S.filter===f?'on':'')+'" onclick="setFilter(\''+f+'\')">'+LABEL[f]+(n[f]?' ('+n[f]+')':'')+'</button>'}).join('')+'</div>';
+  // Already sorted by send_on, soonest first (server order).
+  var rows=S.rows.filter(function(r){return r.status===S.filter});
+  if(!rows.length){
+    h+='<div class="empty mt-3"><i data-lucide="'+(S.filter==='queued'?'inbox':'list')+'"></i><div class="e-title">Nothing '+LABEL[S.filter].toLowerCase()+'</div>'+
+      '<div class="e-desc">'+(S.filter==='queued'?'Check “Send thank-you / feedback text after discharge” on a discharge to add one here.':'')+'</div></div>';
+  }else h+=rows.map(rowHtml).join('');
+  if(S.filter==='queued')h+='<div class="note">Send the text from Carefeed on or after the send date, then tap Mark sent. Phone numbers, consent and opt-outs are handled in Carefeed.</div>';
+  app().innerHTML=h;icons();
+}
+function rowHtml(r){
+  var due=r.status==='queued'&&r.send_on<=S.today;
+  var right, sub='Discharged '+esc(dayLabel(r.discharge_date))+(r.trip_status==='scheduled'&&r.discharge_date>=S.today?' (planned)':'')+' · checked by '+esc(ownerName(r.queued_by));
+  if(r.status==='queued')right='Send '+esc(dayLabel(r.send_on))+(due?'<small>Ready now</small>':'');
+  else if(r.status==='sent')right='<span class="badge success">Sent</span><small>'+esc(stamp(r.sent_at))+'</small>';
+  else right='<span class="badge outline">Skipped</span>';
+  var h='<div class="qrow'+(due?' due':'')+'"><div class="top"><div class="b"><div class="t1">Rm '+esc(r.room)+(r.name_code?' · '+esc(r.name_code):'')+'</div>'+
+    '<div class="t2">'+sub+'</div>'+(r.status==='skipped'&&r.skip_reason?'<div class="t2">Reason: '+esc(r.skip_reason)+'</div>':'')+'</div><div class="r">'+right+'</div></div>';
+  if(r.status==='queued'){
+    if(S.skipFor===r.id){
+      h+='<div class="reason"><input class="input" id="skipWhy" maxlength="300" placeholder="Reason (optional)"></div>'+
+        '<div class="acts"><button class="btn secondary" onclick="S.skipFor=null;render()">Back</button>'+
+        '<button class="btn destructive" onclick="mark(\''+r.id+'\',\'skipped\')"><i data-lucide="x"></i>Skip it</button></div>';
+    }else{
+      h+='<div class="acts"><button class="btn outline" onclick="askSkip(\''+r.id+'\')"><i data-lucide="x"></i>Skip</button>'+
+        '<button class="btn" onclick="mark(\''+r.id+'\',\'sent\')"><i data-lucide="check"></i>Mark sent</button></div>';
+    }
+  }else if(r.status==='skipped'&&r.trip_status!=='cancelled'){
+    h+='<div class="acts"><button class="btn ghost" onclick="mark(\''+r.id+'\',\'queued\')"><i data-lucide="rotate-ccw"></i>Put back in the queue</button></div>';
+  }
+  return h+'</div>';
+}
+function askSkip(id){S.skipFor=id;render();var i=document.getElementById('skipWhy');if(i){i.focus();i.onkeydown=function(e){if(e.key==='Enter')mark(id,'skipped')}}}
+async function mark(id,st){
+  if(S.busy)return;S.busy=true;
+  var why=st==='skipped'?((document.getElementById('skipWhy')||{}).value||'').trim():null;
+  try{await rpc('review_text_mark',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:id,p_status:st,p_reason:why||null});
+    S.skipFor=null;await load();toast(st==='sent'?'Marked sent':st==='skipped'?'Skipped':'Back in the queue','success')}
+  catch(e){if(e.message!=='bad_pin')toast('Not saved: '+e.message,'destructive')}
+  finally{S.busy=false}
+}
+start();
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
+</body>
+</html>

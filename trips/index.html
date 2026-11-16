@@ -149,6 +149,16 @@ async function setMe(k){S.me=S.owners.filter(function(o){return o.owner_key===k}
 async function refresh(){
   var d=await rpc('trips_list',{p_pin:S.pin});
   S.today=d.today;S.rows=d.rows||[];S.occ=d.occ||[];
+  // Thank-you / feedback text queue (11/16/26): Administration and Social Services only.
+  S.rq={};
+  if(canRT()){try{var q=await rpc('review_text_list',{p_pin:S.pin,p_actor:S.me.owner_key});(q.rows||[]).forEach(function(x){S.rq[x.trip_id]=x})}catch(e){}}
+}
+function canRT(){return !!(S.me&&(S.me.department==='Administration'||S.me.department==='Social Services'))}
+function rtText(r){
+  var q=S.rq&&S.rq[r.id];if(!q)return '';
+  if(q.status==='queued')return '<span class="badge info">Queued</span> send on '+esc(dayLabel(q.send_on));
+  if(q.status==='sent')return '<span class="badge success">Sent</span>'+(q.sent_at?' '+esc(new Date(q.sent_at).toLocaleDateString('en-US',{month:'numeric',day:'numeric'})):'');
+  return '<span class="badge outline">Skipped</span>'+(q.skip_reason?' '+esc(q.skip_reason):'');
 }
 function byId(id){return S.rows.filter(function(r){return r.id===id})[0]}
 
@@ -157,7 +167,9 @@ function render(){
   S.form=null;
   document.getElementById('fab').hidden=false;
   var kind=S.tab, h='<div class="tabs"><button class="'+(kind==='appt'?'on':'')+'" onclick="setTab(\'appt\')"><i data-lucide="bus" class="icon-sm"></i> Appointments</button>'+
-    '<button class="'+(kind==='dc'?'on':'')+'" onclick="setTab(\'dc\')"><i data-lucide="door-open" class="icon-sm"></i> Discharges</button></div>';
+    '<button class="'+(kind==='dc'?'on':'')+'" onclick="setTab(\'dc\')"><i data-lucide="door-open" class="icon-sm"></i> Discharges</button></div>'+
+    (kind==='dc'&&canRT()?'<a class="btn outline block mb-2" href="../review-texts/"><i data-lucide="message-square-heart"></i>Review Text Queue'+
+      (function(){var n=Object.keys(S.rq||{}).filter(function(k){return S.rq[k].status==='queued'}).length;return n?' <span class="badge info">'+n+' queued</span>':''})()+'</a>':'');
   // Upcoming occurrences of this kind, grouped by day
   var occ=S.occ.filter(function(o){var r=byId(o.id);return r&&r.kind===kind&&o.date>=S.today});
   // Discharges whose date has passed but PCC has not shown them leaving yet
@@ -229,6 +241,7 @@ function openDetail(id,date){
     kv('Transport phone',r.transport_phone?'<a href="tel:'+esc(r.transport_phone)+'">'+esc(r.transport_phone)+'</a>':'')+
     kv('Confirmation #',esc(r.confirmation))+kv('Pickup',t12(r.pickup_time))+kv('Back about',t12(r.return_time))+
     kv('Going with',esc(r.escort))+kv('Special needs',esc(r.special_needs))+kv('Notes',esc(r.notes).replace(/\n/g,'<br>'))+
+    (r.kind==='dc'&&canRT()?kv('Thank-you text',rtText(r)||'<span class="muted">Not requested</span>'):'')+
     kv('Checklist',r.list_total?(r.list_total-r.list_open)+' of '+r.list_total+' steps done · <a href="../my-work/">open My Work</a>':'')+
     kv('Entered by',esc(ownerName(r.created_by)))+(r.updated_by&&r.updated_by!==r.created_by?kv('Last change',esc(ownerName(r.updated_by))):'')+
     '</dl></div><div class="actions">';
@@ -290,7 +303,15 @@ function openForm(kind,id){
   }else{
     h+='<div class="fs"><div class="fs-h"><i data-lucide="calendar" class="icon-sm"></i>Discharge</div>'+
       '<div class="two">'+inp('f_date','Discharge date',r.trip_date,'date')+inp('f_time','Leaving at (if known)',tm(r.appt_time),'time')+'</div>'+
-      '<label for="f_dest">Going to</label><select class="select" id="f_dest">'+opt(DEST,r.dc_destination)+'</select></div>';
+      '<label for="f_dest">Going to</label><select class="select" id="f_dest">'+opt(DEST,r.dc_destination)+'</select>';
+    if(canRT()){
+      var q=id&&S.rq?S.rq[id]:null, sent=q&&q.status==='sent', on=q&&(q.status==='queued'||sent);
+      S.form.rtWas=!!on;
+      h+='<label class="check-row mt-2" style="border:0;text-transform:none;letter-spacing:0;font-size:16px;color:var(--foreground);margin:14px 0 0;cursor:pointer">'+
+        '<input type="checkbox" id="f_rt"'+(on?' checked':'')+(sent?' disabled':'')+'><span style="font-weight:700">Send thank-you / feedback text after discharge</span></label>'+
+        '<div class="note">'+(sent?'Already sent through Carefeed.':'Check it when the discharge went well and a thank-you text fits. It goes on the Review Text Queue, set to send 2 days after the discharge date. Phone numbers, consent and opt-outs stay in Carefeed.')+'</div>';
+    }
+    h+='</div>';
   }
   h+='<div class="fs"><div class="fs-h"><i data-lucide="bus" class="icon-sm"></i>Transportation</div>'+
     '<label for="f_ttype">How</label><select class="select" id="f_ttype">'+opt(TRANSPORT,r.transport_type)+'</select>'+
@@ -330,8 +351,14 @@ async function saveForm(){
   if(S.busy)return;S.busy=true;var b=document.getElementById('saveBtn');b.disabled=true;
   try{
     var id=await rpc('trips_save',{p_pin:S.pin,p_actor:S.me.owner_key,p_row:row});
+    var rtBox=document.getElementById('f_rt'), rtMsg='';
+    if(!A&&rtBox&&!rtBox.disabled&&rtBox.checked!==!!f.rtWas){
+      try{var st=await rpc('review_text_set',{p_pin:S.pin,p_actor:S.me.owner_key,p_trip_id:id,p_on:rtBox.checked});
+        rtMsg=st==='queued'?' · thank-you text queued':st==='skipped'?' · thank-you text skipped':'';}
+      catch(e){if(e.message==='bad_pin')throw e;toast('Discharge saved, but the thank-you text was not queued: '+e.message,'destructive')}
+    }
     await refresh();S.tab=f.kind;
-    toast(f.id?'Saved':(A?'Saved · on the iPad banner':'Saved · discharge checklist started in My Work'),'success');
+    toast((f.id?'Saved':(A?'Saved · on the iPad banner':'Saved · discharge checklist started in My Work'))+rtMsg,'success');
     openDetail(id,row.repeat_days&&row.repeat_days.length?null:row.trip_date);
   }catch(e){if(e.message!=='bad_pin')bad('Not saved: '+e.message)}
   finally{S.busy=false;if(b)b.disabled=false}
