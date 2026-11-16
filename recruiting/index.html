@@ -57,6 +57,9 @@ body{padding-bottom:80px}
 .lbl{display:block;margin:14px 0 6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
 .textarea{width:100%;font-size:16px}
 .linkbtn{background:none;border:0;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+.wk{margin-top:12px;font-size:13.5px}
+.wk .it{padding:7px 0;border-bottom:1px solid var(--border)}.wk .it:last-child{border-bottom:0}
+.wk .it b{font-size:14px}.wk .it small{color:var(--muted-foreground)}
 .scr-q{margin-top:14px}
 .scr-q .q{font-size:14.5px;font-weight:700;margin-bottom:6px}
 .scr-q .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -129,6 +132,9 @@ function isStale(r){return r.stage==='new'&&hoursSince(r.submitted_at)>=STALE_HO
 function fmtDate(d){if(!d)return '';return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
 function fmtTs(t){return new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
 function telHref(p){return 'tel:'+String(p).replace(/[^0-9+]/g,'')}
+// "5595550100", "559.555.0100", "+1 559 555 0100" -> "(559) 555-0100"; anything else is shown as typed.
+function fmtPhone(p){var d=String(p||'').replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);
+  return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):String(p||'')}
 
 async function rpc(fn,args){
   if(!sb)throw new Error('Supabase did not load');
@@ -216,7 +222,7 @@ function card(r){
     '<div class="top"><div class="b"><div class="nm">'+esc(r.name||'(no name)')+'</div><div class="pos">'+esc(r.position||'Position not given')+'</div></div>'+
       '<div class="age"><b>'+(days==null?'—':days===0?'Today':days+(days===1?' day':' days'))+'</b>'+esc(fmtDate(r.applied_on))+'</div></div>'+
     '<div class="contact" onclick="event.stopPropagation()">'+
-      (r.phone?'<a href="'+telHref(r.phone)+'"><i data-lucide="phone"></i>'+esc(r.phone)+'</a>':'')+
+      (r.phone?'<a href="'+telHref(r.phone)+'"><i data-lucide="phone"></i>'+esc(fmtPhone(r.phone))+'</a>':'')+
       (r.email?'<a href="mailto:'+esc(r.email)+'"><i data-lucide="mail"></i>'+esc(r.email)+'</a>':'')+'</div>'+
     (av?'<div class="avail">'+av+'</div>':'')+
     '<div class="row2"><span class="badge '+(r.stage==='new'?'st-new':r.stage==='hired'?'success':CLOSED[r.stage]?'outline':'info')+'">'+esc(stageLabel(r.stage))+'</span>'+
@@ -242,6 +248,7 @@ function openApp(id){
     '<label class="lbl" for="noteIn">Note (optional)</label><textarea id="noteIn" class="textarea" rows="3" maxlength="500" placeholder="e.g., Left voicemail; interview Thu 2 PM">'+esc(r.notes||'')+'</textarea>'+
     '<div class="small muted mt-1">Keep notes about the job: contact attempts, interview times, licenses. Nothing about age, health, family, religion, or other protected traits.</div>'+
     '<div class="d-actions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" id="saveBtn" onclick="saveStage()">Save</button></div>'+
+    workHtml(r)+
     '<div class="scr-sum"><div class="row" style="justify-content:space-between;align-items:center"><b>Phone screen</b>'+
       '<button class="btn sm" onclick="openScreen(\''+r.id+'\')"><i data-lucide="phone-call"></i>'+(r.screening?'Edit':'Start')+'</button></div>'+
       (r.screening?screenSummary(r.screening):'<div class="muted mt-1">Not screened yet.</div>')+'</div>'+
@@ -256,6 +263,19 @@ async function saveStage(){
     await rpc('recruiting_set_stage',{p_pin:S.pin,p_actor:me(),p_id:S.open.id,p_stage:S.open.stage,p_note:document.getElementById('noteIn').value});
     closeSheet();await load();toast('Saved.','success');
   }catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
+}
+
+/* ---------- work history (from the application; no reasons for leaving, supervisors, or references) ---------- */
+function workHtml(r){
+  var w=(r.work||[]).map(function(j){
+    var d=[j.from,j.to].filter(Boolean).join(' – ');
+    return '<div class="it"><b>'+esc(j.employer||'Employer not given')+'</b>'+(d?' <small>'+esc(d)+'</small>':'')+(j.title?'<div>'+esc(j.title)+'</div>':'')+'</div>'}).join('');
+  var e=(r.education||[]).map(function(x){
+    var bits=[x.study,x.diploma==='Yes'?'Completed':x.diploma==='No'?'Not completed':x.diploma].filter(Boolean).join(' · ');
+    return '<div class="it"><b>'+esc(x.school||x.level||'')+'</b>'+(x.level&&x.school?' <small>'+esc(x.level)+'</small>':'')+(bits?'<div>'+esc(bits)+'</div>':'')+
+      (x.specialized?'<div class="muted">'+esc(x.specialized)+'</div>':'')+'</div>'}).join('');
+  if(!w&&!e)return '';
+  return '<div class="wk">'+(w?'<span class="lbl">Work history</span>'+w:'')+(e?'<span class="lbl">Education &amp; training</span>'+e:'')+'</div>';
 }
 
 /* ---------- phone screen ---------- */
