@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Morning Star — Recruiting</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../ms-identity.js?v=2"></script>
+<link rel="stylesheet" href="../ms-ui.css?v=3">
+<script src="../ms-ui.js?v=1"></script>
+<style>
+/* Recruiting pipeline (11/16/26) for the HR Director. Reads job_applications through the PIN-only
+   recruiting_board RPC (HR PIN, checked by the server). Shows contact + availability + stage only:
+   no address, references, work history, termination answers, or signature. localStorage prefix: rq_ */
+body{padding-bottom:80px}
+.page{max-width:720px;margin:0 auto;padding:16px 14px 24px}
+.warm{--hr:var(--g-hr);--hr-bg:var(--g-hr-bg)}
+.funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.fstep{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-sm);padding:9px 8px;text-align:center;cursor:pointer;font:inherit;color:inherit}
+.fstep .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.fstep .l{font-size:11.5px;font-weight:700;color:var(--muted-foreground);letter-spacing:.02em}
+.fstep.on{border-color:var(--hr);background:var(--hr-bg)}
+.fstep.on .n{color:var(--hr)}
+.fstep.closed .n{color:var(--muted-foreground)}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.filters .select{width:100%;font-size:16px}
+.meta{font-size:13px;color:var(--muted-foreground);margin:6px 2px 12px;display:flex;gap:10px;flex-wrap:wrap}
+.app-card{background:var(--card);border:1px solid var(--border);border-left:5px solid var(--hr);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.app-card:active{transform:scale(.995)}
+.app-card.stale{border-color:#e8a33d;border-left-color:#d9480f;background:#fff8ec}
+.app-card.closed{border-left-color:var(--border);opacity:.75}
+.top{display:flex;gap:10px;align-items:flex-start}
+.top .b{flex:1;min-width:0}
+.nm{font-weight:800;font-size:17px}
+.pos{font-size:14px;color:var(--muted-foreground);margin-top:1px}
+.age{text-align:right;font-size:13px;color:var(--muted-foreground);white-space:nowrap}
+.age b{display:block;font-size:15px;color:var(--foreground)}
+.stale .age b{color:#c2410c}
+.contact{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:14.5px}
+.contact a{color:var(--primary);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.contact a svg{width:15px;height:15px}
+.avail{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.avail .badge{font-weight:600}
+.row2{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.note{font-size:13.5px;color:var(--muted-foreground);margin-top:6px;overflow-wrap:anywhere}
+.flag{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:#c2410c}
+.flag svg{width:14px;height:14px}
+.st-new{background:var(--hr-bg);color:var(--hr)}
+.stages{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.stages .chip{justify-content:center;min-height:42px}
+.hist{margin-top:14px;border-top:1px solid var(--border);padding-top:8px}
+.hist .h{font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--border)}
+.hist .h:last-child{border-bottom:0}
+.hist small{color:var(--muted-foreground)}
+.lbl{display:block;margin:14px 0 6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
+.textarea{width:100%;font-size:16px}
+.linkbtn{background:none;border:0;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+@media(max-width:480px){.funnel{grid-template-columns:repeat(4,1fr)}.fstep .n{font-size:19px}.fstep .l{font-size:10.5px}}
+@media(prefers-color-scheme:dark){.app-card.stale{background:#3a2a12;border-color:#a8641b}}
+</style>
+</head>
+<body class="warm">
+<div class="ms-header">
+  <div><h1><i data-lucide="user-search"></i>Recruiting</h1><div class="sub">Morning Star Post Acute · applicant pipeline</div></div>
+</div>
+<main class="page" id="app"><div class="card pad"><div class="skeleton line"></div></div></main>
+
+<div class="overlay sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="dialog" id="sheetBody"></div></div>
+
+<script>
+var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co', SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
+var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+var STAGES=[['new','New'],['contacted','Contacted'],['screened','Screened'],['interviewed','Interviewed'],
+            ['offered','Offered'],['hired','Hired'],['not_moving_forward','Not moving forward'],['withdrawn','Withdrawn']];
+var CLOSED={hired:1,not_moving_forward:1,withdrawn:1};
+var STALE_HOURS=48;
+var S={pin:null,rows:[],now:null,pos:'all',stage:'open',open:null};
+
+// The HR PIN lives in sessionStorage only (gone when the tab closes); filters are remembered per device.
+function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function app(){return document.getElementById('app')}
+function icons(){if(window.MS&&MS.icons)MS.icons()}
+function toast(m,type){if(window.MS&&MS.toast)MS.toast(m,{type:type||''});else alert(m)}
+function stageLabel(v){var s=STAGES.filter(function(x){return x[0]===v})[0];return s?s[1]:v}
+function me(){var u=window.MS&&MS.identity&&MS.identity.get();return (u&&u.name)||'HR'}
+
+// Positions come in free text ("CNA", "Certified Nursing Assistant (CNA)", "CNA. HHA") — group them for the filter.
+function posGroup(p){
+  var s=String(p||'').toUpperCase();
+  if(/\bCNA\b|NURSING ASSISTANT|\bHHA\b/.test(s))return 'CNA';
+  if(/\bLVN\b|VOCATIONAL/.test(s))return 'LVN';
+  if(/\bRN\b|REGISTERED NURSE/.test(s))return 'RN';
+  if(/THERAP|\bRT\b|\bOT\b|\bPT\b/.test(s))return 'Therapy / Respiratory';
+  if(/DIET|COOK|KITCHEN|CULINARY/.test(s))return 'Dietary';
+  if(/HOUSEK|LAUNDRY|JANITOR|EVS/.test(s))return 'Housekeeping / Laundry';
+  return 'Other';
+}
+function hoursSince(ts){return (S.now-new Date(ts).getTime())/36e5}
+function daysSince(d){ // calendar days since the application date
+  if(!d)return null;var a=new Date(d+'T12:00:00'),n=new Date(S.now);n.setHours(12,0,0,0);
+  return Math.max(0,Math.round((n-a)/864e5));
+}
+function isStale(r){return r.stage==='new'&&hoursSince(r.submitted_at)>=STALE_HOURS}
+function fmtDate(d){if(!d)return '';return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function fmtTs(t){return new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+function telHref(p){return 'tel:'+String(p).replace(/[^0-9+]/g,'')}
+
+async function rpc(fn,args){
+  if(!sb)throw new Error('Supabase did not load');
+  var r=await sb.rpc(fn,args);
+  if(r.error){
+    var m=String(r.error.message||'')+' '+JSON.stringify(r.error.details||'');
+    if(/bad_pin|locked|no_hr_pin/.test(m)){
+      ss('rq_pin',null);S.pin=null;
+      showPin(/locked/.test(m)?'Too many wrong tries. Wait 15 minutes.':/no_hr_pin/.test(m)?'The HR PIN has not been set yet. Stephen can set it below.':'That PIN did not work.');
+      throw new Error('auth');
+    }
+    throw new Error(r.error.message);
+  }
+  return r.data;
+}
+
+/* ---------- PIN ---------- */
+function showPin(msg){
+  app().innerHTML='<div class="card pad"><div class="card-title">HR PIN</div><div class="card-desc mt-1">Applicant contact details are for HR only.</div>'+
+    (msg?'<div class="alert destructive mt-2"><i data-lucide="lock"></i><div>'+esc(msg)+'</div></div>':'')+
+    '<div class="row mt-2"><input id="pinIn" class="input pin-input" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="PIN"><button class="btn" onclick="submitPin()">Open</button></div>'+
+    '<div class="mt-2 small muted"><button class="linkbtn" onclick="showSetPin()">Set or change the HR PIN</button> (needs the leadership PIN)</div></div>';
+  icons();var i=document.getElementById('pinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitPin()};
+}
+async function submitPin(){
+  var v=document.getElementById('pinIn').value.trim();if(!v)return;
+  S.pin=v;try{await load();ss('rq_pin',v)}catch(e){if(e.message!=='auth')showPin('Could not connect: '+e.message)}
+}
+function showSetPin(){
+  app().innerHTML='<div class="card pad"><div class="card-title">Set the HR PIN</div>'+
+    '<div class="card-desc mt-1">6 to 8 digits. Share it only with the HR Director and the people who hire. Changing it signs everyone out of Recruiting.</div>'+
+    '<label class="lbl">Leadership PIN</label><input id="ldrIn" class="input" type="password" inputmode="numeric" maxlength="8" autocomplete="off">'+
+    '<label class="lbl">New HR PIN</label><input id="newIn" class="input" type="password" inputmode="numeric" maxlength="8" autocomplete="off">'+
+    '<div class="row mt-2"><button class="btn" onclick="savePin()">Save PIN</button><button class="btn secondary" onclick="showPin()">Cancel</button></div></div>';
+}
+async function savePin(){
+  var l=document.getElementById('ldrIn').value.trim(),n=document.getElementById('newIn').value.trim();
+  if(!/^[0-9]{6,8}$/.test(n))return toast('The HR PIN must be 6 to 8 digits.','destructive');
+  var r=await sb.rpc('ms_hr_pin_set',{p_leader_pin:l,p_new_pin:n});
+  if(r.error)return toast(/locked/.test(r.error.message)?'Leadership PIN locked. Wait 15 minutes.':/bad_pin|pin_changed/.test(r.error.message)?'Leadership PIN did not work.':r.error.message,'destructive');
+  toast('HR PIN saved.','success');showPin();
+}
+
+/* ---------- board ---------- */
+async function load(){
+  var d=await rpc('recruiting_board',{p_pin:S.pin});
+  S.rows=d.rows||[];S.now=new Date(d.now).getTime();render();
+}
+function filtered(){
+  return S.rows.filter(function(r){
+    if(S.pos!=='all'&&posGroup(r.position)!==S.pos)return false;
+    if(S.stage==='open')return !CLOSED[r.stage];
+    if(S.stage==='stale')return isStale(r);
+    if(S.stage!=='all'&&r.stage!==S.stage)return false;
+    return true;
+  }).sort(function(a,b){
+    var sa=isStale(a)?0:1,sb2=isStale(b)?0:1;if(sa!==sb2)return sa-sb2;
+    return new Date(b.submitted_at)-new Date(a.submitted_at);
+  });
+}
+function render(){
+  var byPos=S.rows.filter(function(r){return S.pos==='all'||posGroup(r.position)===S.pos});
+  var counts={};STAGES.forEach(function(s){counts[s[0]]=0});byPos.forEach(function(r){counts[r.stage]=(counts[r.stage]||0)+1});
+  var stale=byPos.filter(isStale).length;
+  var groups={};S.rows.forEach(function(r){groups[posGroup(r.position)]=1});
+  var list=filtered();
+  var h='<div class="funnel">'+STAGES.map(function(s){
+      return '<button class="fstep'+(S.stage===s[0]?' on':'')+(CLOSED[s[0]]?' closed':'')+'" onclick="setStage(\''+s[0]+'\')"><div class="n">'+counts[s[0]]+'</div><div class="l">'+esc(s[1])+'</div></button>';
+    }).join('')+'</div>'+
+    '<div class="filters"><select class="select" aria-label="Position" onchange="setPos(this.value)"><option value="all">All positions</option>'+
+      Object.keys(groups).sort().map(function(g){return '<option'+(S.pos===g?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>'+
+    '<select class="select" aria-label="Stage" onchange="setStage(this.value)">'+
+      [['open','Open (not closed out)'],['stale','New 48+ hours'],['all','All stages']].concat(STAGES).map(function(s){return '<option value="'+s[0]+'"'+(S.stage===s[0]?' selected':'')+'>'+esc(s[1])+'</option>'}).join('')+'</select></div>'+
+    '<div class="meta"><span>'+list.length+' shown</span>'+(stale?'<span class="flag"><i data-lucide="alarm-clock"></i>'+stale+' still New after 48 hours</span>':'')+
+      '<span style="margin-left:auto"><button class="linkbtn" onclick="refresh()">Refresh</button></span></div>';
+  if(!list.length)h+='<div class="empty"><i data-lucide="inbox"></i><div class="e-title">No applicants here</div><div class="e-desc">Try another position or stage.</div></div>';
+  h+=list.map(card).join('');
+  app().innerHTML=h;icons();
+}
+function card(r){
+  var st=isStale(r),days=daysSince(r.applied_on),hrs=Math.floor(hoursSince(r.submitted_at));
+  var av=(r.availability||[]).map(function(a){return '<span class="badge outline">'+esc(a)+'</span>'}).join('');
+  if(r.start_date)av+='<span class="badge outline">Can start: '+esc(r.start_date)+'</span>';
+  return '<div class="app-card'+(st?' stale':'')+(CLOSED[r.stage]?' closed':'')+'" onclick="openApp(\''+r.id+'\')">'+
+    '<div class="top"><div class="b"><div class="nm">'+esc(r.name||'(no name)')+'</div><div class="pos">'+esc(r.position||'Position not given')+'</div></div>'+
+      '<div class="age"><b>'+(days==null?'—':days===0?'Today':days+(days===1?' day':' days'))+'</b>'+esc(fmtDate(r.applied_on))+'</div></div>'+
+    '<div class="contact" onclick="event.stopPropagation()">'+
+      (r.phone?'<a href="'+telHref(r.phone)+'"><i data-lucide="phone"></i>'+esc(r.phone)+'</a>':'')+
+      (r.email?'<a href="mailto:'+esc(r.email)+'"><i data-lucide="mail"></i>'+esc(r.email)+'</a>':'')+'</div>'+
+    (av?'<div class="avail">'+av+'</div>':'')+
+    '<div class="row2"><span class="badge '+(r.stage==='new'?'st-new':r.stage==='hired'?'success':CLOSED[r.stage]?'outline':'info')+'">'+esc(stageLabel(r.stage))+'</span>'+
+      (st?'<span class="flag"><i data-lucide="alarm-clock"></i>New for '+(hrs>=72?Math.floor(hrs/24)+' days':hrs+' hours')+'</span>':'')+
+      (r.stage!=='new'&&r.updated_by?'<small class="muted">'+esc(r.updated_by)+' · '+esc(fmtTs(r.stage_updated_at))+'</small>':'')+'</div>'+
+    (r.notes?'<div class="note">'+esc(r.notes)+'</div>':'')+'</div>';
+}
+function setStage(v){S.stage=(S.stage===v&&v!=='open')?'open':v;ls('rq_stage',S.stage);render()}
+function setPos(v){S.pos=v;ls('rq_pos',v);render()}
+async function refresh(){try{await load();toast('Up to date.','success')}catch(e){if(e.message!=='auth')toast('Could not refresh: '+e.message,'destructive')}}
+
+/* ---------- stage sheet ---------- */
+function openApp(id){
+  var r=S.rows.filter(function(x){return x.id===id})[0];if(!r)return;S.open={id:id,stage:r.stage};
+  var hist=(r.history||[]).map(function(x){
+    return '<div class="h"><b>'+esc(stageLabel(x.from))+' → '+esc(stageLabel(x.to))+'</b> <small>'+esc(x.by||'')+' · '+esc(fmtTs(x.at))+'</small>'+(x.note?'<div>'+esc(x.note)+'</div>':'')+'</div>';
+  }).join('');
+  document.getElementById('sheetBody').innerHTML='<div class="grabber"></div>'+
+    '<div class="d-title">'+esc(r.name)+'</div><div class="d-desc">'+esc(r.position||'')+' · applied '+esc(fmtDate(r.applied_on))+'</div>'+
+    '<span class="lbl">Stage</span><div class="stages" id="stg">'+STAGES.map(function(s){
+      return '<button class="chip'+(r.stage===s[0]?' on':'')+'" data-v="'+s[0]+'" onclick="pickStage(this)">'+esc(s[1])+'</button>'}).join('')+'</div>'+
+    '<label class="lbl" for="noteIn">Note (optional)</label><textarea id="noteIn" class="textarea" rows="3" maxlength="500" placeholder="e.g., Left voicemail; interview Thu 2 PM">'+esc(r.notes||'')+'</textarea>'+
+    '<div class="small muted mt-1">Keep notes about the job: contact attempts, interview times, licenses. Nothing about age, health, family, religion, or other protected traits.</div>'+
+    '<div class="d-actions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" id="saveBtn" onclick="saveStage()">Save</button></div>'+
+    (hist?'<div class="hist"><span class="lbl" style="margin-top:4px">History</span>'+hist+'</div>':'');
+  document.getElementById('sheet').classList.add('open');icons();
+}
+function pickStage(b){document.querySelectorAll('#stg .chip').forEach(function(c){c.classList.toggle('on',c===b)});S.open.stage=b.getAttribute('data-v')}
+function closeSheet(){document.getElementById('sheet').classList.remove('open');S.open=null}
+async function saveStage(){
+  if(!S.open)return;var btn=document.getElementById('saveBtn');btn.disabled=true;
+  try{
+    await rpc('recruiting_set_stage',{p_pin:S.pin,p_actor:me(),p_id:S.open.id,p_stage:S.open.stage,p_note:document.getElementById('noteIn').value});
+    closeSheet();await load();toast('Saved.','success');
+  }catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
+}
+
+/* ---------- start ---------- */
+(async function(){
+  S.stage=ls('rq_stage')||'open';S.pos=ls('rq_pos')||'all';
+  S.pin=ss('rq_pin');
+  if(!S.pin)return showPin();
+  try{await load()}catch(e){if(e.message!=='auth')app().innerHTML='<div class="alert destructive"><i data-lucide="wifi-off"></i><div>Could not load. Check the connection and refresh.<div class="small">'+esc(e.message)+'</div></div></div>';icons()}
+})();
+// Bottom bar Back (ms-nav.js): close the sheet first, then the hub.
+window.msNavBack=function(){if(S.open){closeSheet();return true}return false};
+</script>
+<script src="../ms-nav.js?v=1" defer></script>
+</body>
+</html>

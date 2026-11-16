@@ -508,6 +508,24 @@
    }
   },
   {
+   "id": "recruiting",
+   "registry": {
+    "app": "Recruiting",
+    "url": "`/recruiting/`",
+    "audience": "HR Director + hiring leaders (hub HR group; server-checked HR PIN)",
+    "data": "Supabase `job_applications` (read only through PIN-only `recruiting_board`: name, position, dates, phone/email, availability — never address, references, work history, termination answers, or signature); stages in `job_application_status` + `job_application_stage_history` via `recruiting_set_stage`. HR PIN = bcrypt row `ms_dept_pins.dept='hr'` (5 misses = 15-min lockout), set with `ms_hr_pin_set` (leadership PIN). Anon has no table access",
+    "status": "Live 11/16/26"
+   },
+   "tile": {
+    "group": "hr",
+    "href": "recruiting/",
+    "icon": "user-search",
+    "fb": "🔎",
+    "name": "Recruiting",
+    "desc": "Applicant pipeline — call back, screen, hire"
+   }
+  },
+  {
    "id": "shoutouts",
    "registry": {
     "app": "Shout Outs",
