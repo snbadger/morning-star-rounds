@@ -17,7 +17,7 @@
 body{padding-bottom:80px}
 .page{max-width:720px;margin:0 auto;padding:16px 14px 24px}
 .warm{--hr:var(--g-hr);--hr-bg:var(--g-hr-bg)}
-.funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.funnel{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin-bottom:12px}
 .fstep{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-sm);padding:9px 8px;text-align:center;cursor:pointer;font:inherit;color:inherit}
 .fstep .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
 .fstep .l{font-size:11.5px;font-weight:700;color:var(--muted-foreground);letter-spacing:.02em}
@@ -57,7 +57,7 @@ body{padding-bottom:80px}
 .lbl{display:block;margin:14px 0 6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
 .textarea{width:100%;font-size:16px}
 .linkbtn{background:none;border:0;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
-@media(max-width:480px){.funnel{grid-template-columns:repeat(4,1fr)}.fstep .n{font-size:19px}.fstep .l{font-size:10.5px}}
+@media(max-width:480px){.funnel{grid-template-columns:repeat(3,1fr)}.fstep .n{font-size:19px}.fstep .l{font-size:10.5px}}
 @media(prefers-color-scheme:dark){.app-card.stale{background:#3a2a12;border-color:#a8641b}}
 </style>
 </head>
@@ -73,8 +73,8 @@ body{padding-bottom:80px}
 var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co', SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 var STAGES=[['new','New'],['contacted','Contacted'],['screened','Screened'],['interviewed','Interviewed'],
-            ['offered','Offered'],['hired','Hired'],['not_moving_forward','Not moving forward'],['withdrawn','Withdrawn']];
-var CLOSED={hired:1,not_moving_forward:1,withdrawn:1};
+            ['offered','Offered'],['hired','Hired'],['position_filled','Position filled'],['not_moving_forward','Not moving forward'],['withdrawn','Withdrawn']];
+var CLOSED={hired:1,position_filled:1,not_moving_forward:1,withdrawn:1};
 var STALE_HOURS=48;
 var S={pin:null,rows:[],now:null,pos:'all',stage:'open',open:null};
 
