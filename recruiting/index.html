@@ -57,6 +57,13 @@ body{padding-bottom:80px}
 .lbl{display:block;margin:14px 0 6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground)}
 .textarea{width:100%;font-size:16px}
 .linkbtn{background:none;border:0;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+.scr-q{margin-top:14px}
+.scr-q .q{font-size:14.5px;font-weight:700;margin-bottom:6px}
+.scr-q .chips{display:flex;flex-wrap:wrap;gap:6px}
+.scr-q .input,.scr-q .textarea{width:100%;font-size:16px}
+.scr-sum{margin-top:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--hr-bg);font-size:13.5px}
+.scr-sum dl{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin:6px 0 0}
+.scr-sum dt{color:var(--muted-foreground);font-weight:600}.scr-sum dd{margin:0;overflow-wrap:anywhere}
 @media(max-width:480px){.funnel{grid-template-columns:repeat(3,1fr)}.fstep .n{font-size:19px}.fstep .l{font-size:10.5px}}
 @media(prefers-color-scheme:dark){.app-card.stale{background:#3a2a12;border-color:#a8641b}}
 </style>
@@ -76,6 +83,20 @@ var STAGES=[['new','New'],['contacted','Contacted'],['screened','Screened'],['in
             ['offered','Offered'],['hired','Hired'],['position_filled','Position filled'],['not_moving_forward','Not moving forward'],['withdrawn','Withdrawn']];
 var CLOSED={hired:1,position_filled:1,not_moving_forward:1,withdrawn:1};
 var STALE_HOURS=48;
+// Phone screen (job-related only; the server keeps only these fields). No salary history (Lab. Code 432.3),
+// no criminal history before an offer (Gov. Code 12952), nothing about protected traits.
+var SCREEN=[
+  {k:'still_interested',q:'Still interested in this role?',t:'one',o:[['yes','Yes'],['no','No']]},
+  {k:'license',q:'Current California license or certification for this role?',t:'one',o:[['yes','Yes'],['no','No'],['in_progress','In progress'],['not_required','Not required']],
+   h:'HR verifies the license separately. Do not record license numbers here.'},
+  {k:'shifts',q:'Which shifts can you work?',t:'many',o:[['Days','Days'],['Evenings','Evenings'],['Nights','Nights'],['Weekends','Weekends']]},
+  {k:'status_wanted',q:'Full-time, part-time, or per diem?',t:'many',o:[['full_time','Full-time'],['part_time','Part-time'],['per_diem','Per diem']]},
+  {k:'start',q:'When could you start?',t:'text',max:100,ph:'e.g., 2 weeks notice, Dec 1'},
+  {k:'snf_experience',q:'Worked in skilled nursing or long-term care?',t:'one',o:[['yes','Yes'],['no','No']],note:'snf_note',noteMax:300,notePh:'Where / how long (optional)'},
+  {k:'pay_expectation',q:'What hourly rate are you looking for?',t:'text',max:60,ph:'Expected rate only. Do not ask about past pay.'},
+  {k:'why',q:'What interests you about working at Morning Star?',t:'long',max:500},
+  {k:'result',q:'Screen result',t:'one',o:[['interview','Move to interview'],['hold','Hold'],['not_moving_forward','Not moving forward']],note:'result_note',noteMax:300,notePh:'Why (optional, job-related)'}
+];
 var S={pin:null,rows:[],now:null,pos:'all',stage:'open',open:null};
 
 // The HR PIN lives in sessionStorage only (gone when the tab closes); filters are remembered per device.
@@ -200,6 +221,7 @@ function card(r){
     (av?'<div class="avail">'+av+'</div>':'')+
     '<div class="row2"><span class="badge '+(r.stage==='new'?'st-new':r.stage==='hired'?'success':CLOSED[r.stage]?'outline':'info')+'">'+esc(stageLabel(r.stage))+'</span>'+
       (st?'<span class="flag"><i data-lucide="alarm-clock"></i>New for '+(hrs>=72?Math.floor(hrs/24)+' days':hrs+' hours')+'</span>':'')+
+      (r.screening?'<span class="badge success">Screened'+(r.screening.answers&&r.screening.answers.result?': '+esc(optLabel('result',r.screening.answers.result)):'')+'</span>':'')+
       (r.stage!=='new'&&r.updated_by?'<small class="muted">'+esc(r.updated_by)+' · '+esc(fmtTs(r.stage_updated_at))+'</small>':'')+'</div>'+
     (r.notes?'<div class="note">'+esc(r.notes)+'</div>':'')+'</div>';
 }
@@ -220,6 +242,9 @@ function openApp(id){
     '<label class="lbl" for="noteIn">Note (optional)</label><textarea id="noteIn" class="textarea" rows="3" maxlength="500" placeholder="e.g., Left voicemail; interview Thu 2 PM">'+esc(r.notes||'')+'</textarea>'+
     '<div class="small muted mt-1">Keep notes about the job: contact attempts, interview times, licenses. Nothing about age, health, family, religion, or other protected traits.</div>'+
     '<div class="d-actions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" id="saveBtn" onclick="saveStage()">Save</button></div>'+
+    '<div class="scr-sum"><div class="row" style="justify-content:space-between;align-items:center"><b>Phone screen</b>'+
+      '<button class="btn sm" onclick="openScreen(\''+r.id+'\')"><i data-lucide="phone-call"></i>'+(r.screening?'Edit':'Start')+'</button></div>'+
+      (r.screening?screenSummary(r.screening):'<div class="muted mt-1">Not screened yet.</div>')+'</div>'+
     (hist?'<div class="hist"><span class="lbl" style="margin-top:4px">History</span>'+hist+'</div>':'');
   document.getElementById('sheet').classList.add('open');icons();
 }
@@ -231,6 +256,55 @@ async function saveStage(){
     await rpc('recruiting_set_stage',{p_pin:S.pin,p_actor:me(),p_id:S.open.id,p_stage:S.open.stage,p_note:document.getElementById('noteIn').value});
     closeSheet();await load();toast('Saved.','success');
   }catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
+}
+
+/* ---------- phone screen ---------- */
+function optLabel(k,v){var q=SCREEN.filter(function(x){return x.k===k})[0];if(!q||!q.o)return v;var o=q.o.filter(function(x){return x[0]===v})[0];return o?o[1]:v}
+function screenSummary(sc){
+  var a=sc.answers||{},rows=SCREEN.map(function(q){
+    var v=a[q.k];if(v==null||(Array.isArray(v)&&!v.length))return '';
+    var txt=Array.isArray(v)?v.map(function(x){return optLabel(q.k,x)}).join(', '):q.o?optLabel(q.k,v):v;
+    if(q.note&&a[q.note])txt+=' — '+a[q.note];
+    return '<dt>'+esc(q.q.replace(/\?$/,''))+'</dt><dd>'+esc(txt)+'</dd>';
+  }).join('');
+  return '<div class="small muted mt-1">'+esc(sc.by||'')+' · '+esc(fmtTs(sc.at))+'</div>'+(rows?'<dl>'+rows+'</dl>':'');
+}
+function openScreen(id){
+  var r=S.rows.filter(function(x){return x.id===id})[0];if(!r)return;
+  var a=JSON.parse(JSON.stringify((r.screening&&r.screening.answers)||{}));
+  if(!r.screening){ // pre-fill employment type from the application
+    var av=r.availability||[],st=[];if(av.indexOf('Full-time')>=0)st.push('full_time');if(av.indexOf('Part-time')>=0)st.push('part_time');
+    if(st.length)a.status_wanted=st;if(r.start_date)a.start=r.start_date;
+  }
+  S.open={id:id,stage:r.stage,screen:a};
+  var h='<div class="grabber"></div><div class="d-title">Phone screen</div><div class="d-desc">'+esc(r.name)+' · '+esc(r.position||'')+'</div>'+
+    '<div class="small muted mt-1">Ask about the job only. If the applicant brings up health, family, age, religion, or past pay, do not write it down.</div>';
+  SCREEN.forEach(function(q){
+    var v=a[q.k];h+='<div class="scr-q"><div class="q">'+esc(q.q)+'</div>';
+    if(q.t==='one'||q.t==='many')h+='<div class="chips">'+q.o.map(function(o){
+      var on=q.t==='many'?(v||[]).indexOf(o[0])>=0:v===o[0];
+      return '<button class="chip'+(on?' on':'')+'" data-k="'+q.k+'" data-v="'+o[0]+'" onclick="scrPick(this,\''+q.t+'\')">'+esc(o[1])+'</button>'}).join('')+'</div>';
+    if(q.t==='text')h+='<input class="input" data-k="'+q.k+'" maxlength="'+q.max+'" placeholder="'+esc(q.ph||'')+'" value="'+esc(v||'')+'">';
+    if(q.t==='long')h+='<textarea class="textarea" rows="2" data-k="'+q.k+'" maxlength="'+q.max+'">'+esc(v||'')+'</textarea>';
+    if(q.note)h+='<input class="input mt-1" data-k="'+q.note+'" maxlength="'+q.noteMax+'" placeholder="'+esc(q.notePh)+'" value="'+esc(a[q.note]||'')+'">';
+    if(q.h)h+='<div class="small muted mt-1">'+esc(q.h)+'</div>';
+    h+='</div>';
+  });
+  h+='<div class="d-actions"><button class="btn secondary" onclick="openApp(\''+id+'\')">Back</button><button class="btn" id="scrBtn" onclick="saveScreen()">Save screen</button></div>'+
+     '<div class="small muted mt-1">Saving moves a New or Contacted applicant to Screened.</div>';
+  document.getElementById('sheetBody').innerHTML=h;document.getElementById('sheet').classList.add('open');document.getElementById('sheet').querySelector('.dialog').scrollTop=0;icons();
+}
+function scrPick(b,t){
+  var k=b.getAttribute('data-k'),v=b.getAttribute('data-v'),a=S.open.screen;
+  if(t==='many'){var arr=a[k]||[],i=arr.indexOf(v);if(i>=0)arr.splice(i,1);else arr.push(v);a[k]=arr;b.classList.toggle('on',i<0)}
+  else{a[k]=a[k]===v?null:v;document.querySelectorAll('.chip[data-k="'+k+'"]').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-v')===a[k])})}
+}
+async function saveScreen(){
+  if(!S.open||!S.open.screen)return;var a=S.open.screen,btn=document.getElementById('scrBtn');
+  document.querySelectorAll('#sheetBody input[data-k],#sheetBody textarea[data-k]').forEach(function(el){a[el.getAttribute('data-k')]=el.value});
+  btn.disabled=true;
+  try{await rpc('recruiting_save_screening',{p_pin:S.pin,p_actor:me(),p_id:S.open.id,p_answers:a});var id=S.open.id;await load();openApp(id);toast('Phone screen saved.','success')}
+  catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
 }
 
 /* ---------- start ---------- */
