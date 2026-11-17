@@ -67,6 +67,16 @@ body{padding-bottom:80px}
 .addf .two .lbl{margin-top:14px}
 .addf .chips{display:flex;flex-wrap:wrap;gap:6px}
 @media (max-width:420px){.addf .two{grid-template-columns:1fr}}
+.opos{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.opos .hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.opos .hd .linkbtn{margin-left:auto;font-weight:600}
+.opos .list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.opos .pp{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid var(--border);background:var(--background);border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit;color:inherit;min-width:140px}
+.opos .pp.on{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.opos .pp b{font-size:14px}.opos .pp small{color:var(--muted-foreground);font-size:12px}
+.opos .pp.hold{opacity:.7}
+.plist .pi{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.plist .pi .b{flex:1;min-width:0}.plist .pi small{color:var(--muted-foreground)}
 .scr-q .input,.scr-q .textarea{width:100%;font-size:16px}
 .scr-sum{margin-top:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--hr-bg);font-size:13.5px}
 .scr-sum dl{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin:6px 0 0}
@@ -104,7 +114,7 @@ var SCREEN=[
   {k:'why',q:'What interests you about working at Morning Star?',t:'long',max:500},
   {k:'result',q:'Screen result',t:'one',o:[['interview','Move to interview'],['hold','Hold'],['not_moving_forward','Not moving forward']],note:'result_note',noteMax:300,notePh:'Why (optional, job-related)'}
 ];
-var S={pin:null,rows:[],now:null,pos:'all',stage:'open',open:null};
+var S={pin:null,rows:[],positions:[],now:null,pos:'all',stage:'open',open:null};
 
 // The HR PIN lives in sessionStorage only (gone when the tab closes); filters are remembered per device.
 function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
@@ -185,7 +195,7 @@ async function savePin(){
 /* ---------- board ---------- */
 async function load(){
   var d=await rpc('recruiting_board',{p_pin:S.pin});
-  S.rows=d.rows||[];S.now=new Date(d.now).getTime();render();
+  S.rows=d.rows||[];S.positions=d.positions||[];S.now=new Date(d.now).getTime();render();
 }
 function filtered(){
   return S.rows.filter(function(r){
@@ -205,7 +215,7 @@ function render(){
   var stale=byPos.filter(isStale).length;
   var groups={};S.rows.forEach(function(r){groups[posGroup(r.position)]=1});
   var list=filtered();
-  var h='<div class="funnel">'+STAGES.map(function(s){
+  var h=openPosHtml()+'<div class="funnel">'+STAGES.map(function(s){
       return '<button class="fstep'+(S.stage===s[0]?' on':'')+(CLOSED[s[0]]?' closed':'')+'" onclick="setStage(\''+s[0]+'\')"><div class="n">'+counts[s[0]]+'</div><div class="l">'+esc(s[1])+'</div></button>';
     }).join('')+'</div>'+
     '<div class="filters"><select class="select" aria-label="Position" onchange="setPos(this.value)"><option value="all">All positions</option>'+
@@ -332,6 +342,81 @@ async function saveScreen(){
   catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
 }
 
+/* ---------- open positions (HR keeps this list by hand) ---------- */
+var POS_SUGGEST=['CNA','LVN','RN','Dietary Aide','Cook','Housekeeping','Laundry','Respiratory Therapist','Activities','Maintenance'];
+var PSTAT=[['open','Open'],['on_hold','On hold'],['filled','Filled'],['closed','Closed']];
+var PTYPE=[['full_time','Full-time'],['part_time','Part-time'],['per_diem','Per diem']];
+function posMatch(title,applied){
+  var g=posGroup(title);if(g!=='Other')return posGroup(applied)===g;
+  var a=String(title||'').toLowerCase().trim(),b=String(applied||'').toLowerCase();return !!a&&b.indexOf(a)>=0;
+}
+function inPipeline(p){return S.rows.filter(function(r){return !CLOSED[r.stage]&&posMatch(p.title,r.position)}).length}
+function posSub(p){
+  var bits=[p.openings+(p.openings===1?' opening':' openings')];if(p.shift)bits.push(p.shift);
+  (p.emp_types||[]).forEach(function(t){var o=PTYPE.filter(function(x){return x[0]===t})[0];if(o)bits.push(o[1])});
+  return bits.join(' · ');
+}
+function openPosHtml(){
+  var act=(S.positions||[]).filter(function(p){return p.status==='open'||p.status==='on_hold'});
+  var h='<div class="opos"><div class="hd"><i data-lucide="briefcase"></i>Open positions'+
+    '<button class="linkbtn" onclick="openPositions()">'+(S.positions&&S.positions.length?'Manage':'+ Add position')+'</button></div>';
+  if(!act.length)return h+'<div class="small muted mt-1">No open positions listed yet. Add the jobs you are hiring for.</div></div>';
+  return h+'<div class="list">'+act.map(function(p){
+    var g=posGroup(p.title),n=inPipeline(p);
+    return '<button class="pp'+(p.status==='on_hold'?' hold':'')+(S.pos===g&&g!=='Other'?' on':'')+'" onclick="'+(g==='Other'?'openPosition(\''+p.id+'\')':'setPos(\''+esc(g)+'\')')+'">'+
+      '<b>'+esc(p.title)+(p.status==='on_hold'?' (on hold)':'')+'</b><small>'+esc(posSub(p))+'</small><small>'+n+' in the pipeline</small></button>'}).join('')+'</div></div>';
+}
+function openPositions(){
+  S.open={positions:true};
+  var all=S.positions||[];
+  document.getElementById('sheetBody').innerHTML='<div class="grabber"></div><div class="d-title">Open positions</div>'+
+    '<div class="d-desc">The jobs you are hiring for. Mark a job Filled or Closed when you stop recruiting for it.</div>'+
+    (all.length?'<div class="plist mt-2">'+all.map(function(p){
+      var st=PSTAT.filter(function(x){return x[0]===p.status})[0];
+      return '<div class="pi"><div class="b"><b>'+esc(p.title)+'</b> <span class="badge '+(p.status==='open'?'success':'outline')+'">'+esc(st?st[1]:p.status)+'</span>'+
+        '<div><small>'+esc(posSub(p))+' · '+inPipeline(p)+' in the pipeline</small></div>'+(p.notes?'<div><small>'+esc(p.notes)+'</small></div>':'')+'</div>'+
+        '<button class="btn sm secondary" onclick="openPosition(\''+p.id+'\')">Edit</button></div>'}).join('')+'</div>'
+      :'<div class="muted mt-2">None yet.</div>')+
+    '<div class="d-actions"><button class="btn secondary" onclick="closeSheet()">Done</button><button class="btn" onclick="openPosition()"><i data-lucide="plus"></i>Add position</button></div>';
+  document.getElementById('sheet').classList.add('open');document.getElementById('sheet').querySelector('.dialog').scrollTop=0;icons();
+}
+function openPosition(id){
+  var p=id?(S.positions||[]).filter(function(x){return x.id===id})[0]:null;
+  S.open={pos:true,id:id||null,types:p?(p.emp_types||[]).slice():[],status:p?p.status:'open'};
+  var chips=function(list,sel,fn){return '<div class="chips">'+list.map(function(o){
+    return '<button class="chip'+(sel(o[0])?' on':'')+'" data-v="'+o[0]+'" onclick="'+fn+'(this)">'+esc(o[1])+'</button>'}).join('')+'</div>'};
+  document.getElementById('sheetBody').innerHTML='<div class="grabber"></div><div class="d-title">'+(p?'Edit position':'Add a position')+'</div><div class="addf">'+
+    '<div class="two"><div><label class="lbl" for="poTitle">Job title *</label><input id="poTitle" class="input" maxlength="80" list="poList" autocomplete="off" value="'+esc(p?p.title:'')+'"></div>'+
+      '<div><label class="lbl" for="poOpen">Openings</label><input id="poOpen" class="input" type="number" min="1" max="50" inputmode="numeric" value="'+(p?p.openings:1)+'"></div></div>'+
+    '<datalist id="poList">'+POS_SUGGEST.map(function(x){return '<option value="'+x+'">'}).join('')+'</datalist>'+
+    '<label class="lbl" for="poShift">Shift</label><input id="poShift" class="input" maxlength="60" placeholder="e.g., NOC 11p–7a, weekends" autocomplete="off" value="'+esc(p&&p.shift||'')+'">'+
+    '<span class="lbl">Type</span>'+chips(PTYPE,function(v){return S.open.types.indexOf(v)>=0},'poType')+
+    '<span class="lbl">Status</span>'+chips(PSTAT,function(v){return S.open.status===v},'poStat')+
+    '<label class="lbl" for="poNotes">Notes (optional)</label><textarea id="poNotes" class="textarea" rows="2" maxlength="300" placeholder="e.g., Replacing a transfer; posted on Indeed 11/17">'+esc(p&&p.notes||'')+'</textarea></div>'+
+    '<div class="d-actions">'+(p?'<button class="btn ghost" style="margin-right:auto;color:var(--destructive)" onclick="deletePosition()">Delete</button>':'')+
+      '<button class="btn secondary" onclick="openPositions()">Back</button><button class="btn" id="poBtn" onclick="savePosition()">Save</button></div>';
+  document.getElementById('sheet').classList.add('open');document.getElementById('sheet').querySelector('.dialog').scrollTop=0;
+  if(!p)document.getElementById('poTitle').focus();icons();
+}
+function poType(b){var v=b.getAttribute('data-v'),a=S.open.types,i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);b.classList.toggle('on',i<0)}
+function poStat(b){S.open.status=b.getAttribute('data-v');b.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.toggle('on',c===b)})}
+async function savePosition(){
+  if(!S.open||!S.open.pos)return;
+  var g=function(id){return document.getElementById(id).value.trim()};
+  var o={id:S.open.id,title:g('poTitle'),openings:parseInt(g('poOpen'),10)||1,shift:g('poShift'),emp_types:S.open.types,status:S.open.status,notes:g('poNotes')};
+  if(!o.title)return toast('Add a job title.','destructive');
+  if(o.openings<1||o.openings>50)return toast('Openings must be 1 to 50.','destructive');
+  var btn=document.getElementById('poBtn');btn.disabled=true;
+  try{await rpc('recruiting_save_position',{p_pin:S.pin,p_actor:me(),p_pos:o});await load();openPositions();toast('Position saved.','success')}
+  catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
+}
+async function deletePosition(){
+  if(!S.open||!S.open.id)return;
+  if(!confirm('Delete this position? To keep a record, mark it Filled or Closed instead.'))return;
+  try{await rpc('recruiting_delete_position',{p_pin:S.pin,p_id:S.open.id});await load();openPositions();toast('Position deleted.','success')}
+  catch(e){if(e.message!=='auth')toast('Could not delete: '+e.message,'destructive')}
+}
+
 /* ---------- paper application (HR types in the basics; the paper original stays in the HR file) ---------- */
 var AVAIL=['Full-time','Part-time','Shift Work','Temporary'];
 function localToday(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
@@ -342,7 +427,8 @@ function openAdd(){
     '<div class="d-desc">Type in the basics so it shows up on the board. Keep the paper copy in the HR file.</div><div class="addf">'+
     '<div class="two">'+f('adFirst','First name *','maxlength="60" autocomplete="off"')+f('adLast','Last name *','maxlength="60" autocomplete="off"')+'</div>'+
     '<div class="two">'+f('adPos','Position','maxlength="80" list="adPosList" autocomplete="off"')+f('adDate','Date on application','type="date" max="'+localToday()+'" value="'+localToday()+'"')+'</div>'+
-    '<datalist id="adPosList">'+['CNA','LVN','RN','Dietary Aide','Cook','Housekeeping','Laundry','Respiratory Therapist','Activities','Maintenance'].map(function(p){return '<option value="'+p+'">'}).join('')+'</datalist>'+
+    '<datalist id="adPosList">'+(S.positions||[]).filter(function(p){return p.status==='open'}).map(function(p){return p.title})
+      .concat(POS_SUGGEST).filter(function(x,i,a){return a.indexOf(x)===i}).map(function(p){return '<option value="'+p+'">'}).join('')+'</datalist>'+
     '<div class="two">'+f('adPhone','Phone','type="tel" maxlength="30" autocomplete="off"')+f('adEmail','Email','type="email" maxlength="120" autocomplete="off"')+'</div>'+
     '<span class="lbl">Availability</span><div class="chips">'+AVAIL.map(function(a){return '<button class="chip" data-v="'+a+'" onclick="addPick(this)">'+a+'</button>'}).join('')+'</div>'+
     f('adStart','Can start','maxlength="60" placeholder="e.g., Dec 1, 2 weeks notice" autocomplete="off"')+
