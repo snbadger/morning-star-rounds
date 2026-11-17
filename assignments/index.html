@@ -345,7 +345,7 @@
 </div>
 
 <details class="roster-panel" id="rosterPanel">
-  <summary>CNA / RNA roster &amp; home groups</summary>
+  <summary>CNA / RNA / nurse roster (from Paycom) &amp; home groups</summary>
   <div id="rosterBody"></div>
 </details>
 
@@ -456,7 +456,7 @@ const DAY_TO_PATTERN = {
   sun: null  // No scheduled showers on Sunday (Extra showers Q Sunday & PRN)
 };
 
-// Staff roster (CNA/RNA by shift, home groups) lives in Supabase cna_roster.
+// Staff roster: active staff + shift come from Paycom (get_cna_roster); leaders set home groups (cna_roster_assign).
 const SB_URL = 'https://pmnudshutxwidxdtouqj.supabase.co';
 const SB_KEY = 'sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 let roster = [];        // [{ name, shift, role, group }]
@@ -599,7 +599,7 @@ function getShiftName(shift) {
 }
 
 // ============================================================
-// ROSTER — CNAs/RNAs by shift (Supabase cna_roster), picked from dropdowns
+// ROSTER — CNAs/RNAs/nurses by shift (Paycom via get_cna_roster), picked from dropdowns
 // ============================================================
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -789,7 +789,10 @@ function sha256(ascii){
   }
   return result;
 }
-function canEditRoster() { try { return localStorage.getItem('msHubLeader') === '1'; } catch (e) { return false; } }
+// The PIN is kept in memory for this page only; the server checks it on every roster change.
+let leaderPin = '';
+let rosterPeople = [];   // active Morning Star nursing staff from Paycom, for the Add list (leaders only)
+function canEditRoster() { return !!leaderPin; }
 function unlockRoster() {
   const v = (prompt('Leadership PIN to edit the roster:') || '').trim();
   if (!v) return;
@@ -797,7 +800,12 @@ function unlockRoster() {
     method: 'POST', headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ p_pin: v })
   }).then(async r => {
-    if (r.ok) { try { localStorage.setItem('msHubLeader', '1'); } catch (e) {} renderRoster(); return; }
+    if (r.ok) {
+      leaderPin = v;
+      try { localStorage.setItem('msHubLeader', '1'); } catch (e) {}
+      try { rosterPeople = await rpc('cna_roster_people', { p_pin: v }); } catch (e) { rosterPeople = []; }
+      renderRoster(); return;
+    }
     const m = ((await r.json().catch(() => ({}))).message) || '';
     alert(m === 'locked' ? 'Too many wrong tries. Wait 15 minutes.' : m === 'pin_changed' ? 'The leadership PIN changed. Ask Stephen for the new one.' : 'Incorrect PIN');
   }).catch(() => alert('Could not check the PIN. Try again.'));
@@ -818,29 +826,43 @@ function renderRoster() {
   const edit = canEditRoster();
   const grp = (r, i) => r.role !== 'CNA' || r.shift === 'PRN' ? '—'
     : edit ? `<select data-i="${i}" onchange="rosterGroup(this)">${gOpts(assignVal(r))}</select>` : (r.group ? 'Group ' + r.group : r.float_groups ? 'Float ' + r.float_groups.replace('-', '–') : 'Float');
+  // Paycom says who is active and their usual shift (from the last 6 weeks of punches); leaders set groups.
+  const SHIFT_WORD = { AM: 'AM', PM: 'PM', NOC: 'NOC', PRN: 'on-call (few shifts)' };
+  const src = r => r.source === 'leader' ? 'Set by leader' : 'Paycom';
+  // Flag a leader-set shift the punches disagree with, unless that person also has a row on the shift they punch (e.g. a weekend group)
+  const warn = r => r.punch_shift && r.punch_shift !== r.shift && r.punch_days >= 8
+      && !roster.some(o => o.id === r.id && o.shift === r.punch_shift)
+    ?` <span title="Paycom punches over the last 6 weeks are mostly ${SHIFT_WORD[r.punch_shift]}">⚠ punches mostly ${r.punch_shift}</span>` : '';
   const rows = list.map((r, i) => `<tr class="${r.shift === shift ? 'this-shift' : ''}">
-      <td>${esc(r.name)}</td><td>${r.shift}</td><td>${r.role}</td><td>${grp(r, i)}</td>
+      <td>${esc(r.name)}</td><td>${r.shift}${warn(r)}</td><td>${r.role}</td><td>${grp(r, i)}</td>
+      <td style="color:var(--gray-500)">${src(r)}</td>
       <td>${edit ? `<button class="mini" data-i="${i}" onclick="rosterRemove(this)">Remove</button>` : ''}</td></tr>`).join('');
   rosterView = list;
-  const table = `<table class="roster-table"><thead><tr><th>Name</th><th>Shift</th><th>Role</th><th>Home group</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  const table = `<table class="roster-table"><thead><tr><th>Name</th><th>Shift</th><th>Role</th><th>Home group</th><th>From</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  const about = `<div class="roster-note">Names come from Paycom every night: active Morning Star CNAs, RNAs, LVNs and RNs. Shift is the one each person has clocked in for most over the last 6 weeks; fewer than 8 shifts = PRN. Anyone who leaves in Paycom drops off, along with their group.</div>`;
   if (!edit) {
-    body.innerHTML = table + `<div class="roster-add"><button class="mini primary" onclick="unlockRoster()">🔒 Edit roster (leadership PIN)</button></div>
-      <div class="roster-note">Not listed? Pick "✎ Type a name" on the sheet. Ask the DSD/ADON to add regular staff to the roster.</div>`;
+    body.innerHTML = table + `<div class="roster-add"><button class="mini primary" onclick="unlockRoster()">🔒 Set groups (leadership PIN)</button></div>`
+      + about + `<div class="roster-note">Not listed? Pick "✎ Type a name" on the sheet (registry staff, or a new hire not in Paycom yet).</div>`;
     return;
   }
+  const people = rosterPeople.map(p => `<option value="${esc(p.id)}">${esc(p.name)} — ${esc(p.position)}</option>`).join('');
   body.innerHTML = table + `
     <div class="roster-add">
-      <input id="addName" placeholder="First Last" maxlength="60">
+      <select id="addId"><option value="">Add someone to another shift or role…</option>${people}</select>
       <select id="addShift"><option>AM</option><option>PM</option><option>NOC</option><option>PRN</option></select>
       <select id="addRole"><option>CNA</option><option>RNA</option><option value="NURSE">Nurse</option></select>
       <select id="addGroup">${gOpts('')}</select>
       <button class="mini primary" onclick="rosterAdd()">Add</button>
-    </div>
-    <div class="roster-note">A home-group CNA is pre-selected for that group whenever that many groups are running; the group's float is listed right under them in the dropdown. Giving someone a group moves the previous holder to Float. Changes are saved for everyone.</div>`;
+    </div>` + about + `
+    <div class="roster-note">Giving someone a group moves the previous holder to Float. Once a leader sets a group (or adds a row), that person's shift stays as set — a ⚠ shows if their punches say otherwise. Remove hides that row; changes are saved for everyone.</div>`;
 }
-async function saveRoster(r, active = true) {
-  await rpc('save_cna_roster', { p_name: r.name, p_shift: r.shift, p_role: r.role, p_group: r.group ?? null,
-    p_active: active, p_float_groups: r.float_groups ?? null });
+async function saveRoster(r, hidden = false) {
+  await rpc('cna_roster_save', { p_pin: leaderPin, p_id: r.id, p_shift: r.shift, p_role: r.role,
+    p_group: r.group ?? null, p_float_groups: r.float_groups ?? null, p_hidden: hidden });
+}
+function rosterSaveError(e) {
+  if (/locked|pin_changed|bad_pin|invalid|incorrect/i.test(e.message)) { leaderPin = ''; renderRoster(); return 'The leadership PIN was not accepted. Unlock again.'; }
+  return /not_active_in_paycom/.test(e.message) ? 'That person is no longer active in Paycom.' : e.message;
 }
 function parseAssign(v) {
   return v.startsWith('g:') ? { group: parseInt(v.slice(2), 10), float_groups: null }
@@ -849,21 +871,21 @@ function parseAssign(v) {
 async function rosterGroup(sel) {
   const r = rosterView[sel.dataset.i];
   try { await saveRoster({ ...r, ...parseAssign(sel.value) }); picks = {}; await loadRoster(); }
-  catch (e) { alert('Could not save: ' + e.message); }
+  catch (e) { alert('Could not save: ' + rosterSaveError(e)); }
 }
 async function rosterRemove(btn) {
   const r = rosterView[btn.dataset.i];
-  if (!confirm(`Remove ${r.name} (${r.shift} ${r.role}) from the roster?`)) return;
-  try { await saveRoster(r, false); await loadRoster(); } catch (e) { alert('Could not remove: ' + e.message); }
+  if (!confirm(`Hide ${r.name} (${r.shift} ${r.role}) on the assignment sheet? They stay in Paycom; add them back with the Add list.`)) return;
+  try { await saveRoster(r, true); await loadRoster(); } catch (e) { alert('Could not remove: ' + rosterSaveError(e)); }
 }
 async function rosterAdd() {
-  const name = document.getElementById('addName').value.replace(/\s+/g, ' ').trim();
-  if (!name) return;
+  const id = document.getElementById('addId').value;
+  if (!id) return;
   const role = document.getElementById('addRole').value, shift = document.getElementById('addShift').value;
   const g = document.getElementById('addGroup').value;
-  const a = role === 'RNA' || shift === 'PRN' ? { group: null, float_groups: null } : parseAssign(g);
-  try { await saveRoster({ name, shift, role, ...a }); await loadRoster(); }
-  catch (e) { alert('Could not add: ' + e.message); }
+  const a = role !== 'CNA' || shift === 'PRN' ? { group: null, float_groups: null } : parseAssign(g);
+  try { await saveRoster({ id, shift, role, ...a }); await loadRoster(); }
+  catch (e) { alert('Could not add: ' + rosterSaveError(e)); }
 }
 
 function initEmptyRoomGrid() {
