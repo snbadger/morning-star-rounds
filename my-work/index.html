@@ -129,7 +129,7 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 var ADMIN='stephen_badger';
 var SOURCE={rounding:'Room Rounds',floor_rounds:'Floor Rounds',qapi:'QAPI',huddle:'Meeting',improvement_idea:'Ideas board',a3:'A3',standup:'Standup',list:'List',grievance:'Grievance',repair:'Repairs',incident:'Incident',survey:'Survey',admin_call:'Admin call',asana:'Asana',my_work:'',manual:'',session:''};
 
-var S={pin:null,me:null,roster:null,view:'mine',showProj:false,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
+var S={pin:null,me:null,roster:null,view:'mine',showProj:false,peek:null,peekData:null,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -238,7 +238,7 @@ function route(){
   renderMine();
 }
 async function setView(v){
-  S.view=v;S.allOwner=null;if(v==='mine'||v==='board')ls('mw_view',v);
+  S.view=v;S.allOwner=null;S.peek=null;S.peekData=null;if(v==='mine'||v==='board')ls('mw_view',v);
   await guard(async function(){
     if(v==='dept'&&!S.deptData)S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});
     if(v==='all'&&!S.allData)S.allData=await rpc('work_all',{p_pin:S.pin});
@@ -247,9 +247,9 @@ async function setView(v){
 }
 function segHtml(){
   return '<div class="seg"><button class="'+(S.view==='mine'?'on':'')+'" onclick="setView(\'mine\')">Mine</button>'+
-    '<button class="'+(S.view==='board'?'on':'')+'" onclick="setView(\'board\')">Board</button>'+
+    '<button class="'+(S.view==='board'&&!S.peek?'on':'')+'" onclick="setView(\'board\')">Board</button>'+
     '<button class="'+(S.view==='dept'?'on':'')+'" onclick="setView(\'dept\')">'+esc(S.me.department)+'</button>'+
-    (isAdmin()?'<button class="'+(S.view==='all'?'on':'')+'" onclick="setView(\'all\')">Everyone</button>':'')+'</div>';
+    (isAdmin()?'<button class="'+(S.view==='all'||S.peek?'on':'')+'" onclick="setView(\'all\')">Everyone</button>':'')+'</div>';
 }
 
 // ---------- item rows ----------
@@ -338,7 +338,7 @@ function boardSection(title,cls,body,count,extra){
   return '<div class="h2 '+(cls||'')+'">'+esc(title)+(count!=null?'<span class="n">'+count+'</span>':'')+(extra||'')+'</div><div class="card" style="padding:4px 13px">'+body+'</div>';
 }
 function renderBoard(){
-  var d=S.data, items=d.items;
+  var peek=S.peek&&S.peekData, d=peek?S.peekData:S.data, items=d.items, who=peek?d.owner:S.me;
   var loose=items.filter(function(i){return !i.list_id}), steps=items.filter(function(i){return i.list_id});
   var byList={};steps.forEach(function(i){(byList[i.list_id]=byList[i.list_id]||[]).push(i)});
   var lists=d.lists.slice().sort(function(a,b){return String(a.target_date||'9').localeCompare(String(b.target_date||'9'))});
@@ -346,7 +346,8 @@ function renderBoard(){
   var ovAll=items.filter(function(i){return i.urgency==='overdue'}).length, tdAll=items.filter(function(i){return i.urgency==='today'}).length;
   var fu=loose.filter(function(i){return i.urgency!=='none'}), proj=loose.filter(function(i){return i.urgency==='none'});
   var h=segHtml();
-  h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px"><div class="big" style="font-size:20px">'+esc(S.me.display_name.split(' ')[0])+'’s board</div><div class="muted">'+esc(S.me.department)+(d.new_count?'<span class="badge">'+d.new_count+' new</span>':'')+'</div></div>';
+  if(peek)h+='<span class="back" onclick="closePeek()">← Everyone</span>';
+  h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px"><div class="big" style="font-size:20px">'+esc(who.display_name.split(' ')[0])+'’s board</div><div class="muted">'+esc(who.department)+(!peek&&d.new_count?'<span class="badge">'+d.new_count+' new</span>':'')+'</div></div>';
   h+='<div class="tiles">'+
     '<div class="tile '+(ovAll?'red':'')+'" onclick="boardJump(\'bFu\')"><b>'+ovAll+'</b><span>Overdue</span></div>'+
     '<div class="tile '+(tdAll?'amber':'')+'" onclick="boardJump(\'bFu\')"><b>'+tdAll+'</b><span>Due today</span></div>'+
@@ -364,15 +365,18 @@ function renderBoard(){
   right+='<div id="bFu"></div>'+boardSection('Follow-ups','',fuBody||'<div class="empty">No dated follow-ups. Nice.</div>',fu.length);
   right+='<div id="bProj"></div>'+boardSection('Projects (no due date)','',S.showProj?(proj.length?newestFirst(proj).map(function(i){return itemRow(i)}).join(''):'<div class="empty">None.</div>'):'<div class="empty">'+proj.length+' longer-term item'+(proj.length===1?'':'s')+' hidden. Tap Show when you have time to plan.</div>',proj.length,
     '<span class="tog" onclick="S.showProj=!S.showProj;route()">'+(S.showProj?'Hide':'Show')+'</span>');
-  if(d.dept_unassigned.length)right+=group('Unassigned in '+S.me.department,d.dept_unassigned,'',{claim:true});
+  if(!peek&&d.dept_unassigned.length)right+=group('Unassigned in '+S.me.department,d.dept_unassigned,'',{claim:true});
   h+='<div class="bgrid"><div>'+left+'</div><div>'+right+'</div></div>';
   if(d.done_recent.length){
     h+='<div class="h2">Done this week<span class="n">'+d.done_recent.length+'</span><span class="tog" onclick="S.showDone=!S.showDone;route()">'+(S.showDone?'Hide':'Show')+'</span></div>';
     if(S.showDone)h+='<div class="card" style="padding:4px 13px">'+d.done_recent.map(function(i){return itemRow(i)}).join('')+'</div>';
   }
   app().innerHTML=h;
-  if(d.new_count)touch();
+  if(!peek&&d.new_count)touch(); // never reset someone else's "new" badge
 }
+// Stephen: open any leader's board from Everyone (read their items; actions are logged as Stephen).
+function openPeek(k){guard(async function(){S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:k});S.peek=k;S.view='board';S.allOwner=null;S.showProj=false;route()})}
+function closePeek(){S.peek=null;S.peekData=null;S.view='all';route()}
 function boardJump(id){var e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 
 // ---------- Department ----------
@@ -397,14 +401,14 @@ function renderAll(){
   if(S.allOwner){
     var its=d.items.filter(function(i){return S.allOwner==='__dept:'?false:S.allOwner.indexOf('__dept:')===0?(i.owner_key==null&&i.department===S.allOwner.slice(7)):i.owner_key===S.allOwner});
     var title=S.allOwner.indexOf('__dept:')===0?'Unassigned · '+S.allOwner.slice(7):ownerName(S.allOwner);
-    h+='<span class="back" onclick="S.allOwner=null;route()">← Everyone</span>'+group(title,its,'',{claim:S.allOwner.indexOf('__dept:')===0});
+    h+='<span class="back" onclick="S.allOwner=null;route()">← Everyone</span>'+(S.allOwner.indexOf('__dept:')===0?'':'<button class="btn btn-ghost btn-sm" style="float:right" onclick="openPeek(\''+S.allOwner+'\')">See board</button>')+group(title,its,'',{claim:S.allOwner.indexOf('__dept:')===0});
     if(!its.length)h+='<div class="card"><div class="empty">Nothing open.</div></div>';
     app().innerHTML=h;return;
   }
   var tot=d.items.length, ov=d.items.filter(function(i){return i.urgency==='overdue'}).length, td=d.items.filter(function(i){return i.urgency==='today'}).length;
   h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 6px"><div class="big" style="font-size:20px">Everyone</div><div class="kpis"><div class="kpi blue">'+tot+'<small>open</small></div><div class="kpi '+(ov?'red':'')+'">'+ov+'<small>overdue</small></div><div class="kpi '+(td?'amber':'')+'">'+td+'<small>today</small></div></div></div>';
   h+='<div class="card" style="padding:4px 13px">'+d.by_owner.filter(function(o){return o.owner_key!==ADMIN}).map(function(o){
-    return '<div class="owner-card" onclick="S.allOwner=\''+o.owner_key+'\';route()"><div class="b"><div class="nm">'+esc(o.owner_name)+'</div><div class="dp">'+esc(o.department)+'</div></div><div class="kpis"><div class="kpi '+(o.overdue?'red':'')+'">'+o.overdue+'<small>late</small></div><div class="kpi '+(o.today?'amber':'')+'">'+o.today+'<small>today</small></div><div class="kpi">'+o.open+'<small>open</small></div></div></div>';
+    return '<div class="owner-card" onclick="S.allOwner=\''+o.owner_key+'\';route()"><div class="b"><div class="nm">'+esc(o.owner_name)+'</div><div class="dp">'+esc(o.department)+'</div></div><div class="kpis"><div class="kpi '+(o.overdue?'red':'')+'">'+o.overdue+'<small>late</small></div><div class="kpi '+(o.today?'amber':'')+'">'+o.today+'<small>today</small></div><div class="kpi">'+o.open+'<small>open</small></div></div><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openPeek(\''+o.owner_key+'\')">Board</button></div>';
   }).join('')+'</div>';
   if(d.unassigned.length){
     h+='<div class="h2">Unassigned by department</div><div class="card" style="padding:4px 13px">'+d.unassigned.map(function(u){
@@ -417,11 +421,11 @@ function renderAll(){
 
 // ---------- actions ----------
 function findItem(id){
-  var pools=[S.data&&S.data.items,S.data&&S.data.dept_unassigned,S.data&&S.data.done_recent,S.deptData&&S.deptData.items,S.allData&&S.allData.items,S.list&&S.list.items];
+  var pools=[S.peekData&&S.peekData.items,S.data&&S.data.items,S.data&&S.data.dept_unassigned,S.data&&S.data.done_recent,S.deptData&&S.deptData.items,S.allData&&S.allData.items,S.list&&S.list.items];
   for(var p=0;p<pools.length;p++){var hit=(pools[p]||[]).filter(function(i){return i.id===id})[0];if(hit)return hit}
   return null;
 }
-async function reload(){await refresh();if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
+async function reload(){await refresh();if(S.peek)S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:S.peek});if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
 function toggle(id,isDone){
   guard(async function(){
     if(isDone){await rpc('work_reopen',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:id});toast('Reopened');}
@@ -560,7 +564,7 @@ start();
 </script>
 <script>
 // Bottom bar Back (ms-nav.js): close the open item/list first, then return to My list, then the hub.
-window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'&&S.view!=='board'){setView(startView());return true}return false};
+window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.peek){closePeek();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'&&S.view!=='board'){setView(startView());return true}return false};
 </script>
 <script src="../ms-nav.js?v=1" defer></script>
 </body>
