@@ -63,6 +63,10 @@ body{padding-bottom:80px}
 .scr-q{margin-top:14px}
 .scr-q .q{font-size:14.5px;font-weight:700;margin-bottom:6px}
 .scr-q .chips{display:flex;flex-wrap:wrap;gap:6px}
+.addf .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.addf .two .lbl{margin-top:14px}
+.addf .chips{display:flex;flex-wrap:wrap;gap:6px}
+@media (max-width:420px){.addf .two{grid-template-columns:1fr}}
 .scr-q .input,.scr-q .textarea{width:100%;font-size:16px}
 .scr-sum{margin-top:12px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--hr-bg);font-size:13.5px}
 .scr-sum dl{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;margin:6px 0 0}
@@ -209,7 +213,7 @@ function render(){
     '<select class="select" aria-label="Stage" onchange="setStage(this.value)">'+
       [['open','Open (not closed out)'],['stale','New 48+ hours'],['all','All stages']].concat(STAGES).map(function(s){return '<option value="'+s[0]+'"'+(S.stage===s[0]?' selected':'')+'>'+esc(s[1])+'</option>'}).join('')+'</select></div>'+
     '<div class="meta"><span>'+list.length+' shown</span>'+(stale?'<span class="flag"><i data-lucide="alarm-clock"></i>'+stale+' still New after 48 hours</span>':'')+
-      '<span style="margin-left:auto"><button class="linkbtn" onclick="refresh()">Refresh</button></span></div>';
+      '<span style="margin-left:auto;display:flex;gap:12px"><button class="linkbtn" onclick="openAdd()">+ Paper application</button><button class="linkbtn" onclick="refresh()">Refresh</button></span></div>';
   if(!list.length)h+='<div class="empty"><i data-lucide="inbox"></i><div class="e-title">No applicants here</div><div class="e-desc">Try another position or stage.</div></div>';
   h+=list.map(card).join('');
   app().innerHTML=h;icons();
@@ -226,6 +230,7 @@ function card(r){
       (r.email?'<a href="mailto:'+esc(r.email)+'"><i data-lucide="mail"></i>'+esc(r.email)+'</a>':'')+'</div>'+
     (av?'<div class="avail">'+av+'</div>':'')+
     '<div class="row2"><span class="badge '+(r.stage==='new'?'st-new':r.stage==='hired'?'success':CLOSED[r.stage]?'outline':'info')+'">'+esc(stageLabel(r.stage))+'</span>'+
+      (r.source==='paper'?'<span class="badge outline">Paper</span>':'')+
       (st?'<span class="flag"><i data-lucide="alarm-clock"></i>New for '+(hrs>=72?Math.floor(hrs/24)+' days':hrs+' hours')+'</span>':'')+
       (r.screening?'<span class="badge success">Screened'+(r.screening.answers&&r.screening.answers.result?': '+esc(optLabel('result',r.screening.answers.result)):'')+'</span>':'')+
       (r.stage!=='new'&&r.updated_by?'<small class="muted">'+esc(r.updated_by)+' · '+esc(fmtTs(r.stage_updated_at))+'</small>':'')+'</div>'+
@@ -239,7 +244,7 @@ async function refresh(){try{await load();toast('Up to date.','success')}catch(e
 function openApp(id){
   var r=S.rows.filter(function(x){return x.id===id})[0];if(!r)return;S.open={id:id,stage:r.stage};
   var hist=(r.history||[]).map(function(x){
-    return '<div class="h"><b>'+esc(stageLabel(x.from))+' → '+esc(stageLabel(x.to))+'</b> <small>'+esc(x.by||'')+' · '+esc(fmtTs(x.at))+'</small>'+(x.note?'<div>'+esc(x.note)+'</div>':'')+'</div>';
+    return '<div class="h"><b>'+(x.from?esc(stageLabel(x.from))+' → '+esc(stageLabel(x.to)):'Entered as '+esc(stageLabel(x.to)))+'</b> <small>'+esc(x.by||'')+' · '+esc(fmtTs(x.at))+'</small>'+(x.note?'<div>'+esc(x.note)+'</div>':'')+'</div>';
   }).join('');
   document.getElementById('sheetBody').innerHTML='<div class="grabber"></div>'+
     '<div class="d-title">'+esc(r.name)+'</div><div class="d-desc">'+esc(r.position||'')+' · applied '+esc(fmtDate(r.applied_on))+'</div>'+
@@ -325,6 +330,45 @@ async function saveScreen(){
   btn.disabled=true;
   try{await rpc('recruiting_save_screening',{p_pin:S.pin,p_actor:me(),p_id:S.open.id,p_answers:a});var id=S.open.id;await load();openApp(id);toast('Phone screen saved.','success')}
   catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not save: '+e.message,'destructive')}
+}
+
+/* ---------- paper application (HR types in the basics; the paper original stays in the HR file) ---------- */
+var AVAIL=['Full-time','Part-time','Shift Work','Temporary'];
+function localToday(){var d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function openAdd(){
+  S.open={add:true,avail:[]};
+  var f=function(id,label,attrs){return '<div><label class="lbl" for="'+id+'">'+label+'</label><input id="'+id+'" class="input" '+(attrs||'')+'></div>'};
+  document.getElementById('sheetBody').innerHTML='<div class="grabber"></div><div class="d-title">Add a paper application</div>'+
+    '<div class="d-desc">Type in the basics so it shows up on the board. Keep the paper copy in the HR file.</div><div class="addf">'+
+    '<div class="two">'+f('adFirst','First name *','maxlength="60" autocomplete="off"')+f('adLast','Last name *','maxlength="60" autocomplete="off"')+'</div>'+
+    '<div class="two">'+f('adPos','Position','maxlength="80" list="adPosList" autocomplete="off"')+f('adDate','Date on application','type="date" max="'+localToday()+'" value="'+localToday()+'"')+'</div>'+
+    '<datalist id="adPosList">'+['CNA','LVN','RN','Dietary Aide','Cook','Housekeeping','Laundry','Respiratory Therapist','Activities','Maintenance'].map(function(p){return '<option value="'+p+'">'}).join('')+'</datalist>'+
+    '<div class="two">'+f('adPhone','Phone','type="tel" maxlength="30" autocomplete="off"')+f('adEmail','Email','type="email" maxlength="120" autocomplete="off"')+'</div>'+
+    '<span class="lbl">Availability</span><div class="chips">'+AVAIL.map(function(a){return '<button class="chip" data-v="'+a+'" onclick="addPick(this)">'+a+'</button>'}).join('')+'</div>'+
+    f('adStart','Can start','maxlength="60" placeholder="e.g., Dec 1, 2 weeks notice" autocomplete="off"')+
+    '<label class="lbl" for="adNote">Note (optional)</label><textarea id="adNote" class="textarea" rows="2" maxlength="500" placeholder="e.g., Dropped off at front desk"></textarea>'+
+    '<div class="small muted mt-1">Only these fields go into the app. Do not type in references, address, past pay, or anything about age, health, or family.</div></div>'+
+    '<div class="d-actions"><button class="btn secondary" onclick="closeSheet()">Cancel</button><button class="btn" id="addBtn" onclick="saveAdd()">Add applicant</button></div>';
+  document.getElementById('sheet').classList.add('open');document.getElementById('sheet').querySelector('.dialog').scrollTop=0;
+  document.getElementById('adFirst').focus();icons();
+}
+function addPick(b){var v=b.getAttribute('data-v'),a=S.open.avail,i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);b.classList.toggle('on',i<0)}
+async function saveAdd(dup){
+  if(!S.open||!S.open.add)return;
+  var g=function(id){return document.getElementById(id).value.trim()};
+  var p={first_name:g('adFirst'),last_name:g('adLast'),position:g('adPos'),applied_on:g('adDate'),phone:g('adPhone'),email:g('adEmail'),
+         availability:S.open.avail,start_date:g('adStart'),note:g('adNote')};
+  if(!p.first_name||!p.last_name)return toast('First and last name are required.','destructive');
+  if(!p.phone&&!p.email)return toast('Add a phone number or email so HR can call back.','destructive');
+  if(p.applied_on&&p.applied_on>localToday())return toast('The application date cannot be in the future.','destructive');
+  var btn=document.getElementById('addBtn');btn.disabled=true;
+  try{
+    var r=await rpc('recruiting_add_application',{p_pin:S.pin,p_actor:me(),p_app:p,p_allow_dup:!!dup});
+    if(r&&r.duplicate){btn.disabled=false;
+      if(confirm(p.first_name+' '+p.last_name+' already applied in the last 90 days. Add this paper application anyway?'))return saveAdd(true);
+      return;}
+    closeSheet();S.stage='open';ls('rq_stage','open');await load();toast('Added '+p.first_name+' '+p.last_name+'.','success');
+  }catch(e){btn.disabled=false;if(e.message!=='auth')toast('Could not add: '+(/bad_date/.test(e.message)?'check the date.':e.message),'destructive')}
 }
 
 /* ---------- start ---------- */
