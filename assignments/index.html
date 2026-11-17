@@ -747,7 +747,7 @@ function openOverride(bed) {
 }
 
 // ---------- Roster manager (editing behind the hub's Leadership PIN) ----------
-const LEADER_HASH = 'cdc86d5bacca35b49d4c518e1a604f8ee3df1cf4e7ac5723a4962a73055bfbe7'; // same as hub GATES.leader
+// Leadership PIN is checked by the server (ms_leader_pin_check, 15-minute lockout); no hash in this public page.
 function sha256(ascii){
   function rightRotate(v,a){return(v>>>a)|(v<<(32-a));}
   var mathPow=Math.pow,maxWord=mathPow(2,32),result='',words=[],asciiBitLength=ascii.length*8;
@@ -793,8 +793,14 @@ function canEditRoster() { try { return localStorage.getItem('msHubLeader') === 
 function unlockRoster() {
   const v = (prompt('Leadership PIN to edit the roster:') || '').trim();
   if (!v) return;
-  if (sha256(v) === LEADER_HASH) { try { localStorage.setItem('msHubLeader', '1'); } catch (e) {} renderRoster(); }
-  else alert('Incorrect PIN');
+  fetch(`${SB_URL}/rest/v1/rpc/ms_leader_pin_check`, {
+    method: 'POST', headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_pin: v })
+  }).then(async r => {
+    if (r.ok) { try { localStorage.setItem('msHubLeader', '1'); } catch (e) {} renderRoster(); return; }
+    const m = ((await r.json().catch(() => ({}))).message) || '';
+    alert(m === 'locked' ? 'Too many wrong tries. Wait 15 minutes.' : m === 'pin_changed' ? 'The leadership PIN changed. Ask Stephen for the new one.' : 'Incorrect PIN');
+  }).catch(() => alert('Could not check the PIN. Try again.'));
 }
 
 function renderRoster() {

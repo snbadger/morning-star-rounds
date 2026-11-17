@@ -173,7 +173,7 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
     </div>
     <div class="pin-box" id="pinBox_leader">
       <div class="pin-row">
-        <input type="tel" id="pinInput_leader" class="input pin-input" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off" aria-label="PIN">
+        <input type="tel" id="pinInput_leader" class="input pin-input" maxlength="8" inputmode="numeric" placeholder="PIN" autocomplete="off" aria-label="PIN">
         <button class="btn" onclick="checkPin('leader')">Unlock</button>
       </div>
       <div class="help error pin-err" id="pinErr_leader">Incorrect PIN</div>
@@ -224,9 +224,11 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 <nav class="tabbar secbar" id="secBar" aria-label="Jump to a section"></nav>
 
 <script>
-// Two PIN gates: leadership (dept heads) and HR & Onboarding (Kelsey/Yessi/Stephen). Honest-people gates (public repo).
+// Two PIN gates: leadership (dept heads) and HR & Onboarding (Kelsey/Yessi/Stephen).
+// The leadership PIN is checked by the server (ms_leader_pin_check: 5 misses = 15-minute lockout); its hash
+// is never shipped in this public page. The HR gate is still an honest-people gate (hash below).
 const GATES={
-  leader:{hash:'cdc86d5bacca35b49d4c518e1a604f8ee3df1cf4e7ac5723a4962a73055bfbe7',ls:'msHubLeader'},
+  leader:{ls:'msHubLeader'},
   hr:{hash:'f79b8977720743f5e7c8b5b2e3813a8a4cc9aacd97eb20fcf41a7169e66ec1b9',ls:'msHubHR'}
 };
 var ID=(window.MS&&MS.identity)||null;
@@ -253,16 +255,27 @@ function togglePin(g){
   document.getElementById('pinBox_'+g).classList.toggle('open');
   document.getElementById('pinInput_'+g).focus();
 }
+// Resolves to 'ok' | 'bad' | 'locked' | 'changed' | 'offline'.
+function leaderPinOk(v){
+  return fetch(SB+'rpc/ms_leader_pin_check',{method:'POST',headers:hdrs({'Content-Type':'application/json'}),body:JSON.stringify({p_pin:v})})
+    .then(function(r){if(r.ok)return 'ok';return r.json().then(function(j){var m=(j&&j.message)||'';
+      return m==='locked'?'locked':m==='pin_changed'?'changed':'bad'})})
+    .catch(function(){return 'offline'});
+}
+var PIN_MSG={bad:'Incorrect PIN',locked:'Too many wrong tries. Wait 15 minutes.',changed:'The leadership PIN changed. Ask Stephen for the new one.',offline:'Could not check the PIN. Try again.'};
 function checkPin(g){
   const v=document.getElementById('pinInput_'+g).value.trim();
-  if(sha256(v)===GATES[g].hash){
-    if(SHARED){ if(g==='leader'){ssSet('msLeaderSession','1');if(ID)ID.touch();} }
-    else lsSet(GATES[g].ls,'1');
-    showGate(g);layout();loadLeaving();loadArriving();loadToday();buildBar();
-  }else{
-    document.getElementById('pinErr_'+g).style.display='block';
-    document.getElementById('pinInput_'+g).value='';
-  }
+  var res=g==='leader'?leaderPinOk(v):Promise.resolve(sha256(v)===GATES[g].hash?'ok':'bad');
+  res.then(function(r){
+    if(r==='ok'){
+      if(SHARED){ if(g==='leader'){ssSet('msLeaderSession','1');if(ID)ID.touch();} }
+      else lsSet(GATES[g].ls,'1');
+      showGate(g);layout();loadLeaving();loadArriving();loadToday();buildBar();
+    }else{
+      var e=document.getElementById('pinErr_'+g);e.textContent=PIN_MSG[r]||PIN_MSG.bad;e.style.display='block';
+      document.getElementById('pinInput_'+g).value='';
+    }
+  });
 }
 
 /* ---------- leadership tiles by role ---------- */
@@ -403,14 +416,17 @@ function openSetup(){
   var o=document.createElement('div');o.className='overlay open';o.setAttribute('data-static','');
   o.innerHTML='<div class="dialog" role="dialog" aria-modal="true"><div class="d-title">Device setup</div>'+
     '<div class="d-desc">Enter the leadership PIN to change how this device behaves.</div>'+
-    '<div class="pin-row mt-2"><input type="tel" id="setupPin" class="input pin-input" maxlength="4" inputmode="numeric" placeholder="PIN" autocomplete="off"></div>'+
+    '<div class="pin-row mt-2"><input type="tel" id="setupPin" class="input pin-input" maxlength="8" inputmode="numeric" placeholder="PIN" autocomplete="off"></div>'+
     '<div class="help error" id="setupErr" hidden>Incorrect PIN</div>'+
     '<div class="d-actions"><button class="btn secondary" id="setupCancel">Cancel</button><button class="btn" id="setupGo">Continue</button></div></div>';
   document.body.appendChild(o);
   var pin=o.querySelector('#setupPin');setTimeout(function(){pin.focus()},60);
   o.querySelector('#setupCancel').onclick=function(){o.remove()};
   function go(){
-    if(sha256(pin.value.trim())!==GATES.leader.hash){o.querySelector('#setupErr').hidden=false;pin.value='';return}
+    var pv=pin.value.trim();
+    leaderPinOk(pv).then(function(r){if(r!=='ok'){var e=o.querySelector('#setupErr');e.textContent=PIN_MSG[r]||PIN_MSG.bad;e.hidden=false;pin.value='';return}setupChoose(pv)});
+  }
+  function setupChoose(pv){
     var cur=SHARED?'shared':'personal';
     o.querySelector('.dialog').innerHTML='<div class="d-title">How is this device used?</div>'+
       '<div class="d-desc">Currently: <b>'+(cur==='shared'?'Shared iPad':'Personal phone')+'</b></div>'+
@@ -423,7 +439,7 @@ function openSetup(){
       if(ID)ID.setDevice(m);
       if(m!=='shared'){try{localStorage.removeItem('ms_dev_key')}catch(e){} location.reload(); return}
       // Each shared iPad gets its own revocable key so it can show the leaving-the-building list (room-bed + name code).
-      rpc('ms_device_key_issue',{p_pin:pin.value.trim(),p_label:'Shared iPad '+new Date().toLocaleDateString('en-CA')})
+      rpc('ms_device_key_issue',{p_pin:pv,p_label:'Shared iPad '+new Date().toLocaleDateString('en-CA')})
         .then(function(k){if(k)lsSet('ms_dev_key',k)}).then(function(){location.reload()});
     }});
     o.querySelectorAll('.btn.block').forEach(function(b){b.style.whiteSpace='normal';b.style.height='auto';b.style.minHeight='54px';b.style.padding='12px 18px'});
