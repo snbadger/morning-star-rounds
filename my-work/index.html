@@ -30,8 +30,8 @@ label{display:block;font-size:12px;font-weight:700;color:var(--text-light);text-
 input,select,textarea{width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
 textarea{min-height:72px;resize:vertical;line-height:1.45}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light)}
-.seg{display:flex;background:#e3e8ee;border-radius:10px;padding:3px;margin-bottom:12px}
-.seg button{flex:1;border:0;background:none;padding:9px 6px;font-size:13.5px;font-weight:700;color:var(--text-light);border-radius:8px;cursor:pointer;font-family:inherit}
+.seg{overflow-x:auto;display:flex;background:#e3e8ee;border-radius:10px;padding:3px;margin-bottom:12px}
+.seg button{flex:1 0 auto;white-space:nowrap;border:0;background:none;padding:9px 9px;font-size:13.5px;font-weight:700;color:var(--text-light);border-radius:8px;cursor:pointer;font-family:inherit}
 .seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .h2{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-light);margin:18px 2px 8px;display:flex;align-items:center;gap:8px}
 .h2 .n{background:#e3e8ee;color:var(--text);border-radius:12px;padding:1px 8px;font-size:11px}
@@ -104,6 +104,20 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .rc .t{flex:1;font-size:14.5px;font-weight:700;min-width:0}
 .rc .nx{font-size:12.5px;color:var(--text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc .nx b{color:var(--text);font-weight:600}
+.rgrid{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:820px){.rgrid{grid-template-columns:1fr 1fr}}
+.rr{display:flex;gap:11px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;min-width:0}
+.rr .rm{flex:none;width:54px;text-align:center;font-size:17px;font-weight:800;color:var(--primary)}
+.rr .rm small{display:block;font-size:10.5px;font-weight:700;color:var(--text-light);letter-spacing:.5px}
+.rr .b{flex:1;min-width:0}
+.rr .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr .t.pl{font-weight:400;color:var(--text-light);margin-top:2px}
+.rr .m{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px;align-items:center;font-size:12px;color:var(--text-light)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;align-items:center}
+.chip{border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:inherit}
+.chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.chips input{flex:1;min-width:120px;padding:7px 11px;font-size:14px;border-radius:18px}
+.lnk{color:var(--primary-light);font-weight:700;cursor:pointer}
 .sub-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);padding:10px 2px 2px}
 .sub-h.red{color:var(--danger)} .sub-h.amber{color:var(--warn)}
 @media (max-width:520px){.tiles{grid-template-columns:repeat(3,1fr)}}
@@ -129,7 +143,7 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 var ADMIN='stephen_badger';
 var SOURCE={rounding:'Room Rounds',floor_rounds:'Floor Rounds',qapi:'QAPI',huddle:'Meeting',improvement_idea:'Ideas board',a3:'A3',standup:'Standup',list:'List',grievance:'Grievance',repair:'Repairs',incident:'Incident',survey:'Survey',admin_call:'Admin call',asana:'Asana',my_work:'',manual:'',session:''};
 
-var S={pin:null,me:null,roster:null,view:'mine',showProj:false,peek:null,peekData:null,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
+var S={pin:null,me:null,roster:null,view:'mine',showProj:false,peek:null,peekData:null,res:null,resFilter:'all',resQ:'',resItem:null,showLeft:false,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -227,11 +241,13 @@ document.addEventListener('visibilitychange',function(){ // refresh when the tab
 // ---------- routing ----------
 function route(){
   window.scrollTo(0,0);
-  if(S.item||S.list)app().classList.remove('wide');
+  if(S.item||S.list||S.resItem)app().classList.remove('wide');
   if(S.item)return renderItem();
   if(S.list)return renderList();
-  document.getElementById('fab').style.display='block';
-  app().classList.toggle('wide',S.view==='board');
+  if(S.resItem)return renderRes();
+  document.getElementById('fab').style.display=S.view==='res'?'none':'block';
+  app().classList.toggle('wide',S.view==='board'||S.view==='res');
+  if(S.view==='res')return renderResidents();
   if(S.view==='board')return renderBoard();
   if(S.view==='dept')return renderDept();
   if(S.view==='all')return renderAll();
@@ -242,12 +258,14 @@ async function setView(v){
   await guard(async function(){
     if(v==='dept'&&!S.deptData)S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});
     if(v==='all'&&!S.allData)S.allData=await rpc('work_all',{p_pin:S.pin});
+    if(v==='res')S.res=await rpc('caseload_list',{p_pin:S.pin,p_actor:S.me.owner_key});
   });
   route();
 }
 function segHtml(){
   return '<div class="seg"><button class="'+(S.view==='mine'?'on':'')+'" onclick="setView(\'mine\')">Mine</button>'+
     '<button class="'+(S.view==='board'&&!S.peek?'on':'')+'" onclick="setView(\'board\')">Board</button>'+
+    (canRes()?'<button class="'+(S.view==='res'?'on':'')+'" onclick="setView(\'res\')">Residents</button>':'')+
     '<button class="'+(S.view==='dept'?'on':'')+'" onclick="setView(\'dept\')">'+esc(S.me.department)+'</button>'+
     (isAdmin()?'<button class="'+(S.view==='all'||S.peek?'on':'')+'" onclick="setView(\'all\')">Everyone</button>':'')+'</div>';
 }
@@ -379,6 +397,155 @@ function openPeek(k){guard(async function(){S.peekData=await rpc('work_mine',{p_
 function closePeek(){S.peek=null;S.peekData=null;S.view='all';route()}
 function boardJump(id){var e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 
+// ---------- Residents (11/17/26) ----------
+// Social Services worklist: every resident in the building (roster from the census board each morning, room-bed + name
+// code only) with a discharge plan and milestones. Shown to Social Services and Stephen. Data: caseload_list / caseload_update.
+var MS_S=[['welcome','Welcome visit done; discharge planning started (day 1)'],['plan','Discharge plan and destination identified (by day 3)'],
+  ['conference','Care conference held with resident and family'],['training','Family / caregiver training set up with Therapy'],
+  ['dme','DME, home health and follow-up appointments ordered'],['nomnc','Notice of Medicare Non-Coverage given'],
+  ['confirm','Discharge date, time and ride confirmed with family'],['summary','Discharge summary done']];
+var MS_L=[['lt_plan','Current plan documented'],['adv_dir','Advance directive on file'],['payer_ok','Medi-Cal / payer status confirmed']];
+var DC_CATS=['Return Home','Placement','LTC','CalAIM/ALW pending','Other','No Plan'];
+// milestones that are also steps on the resident's admission / discharge checklist
+var STEP_PAT={welcome:['admission',/^Social Services: welcome visit/],training:['discharge',/^3\./],nomnc:['discharge',/^4\./],dme:['discharge',/^5\./],confirm:['discharge',/^6\./],summary:['discharge',/^7\./]};
+function canRes(){return !!S.me&&(isAdmin()||S.me.department==='Social Services')}
+function dDiff(a,b){return Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/86400000)}
+function resToday(){return (S.res&&S.res.today)||today()}
+function resById(id){var d=S.res||{};return (d.residents||[]).concat(d.recent_dc||[]).filter(function(r){return r.id===id})[0]}
+function isLT(r){return r.stay_type==='L'}
+function msFromList(r,k){var p=STEP_PAT[k];if(!p)return false;return (r.lists||[]).some(function(l){return l.template===p[0]&&(l.steps||[]).some(function(st){return st.done&&p[1].test(st.t)})})}
+function msState(r,k){
+  var v=(r.milestones||{})[k];
+  if(v==='na')return {done:true,how:'na'};
+  if(v)return {done:true,how:'manual',date:v};
+  if(msFromList(r,k))return {done:true,how:'list'};
+  var hasCat=r.dc_category&&r.dc_category!=='No Plan';
+  if(k==='plan'&&hasCat)return {done:true,how:'plan'};
+  if(k==='lt_plan'&&(r.dc_plan||hasCat))return {done:true,how:'plan'};
+  return {done:false};
+}
+function msDefs(r){return isLT(r)?MS_L:MS_S}
+function msCount(r){var d=msDefs(r);return {done:d.filter(function(m){return msState(r,m[0]).done}).length,total:d.length}}
+function resDay(r){return r.admit_date?dDiff(resToday(),r.admit_date)+1:null}
+function resFlags(r){
+  var f=[],t=resToday(),c=msCount(r);
+  if(r.status==='discharged')return f;
+  if(isLT(r)){
+    if(r.next_conf&&r.next_conf<t)f.push(['red','Care conference overdue']);
+    if(!msState(r,'lt_plan').done)f.push(['amber','No plan documented']);
+  }else{
+    var day=resDay(r);
+    if(!r.dc_category||r.dc_category==='No Plan')f.push(day!==null&&day<3?['amber','Plan due by day 3']:['red','No discharge plan']);
+    if(r.target_dc_date){
+      var n=dDiff(r.target_dc_date,t);
+      if(n<0)f.push(['red','Target date passed']);
+      else if(n<=3&&c.done<c.total)f.push(['amber',(n===0?'Leaves today':'Leaves in '+n+' day'+(n===1?'':'s'))+' · '+(c.total-c.done)+' left']);
+    }
+  }
+  return f;
+}
+function resRank(r){var f=resFlags(r);return f.some(function(x){return x[0]==='red'})?0:f.length?1:2}
+function roomNum(r){return parseInt(r.room_bed,10)||0}
+function flagPills(r){return resFlags(r).map(function(x){return '<span class="pill '+(x[0]==='red'?'p-red':'p-todo')+'">'+esc(x[1])+'</span>'}).join('')+(r.payer==='BH'?'<span class="pill p-auto">Bed hold</span>':'')+(r.returned_on?'<span class="pill p-auto">Returned '+md(r.returned_on)+'</span>':'')}
+function resLine(r){var day=resDay(r);return [isLT(r)?'Long-term':'Skilled',r.payer?esc(r.payer)+(r.payer2?' / '+esc(r.payer2):''):'',day?'Day '+day:'',r.target_dc_date?'DC '+md(r.target_dc_date):'',r.status==='discharged'?'Left '+md(r.discharged_on):''].filter(Boolean).join(' · ')}
+function resRow(r){
+  var c=msCount(r),pct=Math.round(100*c.done/c.total);
+  return '<div class="rr" onclick="openRes(\''+r.id+'\')"><div class="rm">'+esc(r.room_bed)+'<small>'+esc(r.code)+'</small></div><div class="b">'+
+    '<div class="t">'+resLine(r)+'</div><div class="t pl">'+esc(r.dc_plan||r.dc_category||'No plan yet')+'</div>'+
+    '<div class="m">'+flagPills(r)+'<span>'+c.done+' of '+c.total+' milestones</span></div><div class="prog" style="margin-top:5px"><span style="width:'+pct+'%"></span></div></div>'+
+    '<div class="go" style="color:#b0b8c1;font-size:20px">›</div></div>';
+}
+function resFiltered(){
+  var all=S.res.residents,t=resToday(),f=S.resFilter;
+  var list=all.filter(function(r){
+    if(f==='S')return !isLT(r); if(f==='L')return isLT(r); if(f==='attn')return resRank(r)<2;
+    if(f==='soon')return r.target_dc_date&&dDiff(r.target_dc_date,t)>=0&&dDiff(r.target_dc_date,t)<=7;
+    return true});
+  var q=(S.resQ||'').trim().toUpperCase();
+  if(q)list=list.filter(function(r){return (r.room_bed+' '+r.code).indexOf(q)>=0});
+  return list.sort(function(a,b){return resRank(a)-resRank(b)||(isLT(a)-isLT(b))||String(a.target_dc_date||'9').localeCompare(String(b.target_dc_date||'9'))||roomNum(a)-roomNum(b)||a.room_bed.localeCompare(b.room_bed)});
+}
+function drawResGrid(){var l=resFiltered();document.getElementById('resGrid').innerHTML=l.length?l.map(resRow).join(''):'<div class="empty">No residents match.</div>'}
+function setResFilter(f){S.resFilter=f;route()}
+function renderResidents(){
+  var d=S.res;if(!d){app().innerHTML=segHtml()+'<div class="load">Loading…</div>';return}
+  var all=d.residents,t=resToday();
+  var nS=all.filter(function(r){return !isLT(r)}).length,nL=all.length-nS,nA=all.filter(function(r){return resRank(r)<2}).length,
+      nD=all.filter(function(r){return r.target_dc_date&&dDiff(r.target_dc_date,t)>=0&&dDiff(r.target_dc_date,t)<=7}).length;
+  var asof=d.as_of?new Date(d.as_of):null;
+  var h=segHtml();
+  h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px"><div class="big" style="font-size:20px">Residents</div><div class="muted">'+(asof?'Census board as of '+(asof.getMonth()+1)+'/'+asof.getDate()+' '+asof.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'No roster loaded yet')+'</div></div>';
+  var tile=function(f,n,lbl,cls){return '<div class="tile '+(cls||'')+'" onclick="setResFilter(\''+f+'\')"'+(S.resFilter===f?' style="outline:2px solid var(--primary)"':'')+'><b>'+n+'</b><span>'+lbl+'</span></div>'};
+  h+='<div class="tiles">'+tile('all',all.length,'In building','blue')+tile('S',nS,'Skilled','blue')+tile('L',nL,'Long-term','blue')+tile('attn',nA,'Need attention',nA?'red':'')+tile('soon',nD,'Leaving ≤ 7 days',nD?'amber':'')+'</div>';
+  h+='<div class="chips"><input id="resQ" placeholder="Find a room or code" value="'+esc(S.resQ)+'" oninput="S.resQ=this.value;drawResGrid()" autocomplete="off">'+
+     (S.resFilter!=='all'?'<button class="chip on" onclick="setResFilter(\'all\')">Show all ✕</button>':'')+'</div>';
+  h+='<div class="rgrid" id="resGrid"></div>';
+  if(d.recent_dc.length){
+    h+='<div class="h2">Left in the last 7 days<span class="n">'+d.recent_dc.length+'</span><span class="tog" onclick="S.showLeft=!S.showLeft;route()">'+(S.showLeft?'Hide':'Show')+'</span></div>';
+    if(S.showLeft)h+='<div class="rgrid">'+d.recent_dc.map(resRow).join('')+'</div>';
+  }
+  h+='<div class="nophi" style="margin-top:14px">Rooms, payer and skilled / long-term come from the census board each morning. You keep the plan and the milestones. Room and name code only; no names or clinical detail here.</div>';
+  app().innerHTML=h;drawResGrid();
+}
+function openRes(id){S.resItem=id;route()}
+function closeRes(){S.resItem=null;route()}
+function resPatch(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:undefined},p={},r=resById(S.resItem);
+  var put=function(k,id){var v=g(id);if(v!==undefined&&(v||'')!==(r[k]||''))p[k]=v};
+  put('dc_category','rsCat');put('dc_plan','rsPlan');put('target_dc_date','rsTarget');put('admit_date','rsAdmit');put('barriers','rsBar');put('last_conf','rsLast');put('next_conf','rsNext');
+  return p;
+}
+function resSend(patch,msg){
+  if(!Object.keys(patch).length)return toast('Nothing to save');
+  guard(async function(){
+    var nr=await rpc('caseload_update',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:S.resItem,p_patch:patch});
+    ['residents','recent_dc'].forEach(function(k){S.res[k]=S.res[k].map(function(r){return r.id===nr.id?nr:r})});
+    toast(msg||'Saved');
+    if(patch.ms){var keep=window.scrollY;await refresh();route();window.scrollTo(0,keep)}else route(); // a milestone may also check a checklist step
+  });
+}
+function resSave(){resSend(resPatch(),'Saved')}
+function resMs(k,na){
+  var r=resById(S.resItem),st=msState(r,k),p=resPatch();
+  if(!na&&st.how==='list')return toast('Done on the checklist. Reopen the step there to undo it.');
+  if(!na&&st.how==='plan')return toast('This one follows the plan above.');
+  p.ms={};p.ms[k]=na?'na':(st.done?'':resToday());
+  resSend(p,na?'Marked not needed':st.done?'Unchecked':'Done');
+}
+function renderRes(){
+  var r=resById(S.resItem);if(!r){S.resItem=null;return route()}
+  document.getElementById('fab').style.display='none';
+  var lt=isLT(r),c=msCount(r),gone=r.status==='discharged';
+  var h='<span class="back" onclick="closeRes()">← Residents</span><div class="card">'+
+    '<div style="font-size:18px;font-weight:800">Rm '+esc(r.room_bed)+' · '+esc(r.code)+'</div>'+
+    '<div class="muted" style="margin-top:3px">'+resLine(r)+'</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">'+flagPills(r)+'</div>'+
+    '<div class="kv"><b>Payer</b><span>'+esc(r.payer||'—')+'</span><b>Second payer</b><span>'+esc(r.payer2||'—')+'</span><b>Physician</b><span>'+esc(r.physician||'—')+'</span>'+
+    (r.updated_at?'<b>Last updated</b><span>'+md(r.updated_at)+' · '+esc(firstName(r.updated_by))+'</span>':'')+'</div></div>';
+  h+='<div class="card"><label style="margin-top:0">'+(lt?'Plan category':'Discharge category')+'</label><select id="rsCat"><option value="">Not set</option>'+DC_CATS.map(function(x){return '<option'+(r.dc_category===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select>'+
+    '<label>Plan</label><input id="rsPlan" maxlength="300" placeholder="'+(lt?'Staying long-term, ALW, CalAIM, placement…':'Where they are going and who with')+'" value="'+esc(r.dc_plan||'')+'">'+
+    '<div class="row2"><div><label>Target discharge date</label><input id="rsTarget" type="date" value="'+esc(r.target_dc_date||'')+'"></div><div><label>Admit date</label><input id="rsAdmit" type="date" value="'+esc(r.admit_date||'')+'"></div></div>'+
+    '<div class="row2"><div><label>Last care conference</label><input id="rsLast" type="date" value="'+esc(r.last_conf||'')+'"></div><div><label>Next care conference</label><input id="rsNext" type="date" value="'+esc(r.next_conf||'')+'"></div></div>'+
+    '<label>Barriers / notes</label><textarea id="rsBar" maxlength="600" placeholder="What is in the way, who you are waiting on">'+esc(r.barriers||'')+'</textarea>'+
+    '<div class="nophi">Keep it short. No names, diagnoses or other clinical detail; that belongs in PCC.</div>'+
+    '<div style="height:12px"></div><button class="btn btn-primary" onclick="resSave()">Save</button></div>';
+  h+='<div class="h2">'+(lt?'Long-term milestones':'Milestones toward discharge')+'<span class="n">'+c.done+' of '+c.total+'</span></div><div class="card" style="padding:4px 13px">'+
+    msDefs(r).map(function(m){
+      var st=msState(r,m[0]);
+      var sub=st.how==='manual'?'Done '+md(st.date):st.how==='na'?'Not needed':st.how==='list'?'Done on the checklist':st.how==='plan'?'Plan is filled in':'';
+      if(m[0]==='nomnc'&&!st.done)sub='<span class="lnk" onclick="resMs(\'nomnc\',true)">Mark not needed</span>';
+      return '<div class="it"><div class="chk '+(st.done?'on':'')+'" onclick="resMs(\''+m[0]+'\')">'+(st.done?'✓':'')+'</div><div class="b" style="cursor:default"><div class="t">'+esc(m[1])+'</div>'+(sub?'<div class="m"><span>'+sub+'</span></div>':'')+'</div></div>';
+    }).join('')+'</div>';
+  if((r.lists||[]).length){
+    h+='<div class="h2">Checklists<span class="n">'+r.lists.length+'</span></div><div class="card" style="padding:4px 13px">'+r.lists.map(function(l){
+      var dn=l.steps.filter(function(x){return x.done}).length;
+      return '<div class="lst" onclick="openList(\''+l.id+'\')"><div class="b"><div class="t">'+esc(l.title)+'</div><div class="m">'+dn+' of '+l.steps.length+' done'+(l.status!=='open'?' · '+esc(l.status):'')+'</div></div><div class="go">›</div></div>';
+    }).join('')+'</div>';
+  }
+  if(gone)h+='<p class="muted" style="text-align:center">This resident left on '+md(r.discharged_on)+'. The record drops off this screen after 7 days.</p>';
+  app().innerHTML=h;
+}
+
 // ---------- Department ----------
 function renderDept(){
   var d=S.deptData;if(!d){app().innerHTML=segHtml()+'<div class="load">Loading…</div>';return}
@@ -425,7 +592,7 @@ function findItem(id){
   for(var p=0;p<pools.length;p++){var hit=(pools[p]||[]).filter(function(i){return i.id===id})[0];if(hit)return hit}
   return null;
 }
-async function reload(){await refresh();if(S.peek)S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:S.peek});if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
+async function reload(){await refresh();if(S.res)S.res=await rpc('caseload_list',{p_pin:S.pin,p_actor:S.me.owner_key});if(S.peek)S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:S.peek});if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
 function toggle(id,isDone){
   guard(async function(){
     if(isDone){await rpc('work_reopen',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:id});toast('Reopened');}
@@ -564,7 +731,7 @@ start();
 </script>
 <script>
 // Bottom bar Back (ms-nav.js): close the open item/list first, then return to My list, then the hub.
-window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.peek){closePeek();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'&&S.view!=='board'){setView(startView());return true}return false};
+window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.resItem){closeRes();return true}if(S.peek){closePeek();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'&&S.view!=='board'){setView(startView());return true}return false};
 </script>
 <script src="../ms-nav.js?v=1" defer></script>
 </body>
