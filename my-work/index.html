@@ -87,6 +87,26 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .back{display:inline-block;color:var(--primary-light);font-weight:700;font-size:13.5px;cursor:pointer;margin-bottom:10px}
 .empty{color:var(--text-light);font-size:13.5px;padding:8px 2px}
 .nophi{font-size:12.5px;line-height:1.5;margin-top:10px;padding:8px 10px;border-radius:8px;background:#eef6fb;border:1px solid #cfe3f1;color:#1f4e79}
+.page.wide{max-width:1120px}
+.bgrid{display:grid;grid-template-columns:1fr;gap:0 14px}
+.bgrid>div{min-width:0}
+@media (min-width:820px){.bgrid{grid-template-columns:1fr 1fr}}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 6px}
+.tile{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer}
+.tile b{display:block;font-size:24px;font-weight:800;color:var(--text-light)}
+.tile span{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light)}
+.tile.red b,.tile.red span{color:var(--danger)} .tile.red{background:var(--danger-bg);border-color:#f3c9c6}
+.tile.amber b,.tile.amber span{color:var(--warn)} .tile.amber{background:var(--warn-bg);border-color:#f1dcae}
+.tile.blue b{color:#2d5d8a}
+.rc{padding:11px 2px;border-top:1px solid var(--border);cursor:pointer}
+.rc:first-child{border-top:0}
+.rc .top{display:flex;align-items:center;gap:8px}
+.rc .t{flex:1;font-size:14.5px;font-weight:700;min-width:0}
+.rc .nx{font-size:12.5px;color:var(--text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc .nx b{color:var(--text);font-weight:600}
+.sub-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light);padding:10px 2px 2px}
+.sub-h.red{color:var(--danger)} .sub-h.amber{color:var(--warn)}
+@media (max-width:520px){.tiles{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:420px){.roster{grid-template-columns:1fr}.row2{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
 </style>
 </head>
@@ -109,7 +129,7 @@ var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):n
 var ADMIN='stephen_badger';
 var SOURCE={rounding:'Room Rounds',floor_rounds:'Floor Rounds',qapi:'QAPI',huddle:'Meeting',improvement_idea:'Ideas board',a3:'A3',standup:'Standup',list:'List',grievance:'Grievance',repair:'Repairs',incident:'Incident',survey:'Survey',admin_call:'Admin call',asana:'Asana',my_work:'',manual:'',session:''};
 
-var S={pin:null,me:null,roster:null,view:'mine',data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
+var S={pin:null,me:null,roster:null,view:'mine',showProj:false,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
 
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -166,6 +186,7 @@ async function boot(){
   setWho();
   if(!S.me)return showWho();
   ls('mw_owner',S.me.owner_key);
+  S.view=startView();
   await refresh();route();
 }
 function showPin(msg){
@@ -187,7 +208,7 @@ function showWho(){
   app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Who are you?</div><p class="muted" style="margin-top:4px">Your list shows the items assigned to you and anything open in your department that no one has claimed.</p><div class="roster" style="margin-top:12px">'+
     os.map(function(o){return '<button onclick="pickWho(\''+o.owner_key+'\')"><b>'+esc(o.display_name)+'</b><span>'+esc(o.department)+'</span></button>'}).join('')+'</div></div>';
 }
-async function pickWho(k){S.me=S.roster.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();S.view='mine';S.list=null;S.item=null;await refresh();route()}
+async function pickWho(k){S.me=S.roster.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();S.view=startView();S.list=null;S.item=null;await refresh();route()}
 function switchUser(){if(!S.pin)return;S.me=null;ls('mw_owner',null);setWho();showWho()}
 function logOut(){msSignOut();ls('mw_owner',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
 
@@ -206,15 +227,18 @@ document.addEventListener('visibilitychange',function(){ // refresh when the tab
 // ---------- routing ----------
 function route(){
   window.scrollTo(0,0);
+  if(S.item||S.list)app().classList.remove('wide');
   if(S.item)return renderItem();
   if(S.list)return renderList();
   document.getElementById('fab').style.display='block';
+  app().classList.toggle('wide',S.view==='board');
+  if(S.view==='board')return renderBoard();
   if(S.view==='dept')return renderDept();
   if(S.view==='all')return renderAll();
   renderMine();
 }
 async function setView(v){
-  S.view=v;S.allOwner=null;
+  S.view=v;S.allOwner=null;if(v==='mine'||v==='board')ls('mw_view',v);
   await guard(async function(){
     if(v==='dept'&&!S.deptData)S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});
     if(v==='all'&&!S.allData)S.allData=await rpc('work_all',{p_pin:S.pin});
@@ -223,6 +247,7 @@ async function setView(v){
 }
 function segHtml(){
   return '<div class="seg"><button class="'+(S.view==='mine'?'on':'')+'" onclick="setView(\'mine\')">Mine</button>'+
+    '<button class="'+(S.view==='board'?'on':'')+'" onclick="setView(\'board\')">Board</button>'+
     '<button class="'+(S.view==='dept'?'on':'')+'" onclick="setView(\'dept\')">'+esc(S.me.department)+'</button>'+
     (isAdmin()?'<button class="'+(S.view==='all'?'on':'')+'" onclick="setView(\'all\')">Everyone</button>':'')+'</div>';
 }
@@ -290,6 +315,65 @@ function renderMine(){
   app().innerHTML=h;
   if(d.new_count)touch();
 }
+
+// ---------- Board (11/17/26) ----------
+// One-screen dashboard: checklist steps roll up to one card per resident list; follow-ups by due date;
+// undated projects tucked away. Built for Valerie (her default view); any owner can pick it.
+var BOARD_DEFAULT=['valerie_estrada'];
+function startView(){var v=ls('mw_view');if(v==='mine'||v==='board')return v;return S.me&&BOARD_DEFAULT.indexOf(S.me.owner_key)>=0?'board':'mine'}
+function stepNo(t){var m=/^(\d+)\./.exec(t||'');return m?+m[1]:99}
+function listKind(l){var t=(l.title||'').toLowerCase();return t.indexOf('discharge')===0?'dc':t.indexOf('admission')===0?'adm':'other'}
+function boardListCard(l,mine){
+  var open=mine.slice().sort(function(a,b){return stepNo(a.title)-stepNo(b.title)||String(a.due_date).localeCompare(String(b.due_date))});
+  var ov=open.filter(function(i){return i.urgency==='overdue'}).length, td=open.filter(function(i){return i.urgency==='today'}).length;
+  var pct=l.total?Math.round(100*l.done/l.total):0, nx=open[0];
+  return '<div class="rc" onclick="openList(\''+l.id+'\')"><div class="top"><div class="t">'+esc(l.title)+'</div>'+
+    (ov?'<span class="pill p-red">'+ov+' overdue</span>':'')+(td?'<span class="pill p-todo">'+td+' today</span>':'')+
+    (!ov&&!td&&open.length?'<span class="pill p-no">'+open.length+' left</span>':'')+(!open.length?'<span class="pill p-ok">your steps done</span>':'')+
+    '<div class="go" style="color:#b0b8c1;font-size:20px">›</div></div>'+
+    '<div class="prog"><span style="width:'+pct+'%"></span></div>'+
+    '<div class="nx">'+l.done+' of '+l.total+' done'+(nx?' · Next: <b>'+esc(nx.title.replace(/^\d+\.\s*/,''))+'</b>':'')+'</div></div>';
+}
+function boardSection(title,cls,body,count,extra){
+  return '<div class="h2 '+(cls||'')+'">'+esc(title)+(count!=null?'<span class="n">'+count+'</span>':'')+(extra||'')+'</div><div class="card" style="padding:4px 13px">'+body+'</div>';
+}
+function renderBoard(){
+  var d=S.data, items=d.items;
+  var loose=items.filter(function(i){return !i.list_id}), steps=items.filter(function(i){return i.list_id});
+  var byList={};steps.forEach(function(i){(byList[i.list_id]=byList[i.list_id]||[]).push(i)});
+  var lists=d.lists.slice().sort(function(a,b){return String(a.target_date||'9').localeCompare(String(b.target_date||'9'))});
+  var dc=lists.filter(function(l){return listKind(l)==='dc'}), adm=lists.filter(function(l){return listKind(l)==='adm'}), oth=lists.filter(function(l){return listKind(l)==='other'});
+  var ovAll=items.filter(function(i){return i.urgency==='overdue'}).length, tdAll=items.filter(function(i){return i.urgency==='today'}).length;
+  var fu=loose.filter(function(i){return i.urgency!=='none'}), proj=loose.filter(function(i){return i.urgency==='none'});
+  var h=segHtml();
+  h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px"><div class="big" style="font-size:20px">'+esc(S.me.display_name.split(' ')[0])+'’s board</div><div class="muted">'+esc(S.me.department)+(d.new_count?'<span class="badge">'+d.new_count+' new</span>':'')+'</div></div>';
+  h+='<div class="tiles">'+
+    '<div class="tile '+(ovAll?'red':'')+'" onclick="boardJump(\'bFu\')"><b>'+ovAll+'</b><span>Overdue</span></div>'+
+    '<div class="tile '+(tdAll?'amber':'')+'" onclick="boardJump(\'bFu\')"><b>'+tdAll+'</b><span>Due today</span></div>'+
+    '<div class="tile blue" onclick="boardJump(\'bDc\')"><b>'+dc.length+'</b><span>Discharges</span></div>'+
+    '<div class="tile blue" onclick="boardJump(\'bAdm\')"><b>'+adm.length+'</b><span>Admissions</span></div>'+
+    '<div class="tile" onclick="S.showProj=true;route();boardJump(\'bProj\')"><b>'+proj.length+'</b><span>Projects</span></div></div>';
+  // left column: resident checklists; right column: follow-ups
+  var left='', right='';
+  left+='<div id="bDc"></div>'+boardSection('Discharges','',dc.length?dc.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''):'<div class="empty">No open discharge lists.</div>',dc.length);
+  left+='<div id="bAdm"></div>'+boardSection('New admissions','',adm.length?adm.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''):'<div class="empty">No open admission lists.</div>',adm.length);
+  if(oth.length)left+=boardSection('Other lists','',oth.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''),oth.length);
+  var buckets=[['Overdue','red',function(i){return i.urgency==='overdue'}],['Today','amber',function(i){return i.urgency==='today'}],['This week','',function(i){return i.urgency==='week'}],['Coming up','',function(i){return i.urgency==='later'}]];
+  var fuBody=buckets.map(function(b){var its=fu.filter(b[2]).sort(function(x,y){return String(x.due_date).localeCompare(String(y.due_date))});
+    return its.length?'<div class="sub-h '+b[1]+'">'+b[0]+' · '+its.length+'</div>'+its.map(function(i){return itemRow(i)}).join(''):''}).join('');
+  right+='<div id="bFu"></div>'+boardSection('Follow-ups','',fuBody||'<div class="empty">No dated follow-ups. Nice.</div>',fu.length);
+  right+='<div id="bProj"></div>'+boardSection('Projects (no due date)','',S.showProj?(proj.length?newestFirst(proj).map(function(i){return itemRow(i)}).join(''):'<div class="empty">None.</div>'):'<div class="empty">'+proj.length+' longer-term item'+(proj.length===1?'':'s')+' hidden. Tap Show when you have time to plan.</div>',proj.length,
+    '<span class="tog" onclick="S.showProj=!S.showProj;route()">'+(S.showProj?'Hide':'Show')+'</span>');
+  if(d.dept_unassigned.length)right+=group('Unassigned in '+S.me.department,d.dept_unassigned,'',{claim:true});
+  h+='<div class="bgrid"><div>'+left+'</div><div>'+right+'</div></div>';
+  if(d.done_recent.length){
+    h+='<div class="h2">Done this week<span class="n">'+d.done_recent.length+'</span><span class="tog" onclick="S.showDone=!S.showDone;route()">'+(S.showDone?'Hide':'Show')+'</span></div>';
+    if(S.showDone)h+='<div class="card" style="padding:4px 13px">'+d.done_recent.map(function(i){return itemRow(i)}).join('')+'</div>';
+  }
+  app().innerHTML=h;
+  if(d.new_count)touch();
+}
+function boardJump(id){var e=document.getElementById(id);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 
 // ---------- Department ----------
 function renderDept(){
@@ -476,7 +560,7 @@ start();
 </script>
 <script>
 // Bottom bar Back (ms-nav.js): close the open item/list first, then return to My list, then the hub.
-window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'){setView('mine');return true}return false};
+window.msNavBack=function(){if(S.item){closeItem();return true}if(S.list){closeList();return true}if(S.allOwner){S.allOwner=null;route();return true}if(S.view&&S.view!=='mine'&&S.view!=='board'){setView(startView());return true}return false};
 </script>
 <script src="../ms-nav.js?v=1" defer></script>
 </body>
