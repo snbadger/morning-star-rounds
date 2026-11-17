@@ -165,7 +165,10 @@ function render(){
   var exp=S.rows.filter(function(r){return r.status==='expected'});
   var late=exp.filter(function(r){return r.admit_date<S.today});
   var up=exp.filter(function(r){return r.admit_date>=S.today});
-  var h='';
+  // Coming & Going: one hub tile opens Transportation; these tabs tie the two apps together.
+  var h='<div class="tabs"><a href="../trips/?tab=appt" style="text-decoration:none"><i data-lucide="bus" class="icon-sm"></i> Appointments</a>'+
+    '<a href="../trips/?tab=dc" style="text-decoration:none"><i data-lucide="door-open" class="icon-sm"></i> Discharges</a>'+
+    '<button class="on"><i data-lucide="log-in" class="icon-sm"></i> Admissions</button></div>';
   if(late.length){
     h+='<div class="day-h" style="color:var(--destructive)">Past date · not arrived in PCC<span class="n">'+late.length+'</span></div>';
     h+=late.map(function(r){return admRow(r,'late')}).join('');

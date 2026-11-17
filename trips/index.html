@@ -167,7 +167,8 @@ function render(){
   S.form=null;
   document.getElementById('fab').hidden=false;
   var kind=S.tab, h='<div class="tabs"><button class="'+(kind==='appt'?'on':'')+'" onclick="setTab(\'appt\')"><i data-lucide="bus" class="icon-sm"></i> Appointments</button>'+
-    '<button class="'+(kind==='dc'?'on':'')+'" onclick="setTab(\'dc\')"><i data-lucide="door-open" class="icon-sm"></i> Discharges</button></div>'+
+    '<button class="'+(kind==='dc'?'on':'')+'" onclick="setTab(\'dc\')"><i data-lucide="door-open" class="icon-sm"></i> Discharges</button>'+
+    '<a href="../admits/" style="text-decoration:none"><i data-lucide="log-in" class="icon-sm"></i> Admissions</a></div>'+
     (kind==='dc'&&canRT()?'<a class="btn outline block mb-2" href="../review-texts/"><i data-lucide="message-square-heart"></i>Review Text Queue'+
       (function(){var n=Object.keys(S.rq||{}).filter(function(k){return S.rq[k].status==='queued'}).length;return n?' <span class="badge info">'+n+' queued</span>':''})()+'</a>':'');
   // Upcoming occurrences of this kind, grouped by day

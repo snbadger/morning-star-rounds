@@ -146,6 +146,10 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
     <div class="grid cols-3" id="grid_leader" style="margin-top:8px;display:none">
 {{LEADER_TILES}}
     </div>
+    <details class="more" id="allLead" hidden style="margin-top:10px">
+      <summary class="lock-row"><i data-lucide="layout-grid"></i><span class="lbl">All leadership tools</span><i data-lucide="chevron-right" class="icon-sm chev-more"></i></summary>
+      <div class="grid cols-3" id="allLeadGrid" style="margin-top:8px"></div>
+    </details>
   </section>
 
   <section class="section" id="sec_hr" data-group="hr">
@@ -218,6 +222,30 @@ function checkPin(g){
   }
 }
 
+/* ---------- leadership tiles by role ---------- */
+// Each leader sees the tools for their job first; the rest fold under "All leadership tools".
+// Who a tile is for comes from apps.json (`for`), matched against the Paycom department and position
+// of the person signed in. Nobody signed in, or a typed name not on the roster: show everything,
+// except `only` tiles (Plaud Review), which show for a match and nobody else.
+// This only tidies the screen. It is not a lock: every app still checks its own PIN.
+function applyRoles(){
+  var grid=document.getElementById('grid_leader'), fold=document.getElementById('allLead'), fg=document.getElementById('allLeadGrid');
+  if(!grid||!fold)return;
+  var tiles=[].slice.call(document.querySelectorAll('#sec_leader .tile'));
+  tiles.forEach(function(t,i){if(!t.hasAttribute('data-ord'))t.setAttribute('data-ord',i)});
+  tiles.sort(function(a,b){return a.getAttribute('data-ord')-b.getAttribute('data-ord')});
+  var u=ID&&ID.get?ID.get():null, known=!!(u&&u.roster_match!==false&&(u.department||u.position));
+  var me=known?((u.department||'')+' | '+(u.position||'')).toLowerCase():'';
+  tiles.forEach(function(t){
+    var f=t.getAttribute('data-for'), only=t.hasAttribute('data-only');
+    var hit=!f||(known&&f.toLowerCase().split('|').some(function(w){return me.indexOf(w)>=0}));
+    t.hidden=only&&!hit;
+    ((hit||!known)?grid:fg).appendChild(t);
+  });
+  fold.hidden=!fg.children.length;
+  if(fold.hidden)fold.open=false;
+}
+
 /* ---------- layout by device ---------- */
 function layout(){
   var groups=document.getElementById('groups'), lead=document.getElementById('sec_leader'), more=document.getElementById('moreSec');
@@ -229,6 +257,7 @@ function layout(){
     more.hidden=!mg.children.length;
     document.getElementById('sec_hr').hidden=true;
   }
+  applyRoles();
   // Department heads on their own phones: leadership tools first once unlocked.
   if(!SHARED&&leaderUnlocked()) groups.parentNode.insertBefore(lead,groups);
   else groups.parentNode.insertBefore(lead,document.getElementById('sec_hr'));
@@ -249,7 +278,7 @@ function renderWho(){
   }
   icons();
 }
-function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();loadToday()}})}
+function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();applyRoles();loadToday()}})}
 // Picking your name is the first thing on the hub. Every app then uses it, so nobody is asked again.
 // Shared iPads ask every time the hub opens with nobody signed in; personal phones ask once per visit.
 function askOnOpen(){

@@ -1,5 +1,6 @@
 {
  "_about": "Single registry for the Staff Apps hub (11/4/26). tools/build_hub.py renders the hub tiles (index.html) and the README App Registry table from this file. Edit here, then run: python3 tools/build_hub.py",
+ "_roles": "Leadership tiles: `for` lists words matched against the signed-in person's Paycom department and position. A match (or no `for`) puts the tile in their main grid; the rest fold under 'All leadership tools'. `only: true` hides the tile completely from everyone else. Display convenience only — each app still checks its own PIN.",
  "groups": [
   {
    "id": "document",
@@ -309,22 +310,19 @@
    },
    "tile": {
     "group": "leader",
-    "href": "trips/?tab=appt",
-    "icon": "bus",
+    "href": "trips/",
+    "icon": "arrow-left-right",
     "fb": "🚐",
-    "name": "Transportation",
-    "desc": "Schedule an appointment and the ride"
-   }
-  },
-  {
-   "id": "trips-dc",
-   "tile": {
-    "group": "leader",
-    "href": "trips/?tab=dc",
-    "icon": "door-open",
-    "fb": "🏠",
-    "name": "Discharges",
-    "desc": "Planned discharges · starts the SS checklist"
+    "name": "Coming &amp; Going",
+    "desc": "Appointments &amp; rides · discharges · admissions",
+    "for": [
+     "Executive",
+     "Director of Nursing",
+     "MDS",
+     "Social Services",
+     "Admissions",
+     "Environmental Services"
+    ]
    }
   },
   {
@@ -335,14 +333,6 @@
     "audience": "Leadership PIN (shares `su_pin`, `mw_owner`). Randy Bago (Admissions) enters once a referral is accepted and has a date",
     "data": "Supabase `resident_admits` (RLS on, anon revoked; room-bed + name code only, never a name). RPCs `admits_list`, `admits_save`, `admits_set_status` (PIN), `admits_board` (PIN or shared-iPad key). A new admission starts an 8-step readiness checklist in My Work (`work_lists` template `admission`; Business Office, Maintenance/EVS, Nursing ×2, Dietary, Admissions, Social Services, MDS; `sync_status='local'`). PCC ADT trigger `_admits_arrive_from_adt` marks it arrived on AA/RA/RL from that room-bed (±3 days). Hub \"Arriving\" list shows room-bed, type, time and readiness only (no name code)",
     "status": "Built 11/5/26"
-   },
-   "tile": {
-    "group": "leader",
-    "href": "admits/",
-    "icon": "log-in",
-    "fb": "🛏️",
-    "name": "Admissions",
-    "desc": "Expected admissions · starts the readiness checklist"
    }
   },
   {
@@ -407,14 +397,6 @@
     "audience": "Leadership (PIN on hub) — DSD",
     "data": "Supabase `shower_logs` (anon read, read-only page); SCHEDULE mirrors `/showers/`",
     "status": "Built 10/21/26"
-   },
-   "tile": {
-    "group": "leader",
-    "href": "shower-audit/",
-    "icon": "search-check",
-    "fb": "🚿",
-    "name": "Shower Sheet Audit",
-    "desc": "Missed showers, refusals, skin follow-up"
    }
   },
   {
@@ -429,10 +411,15 @@
    "tile": {
     "group": "leader",
     "href": "inservice-dashboard/",
-    "icon": "chart-column",
-    "fb": "📊",
-    "name": "In-Service Completion",
-    "desc": "Who's done each quiz, who to chase"
+    "icon": "graduation-cap",
+    "fb": "🎓",
+    "name": "Training &amp; Audits",
+    "desc": "In-service completion · skill check-offs · shower audit",
+    "for": [
+     "Executive",
+     "Director of Nursing",
+     "Infection Preventionist"
+    ]
    }
   },
   {
@@ -443,14 +430,6 @@
     "audience": "Leadership (PIN on hub, moved 8/19/26)",
     "data": "Supabase `competency_validations`",
     "status": "Live"
-   },
-   "tile": {
-    "group": "leader",
-    "href": "competency/",
-    "icon": "badge-check",
-    "fb": "✅",
-    "name": "Skill Validation",
-    "desc": "Competency check-offs"
    }
   },
   {
@@ -468,7 +447,11 @@
     "icon": "mic",
     "fb": "🎙️",
     "name": "Plaud Review",
-    "desc": "Approve meeting action items → Asana (own PIN)"
+    "desc": "Approve meeting action items → Asana (own PIN)",
+    "for": [
+     "Executive"
+    ],
+    "only": true
    }
   },
   {
@@ -486,7 +469,13 @@
     "icon": "clipboard-pen",
     "fb": "📝",
     "name": "Eval Review",
-    "desc": "Annual evaluation tasks waiting on you (own PIN)"
+    "desc": "Annual evaluation tasks waiting on you (own PIN)",
+    "for": [
+     "Executive",
+     "Director of Nursing",
+     "Infection Preventionist",
+     "HR/PR"
+    ]
    }
   },
   {

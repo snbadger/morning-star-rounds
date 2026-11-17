@@ -180,18 +180,18 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
     </div>
     <div class="grid cols-3" id="grid_leader" style="margin-top:8px;display:none">
       <a class="tile leader" href="my-work/" data-id="my-work" data-group="leader" id="tile_mywork"><span class="tile-icon"><i data-lucide="circle-check-big"></i><span class="fb">✅</span></span><span class="name">My Work</span><span class="desc">Your action items, lists, and what's due today</span><span class="tbadge" id="mwBadge"></span></a>
-      <a class="tile leader" href="trips/?tab=appt" data-id="trips" data-group="leader"><span class="tile-icon"><i data-lucide="bus"></i><span class="fb">🚐</span></span><span class="name">Transportation</span><span class="desc">Schedule an appointment and the ride</span></a>
-      <a class="tile leader" href="trips/?tab=dc" data-id="trips-dc" data-group="leader"><span class="tile-icon"><i data-lucide="door-open"></i><span class="fb">🏠</span></span><span class="name">Discharges</span><span class="desc">Planned discharges · starts the SS checklist</span></a>
-      <a class="tile leader" href="admits/" data-id="admits" data-group="leader"><span class="tile-icon"><i data-lucide="log-in"></i><span class="fb">🛏️</span></span><span class="name">Admissions</span><span class="desc">Expected admissions · starts the readiness checklist</span></a>
+      <a class="tile leader" href="trips/" data-id="trips" data-group="leader" data-for="Executive|Director of Nursing|MDS|Social Services|Admissions|Environmental Services"><span class="tile-icon"><i data-lucide="arrow-left-right"></i><span class="fb">🚐</span></span><span class="name">Coming &amp; Going</span><span class="desc">Appointments &amp; rides · discharges · admissions</span></a>
       <a class="tile leader" href="rounds/" data-id="rounds" data-group="leader"><span class="tile-icon"><i data-lucide="bed-double"></i><span class="fb">🏥</span></span><span class="name">Room Rounds</span><span class="desc">Rounds completed, compliance, start a round</span></a>
       <a class="tile leader" href="standup/" data-id="standup" data-group="leader"><span class="tile-icon"><i data-lucide="list-todo"></i><span class="fb">📋</span></span><span class="name">Standup Log</span><span class="desc">Update your standup tabs before 9 AM</span></a>
       <a class="tile leader" href="reliability/" data-id="reliability" data-group="leader"><span class="tile-icon"><i data-lucide="shield-check"></i><span class="fb">⭐</span></span><span class="name">Staff Reliability</span><span class="desc">Approve OT · monthly clean-month list</span></a>
-      <a class="tile leader" href="shower-audit/" data-id="shower-audit" data-group="leader"><span class="tile-icon"><i data-lucide="search-check"></i><span class="fb">🚿</span></span><span class="name">Shower Sheet Audit</span><span class="desc">Missed showers, refusals, skin follow-up</span></a>
-      <a class="tile leader" href="inservice-dashboard/" data-id="inservice-dashboard" data-group="leader"><span class="tile-icon"><i data-lucide="chart-column"></i><span class="fb">📊</span></span><span class="name">In-Service Completion</span><span class="desc">Who's done each quiz, who to chase</span></a>
-      <a class="tile leader" href="competency/" data-id="competency" data-group="leader"><span class="tile-icon"><i data-lucide="badge-check"></i><span class="fb">✅</span></span><span class="name">Skill Validation</span><span class="desc">Competency check-offs</span></a>
-      <a class="tile leader" href="plaud/" data-id="plaud" data-group="leader"><span class="tile-icon"><i data-lucide="mic"></i><span class="fb">🎙️</span></span><span class="name">Plaud Review</span><span class="desc">Approve meeting action items → Asana (own PIN)</span></a>
-      <a class="tile leader" href="eval-review/" data-id="eval-review" data-group="leader"><span class="tile-icon"><i data-lucide="clipboard-pen"></i><span class="fb">📝</span></span><span class="name">Eval Review</span><span class="desc">Annual evaluation tasks waiting on you (own PIN)</span></a>
+      <a class="tile leader" href="inservice-dashboard/" data-id="inservice-dashboard" data-group="leader" data-for="Executive|Director of Nursing|Infection Preventionist"><span class="tile-icon"><i data-lucide="graduation-cap"></i><span class="fb">🎓</span></span><span class="name">Training &amp; Audits</span><span class="desc">In-service completion · skill check-offs · shower audit</span></a>
+      <a class="tile leader" href="plaud/" data-id="plaud" data-group="leader" data-for="Executive" data-only><span class="tile-icon"><i data-lucide="mic"></i><span class="fb">🎙️</span></span><span class="name">Plaud Review</span><span class="desc">Approve meeting action items → Asana (own PIN)</span></a>
+      <a class="tile leader" href="eval-review/" data-id="eval-review" data-group="leader" data-for="Executive|Director of Nursing|Infection Preventionist|HR/PR"><span class="tile-icon"><i data-lucide="clipboard-pen"></i><span class="fb">📝</span></span><span class="name">Eval Review</span><span class="desc">Annual evaluation tasks waiting on you (own PIN)</span></a>
     </div>
+    <details class="more" id="allLead" hidden style="margin-top:10px">
+      <summary class="lock-row"><i data-lucide="layout-grid"></i><span class="lbl">All leadership tools</span><i data-lucide="chevron-right" class="icon-sm chev-more"></i></summary>
+      <div class="grid cols-3" id="allLeadGrid" style="margin-top:8px"></div>
+    </details>
   </section>
 
   <section class="section" id="sec_hr" data-group="hr">
@@ -265,6 +265,30 @@ function checkPin(g){
   }
 }
 
+/* ---------- leadership tiles by role ---------- */
+// Each leader sees the tools for their job first; the rest fold under "All leadership tools".
+// Who a tile is for comes from apps.json (`for`), matched against the Paycom department and position
+// of the person signed in. Nobody signed in, or a typed name not on the roster: show everything,
+// except `only` tiles (Plaud Review), which show for a match and nobody else.
+// This only tidies the screen. It is not a lock: every app still checks its own PIN.
+function applyRoles(){
+  var grid=document.getElementById('grid_leader'), fold=document.getElementById('allLead'), fg=document.getElementById('allLeadGrid');
+  if(!grid||!fold)return;
+  var tiles=[].slice.call(document.querySelectorAll('#sec_leader .tile'));
+  tiles.forEach(function(t,i){if(!t.hasAttribute('data-ord'))t.setAttribute('data-ord',i)});
+  tiles.sort(function(a,b){return a.getAttribute('data-ord')-b.getAttribute('data-ord')});
+  var u=ID&&ID.get?ID.get():null, known=!!(u&&u.roster_match!==false&&(u.department||u.position));
+  var me=known?((u.department||'')+' | '+(u.position||'')).toLowerCase():'';
+  tiles.forEach(function(t){
+    var f=t.getAttribute('data-for'), only=t.hasAttribute('data-only');
+    var hit=!f||(known&&f.toLowerCase().split('|').some(function(w){return me.indexOf(w)>=0}));
+    t.hidden=only&&!hit;
+    ((hit||!known)?grid:fg).appendChild(t);
+  });
+  fold.hidden=!fg.children.length;
+  if(fold.hidden)fold.open=false;
+}
+
 /* ---------- layout by device ---------- */
 function layout(){
   var groups=document.getElementById('groups'), lead=document.getElementById('sec_leader'), more=document.getElementById('moreSec');
@@ -276,6 +300,7 @@ function layout(){
     more.hidden=!mg.children.length;
     document.getElementById('sec_hr').hidden=true;
   }
+  applyRoles();
   // Department heads on their own phones: leadership tools first once unlocked.
   if(!SHARED&&leaderUnlocked()) groups.parentNode.insertBefore(lead,groups);
   else groups.parentNode.insertBefore(lead,document.getElementById('sec_hr'));
@@ -296,7 +321,7 @@ function renderWho(){
   }
   icons();
 }
-function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();loadToday();loadLeaving()}})}
+function whoPick(){ID.pick({title:SHARED?'Who’s using this iPad?':'Who are you?'}).then(function(u){if(u){renderWho();applyRoles();loadToday();loadLeaving()}})}
 // Picking your name is the first thing on the hub. Every app then uses it, so nobody is asked again.
 // Shared iPads ask every time the hub opens with nobody signed in; personal phones ask once per visit.
 function askOnOpen(){
