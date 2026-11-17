@@ -392,9 +392,9 @@ function badge(c){
   return m?'<span class="badge b-'+c.status+'"><i data-lucide="'+m[0]+'"></i>'+esc(c.label||m[1])+'</span>':'';
 }
 // Lucide icon per card (ms-ui look); a card not listed gets no tile
-var CARD_ICONS={'Census':'bed-double','Admissions & Discharges':'arrow-left-right','Admission Mini Packets':'folder-check','Medicare Day-4 Rates':'badge-dollar-sign',
+var CARD_ICONS={'Census':'bed-double','LCD Dates':'calendar-clock','Admission Mini Packets':'folder-check','Medicare Day-4 Rates':'badge-dollar-sign',
  'Nursing Hours PPD':'stethoscope','Overtime':'timer','Call-offs & HR':'phone-off','Floor Rounds & Environment':'clipboard-check','Repairs & Room Changes':'wrench',
- 'Google Rating':'star','Needs an Owner Today':'siren','Department Updates':'users','Falls':'triangle-alert','Grievances':'message-square-warning',
+ 'Google Rating':'star','Respiratory Treatments':'wind','Part B — Long-Term':'badge-check','Needs an Owner Today':'siren','Department Updates':'users','Falls':'triangle-alert','Grievances':'message-square-warning',
  'Care Plan (POC) Compliance':'clipboard-list','PCC Forms Due':'file-check','Hospital Send-outs':'ambulance','Leaving the Building':'bus','Arriving':'log-in','Open Clinical & BO Lists':'list-checks','Leader Resident Rounds':'footprints'};
 function cardHtml(c){
   var cls='card'+(c.wide?' wide':'')+(c.twocol?' twocol':'')+(c.span2?' span2':'')+(c.stale||c.missing?' stale':(c.status?' '+c.status:''));
@@ -446,21 +446,17 @@ function buildCards(){
     chart:datedLine(cser,{goal:bud,min:45,max:57}),stale:cen.date&&cen.date<addDays(S.today,-1)?cen.date:null,
     twocol:true,body:cenBody(cen),foot:(cEmpty.length?'Empty: '+cEmpty.join(', ')+' · ':'')+'14 days · dashed = budget ADC'});
 
-  // 2 Admissions & discharges — census workbook + PCC ADT
-  var pa=auto('pending_admissions')||{},dc=auto('discharges')||{},pend=rowsOf('pending_admissions'),plan=rowsOf('discharges').filter(function(r){return r.status==='planned'});
-  var awaiting=pend.filter(function(r){return r.status==='pending'}).length,dcFlag=plan.filter(function(r){return r.flag}).length;
+  // 2 LCD Dates (Stephen 11/17) — last covered days from the Jericho Census workbook only. Admissions live on Arriving
+  // (Admissions app) and discharges on Leaving the Building (Transportation app), so nothing shows twice. No past dates.
   var more=function(n,shown){return n>shown?'<div class="more">+'+(n-shown)+' more</div>':''};
-  var am=auto('adm_dc_mtd')||{},amRows=am.rows||[],amA=amRows.filter(function(r){return r.kind==='adm'}),amD=amRows.filter(function(r){return r.kind==='dc'});
-  var amList=function(rows){return rows.slice(0,3).map(function(r){return '<div class="row"><span class="l">Rm '+esc(r.room||'—')+(r.code?' · '+esc(r.code):'')+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(rows.length,3)};
-  // Two stacked blocks — admissions on top, discharges below — so each gets its own count and list.
-  var admBlk='<div class="blk"><div class="bh"><b>'+pend.length+'</b>Admissions<small>pending'+(awaiting?' · '+awaiting+' awaiting auth':'')+'</small></div>'+
-    (pend.length?pend.slice(0,4).map(function(r){return '<div class="row"><span class="l">'+esc(r.title)+'</span><span class="v">'+esc(r.detail||'')+'</span></div>'}).join('')+more(pend.length,4):'<div class="sub">None pending</div>')+
-    '<div class="more">MTD '+num(am.admits)+' admitted'+(am.readmits?' ('+am.readmits+' readmits)':'')+' · PCC through '+md(am.through)+'</div>'+amList(amA)+'</div>';
-  var dcBlk='<div class="blk"><div class="bh"><b>'+plan.length+'</b>Discharges<small>planned / LCD</small></div>'+
-    (plan.length?plan.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">Rm '+esc(r.room)+' · '+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join('')+more(plan.length,4):'<div class="sub">None planned</div>')+
-    '<div class="more">MTD '+num(am.discharges)+' discharged · PCC through '+md(am.through)+'</div>'+amList(amD)+'</div>';
-  cards.push({title:'Admissions & Discharges',sub:'Jericho Census workbook',status:dcFlag?'bad':awaiting?'warn':'good',label:dcFlag?dcFlag+' DC past date':awaiting?awaiting+' awaiting auth':'Clear',
-    split:true,body:admBlk+dcBlk,stale:staleDate('pending_admissions')});
+  var lcd=rowsOf('discharges').filter(function(r){return r.status==='planned'&&/^LCD/.test(r.title||'')&&!(r.date&&r.date<S.today)});
+  var lcdToday=lcd.filter(function(r){return r.date===S.today}).length,lcdWeek=lcd.filter(function(r){return r.date&&r.date<=addDays(S.today,7)}).length;
+  cards.push({title:'LCD Dates',sub:'Jericho Census workbook',status:lcdToday?'warn':'good',label:lcdToday?lcdToday+' LCD today':lcd.length?'None today':'None',
+    hero:[lcd.length,'upcoming · '+lcdWeek+' in the next 7 days'],
+    body:lcd.length?lcd.slice(0,6).map(function(r){return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+
+      (/appeal/.test(r.title)?'<small>appealing</small>':'')+'</span><span class="v">'+(r.date===S.today?'today':r.date===addDays(S.today,1)?'tmrw':md(r.date))+'</span></div>'}).join('')+more(lcd.length,6)
+      :'<div class="sub">No upcoming LCDs</div>',
+    stale:staleDate('pending_admissions')});
 
   // 3 Falls (Stephen 11/3) — MTD vs last month to the same day, rate per 1,000 patient days, 14 days by shift,
   // room-bed list with ↻ on repeat fallers (2+ falls in 30 days at that room-bed). Red = any fall in the last 24 hours.
@@ -477,23 +473,30 @@ function buildCards(){
   var tb=S.trips,tRows=(tb&&tb.rows)||[],tToday=tRows.filter(function(r){return r.date===S.today}),tA=tRows.filter(function(r){return r.kind==='appt'}).length;
   var h12=function(t){if(!t)return '';var p=t.split(':'),h=+p[0];return ((h+11)%12+1)+':'+p[1]+(h<12?'a':'p')};
   var dLbl=function(d){return d===S.today?'today':d===addDays(S.today,1)?'tmrw':md(d)};
+  // Two areas (Stephen 11/17): discharges on top, appointments below, each with its own count. No past dates.
+  tRows=tRows.filter(function(r){return !(r.date&&r.date<S.today)});
+  var tDc=tRows.filter(function(r){return r.kind!=='appt'}),tAp=tRows.filter(function(r){return r.kind==='appt'});
+  var tRow=function(r){var A=r.kind==='appt';return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+
+      '</span><span class="v">'+dLbl(r.date)+(A&&r.pickup?' · out '+h12(r.pickup):r.time?' · '+h12(r.time):'')+'</span></div>'};
+  var tBlk=function(rows,lbl,none){return '<div class="blk"><div class="bh"><b>'+rows.length+'</b>'+lbl+'<small>today + 7 days</small></div>'+
+      (rows.length?rows.slice(0,4).map(tRow).join('')+more(rows.length,4):'<div class="sub">'+none+'</div>')+'</div>'};
   cards.push({title:'Leaving the Building',sub:'Transportation & Discharges app · 7 days',status:tb?'good':null,
-    label:tToday.length?tToday.length+' leaving today':'None today',hero:[tRows.length,tA+' appointment'+(tA==1?'':'s')+' · '+(tRows.length-tA)+' discharge'+(tRows.length-tA==1?'':'s')],
-    missing:!tb,
-    body:tRows.slice(0,6).map(function(r){var A=r.kind==='appt';return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+(r.code?' · '+esc(r.code):'')+
-      '<small>'+(A?'appt':'discharge')+'</small></span><span class="v">'+dLbl(r.date)+(A&&r.pickup?' · out '+h12(r.pickup):r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(tRows.length,6),
+    label:tToday.length?tToday.length+' leaving today':'None today',
+    missing:!tb,split:true,
+    body:tBlk(tDc,'Discharges','None scheduled')+tBlk(tAp,'Appointments','None scheduled'),
     foot:'Valerie / Lucy enter these · discharges clear when PCC shows them'});
 
   // Arriving (Admissions app, 11/5/26): expected admissions for 7 days with readiness-checklist progress.
   // Room-bed only (no name code). Amber when someone arrives today or is past date and the checklist is not done.
-  var ab=S.admits,aRows=(ab&&ab.rows)||[],aSoon=aRows.filter(function(r){return r.late||r.date===S.today}),
-      aGap=aSoon.filter(function(r){return r.late||r.ready<r.steps}).length;
+  // Admissions app only, and nothing past (Stephen 11/17): past-date rows drop off instead of showing "past date".
+  var ab=S.admits,aRows=((ab&&ab.rows)||[]).filter(function(r){return !r.late&&!(r.date&&r.date<S.today)}),aSoon=aRows.filter(function(r){return r.date===S.today}),
+      aGap=aSoon.filter(function(r){return r.ready<r.steps}).length;
   cards.push({title:'Arriving',sub:'Admissions app · 7 days',status:ab?(aGap?'warn':'good'):null,
-    label:aGap?aGap+' not ready / past date':aSoon.length?aSoon.length+' arriving today':'None today',
+    label:aGap?aGap+' not ready today':aSoon.length?aSoon.length+' arriving today':'None today',
     hero:[aRows.length,'expected · '+aRows.filter(function(r){return r.type==='return'}).length+' returning from hospital'],
     missing:!ab,
-    body:aRows.slice(0,6).map(function(r){return '<div class="row'+(r.late||r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+
-      '<small>'+(r.type==='return'?'return':'new')+(r.steps?' · '+r.ready+'/'+r.steps+' ready':'')+'</small></span><span class="v">'+(r.late?'past date':dLbl(r.date))+(r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(aRows.length,6),
+    body:aRows.slice(0,6).map(function(r){return '<div class="row'+(r.date===S.today?' flag':'')+'"><span class="l">Rm '+esc(r.room)+
+      '<small>'+(r.type==='return'?'return':'new')+(r.steps?' · '+r.ready+'/'+r.steps+' ready':'')+'</small></span><span class="v">'+dLbl(r.date)+(r.time?' · '+h12(r.time):'')+'</span></div>'}).join('')+more(aRows.length,6),
     foot:'Randy enters these · they clear when PCC shows the admission'});
 
   // 4 Send-outs (Stephen 11/3) — from the 24-hr reports (same day) instead of the lagging ADT export; AMA still from PCC ADT
@@ -543,14 +546,16 @@ function buildCards(){
       chart:barChart(otser.map(function(p){return {v:p.prem,hl:p.prem>8}}),{max:8}),stale:staleDate('overtime'),foot:'14 days · red = over 8 hrs'});
   }
 
-  // 7 Call-offs & HR — Kelsey's Standup Log tabs (call-offs, open positions, HR scorecard); counts only, no HR free text
+  // 7 Call-offs & HR — call-offs from Veras with employee + shift (Stephen 11/17/26); open positions + HR scorecard
+  // from Kelsey's Standup Log tabs, counts only, no HR free text
   var hr=auto('hr_staffing')||{},co=hr.call_offs||[],coRecent=co.filter(function(r){return r.date>=addDays(S.today,-1)}),coOpen=coRecent.filter(function(r){return r.flag}).length;
+  var coPos=function(p){return p==='N'?'Nurse':p||''};
   var op=hr.open_positions||{},opKeys=['rn','lvn','cna','rt','other'],opTot=opKeys.reduce(function(a,k){return a+(op[k]||0)},0),sc=hr.scorecard||{};
   var scv=function(k){return sc[k]?sc[k].v:'—'};
-  cards.push({title:'Call-offs & HR',sub:'Standup Log · Kelsey',status:coOpen?'bad':coRecent.length?'warn':'good',label:coOpen?coOpen+' not covered':coRecent.length?'Covered':'No call-offs',
+  cards.push({title:'Call-offs & HR',sub:'Call-offs from Veras · HR from Standup Log',status:coOpen?'bad':coRecent.length?'warn':'good',label:coOpen?coOpen+' open in Veras':coRecent.length?'Covered':'No call-offs',
     hero:[co.length,'call-offs · 7 days'],
     line:'Open positions '+opTot+(opTot?' — '+opKeys.filter(function(k){return op[k]}).map(function(k){return op[k]+' '+(k==='other'?'other':k.toUpperCase())}).join(', '):'')+(op.date?' ('+md(op.date)+')':''),
-    body:co.slice(0,4).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+esc(r.title)+'<small>'+esc(r.detail||'')+'</small></span><span class="v">'+md(r.date)+' · '+(r.covered==='Yes'?'covered':esc(String(r.covered).toLowerCase()))+'</span></div>'}).join('')+more(co.length,4)+
+    body:co.slice(0,6).map(function(r){return '<div class="row'+(r.flag?' flag':'')+'"><span class="l">'+esc(r.name)+'<small>'+esc(coPos(r.pos)+' · '+(r.shift||'?')+' shift '+(r.hours||'')+(r.reason?' · '+r.reason:'')+(r.notice!=null?' · '+(r.notice<0?'called after start':(r.notice<1?'under 1 hr':Math.round(r.notice)+' hrs')+' notice'):''))+'</small></span><span class="v">'+md(r.date)+' · '+(r.covered==='Yes'?'covered':'open in Veras')+'</span></div>'}).join('')+more(co.length,6)+
       '<div class="bh2">HR scorecard · latest entries</div><div class="row"><span class="l">New hires '+scv('new_hires')+' · Resignations '+scv('resignations')+'</span><span class="v">Interviews '+scv('interviews')+' · Credentials due '+scv('credentials')+'</span></div>',
     stale:staleDate('hr_staffing')});
 
@@ -591,6 +596,27 @@ function buildCards(){
       '<div class="row"><span class="l">Sent to Liz · '+MONS[+ym.slice(5,7)-1]+'<small>Amandeep\'s tracker · '+MONS[+pm.slice(5,7)-1]+': '+(tPrev.emailed||0)+' of '+(tPrev.admits||0)+', avg $'+num(tPrev.avg_rate)+'</small></span><span class="v">'+(tCur.emailed||0)+' of '+(tCur.admits||0)+'</span></div>'+
       rowsOf('mds_day4').filter(function(r){return r.flag}).slice(0,3).map(function(r){return '<div class="row flag"><span class="l">'+(r.room?'Rm '+esc(r.room)+' · ':'')+esc(r.title)+'</span><span class="v">'+md(r.date)+'</span></div>'}).join(''),
     stale:d4.pcc_loaded&&d4.pcc_loaded<addDays(S.today,-8)?d4.pcc_loaded:staleDate('mds_day4')});
+
+  // Respiratory Treatments (Stephen 11/17) — Quang Bui's billing log, loaded by the 24-hr report task (load_resp_log.py).
+  // One row per room-bed + name code; red = a missed day in the last 7 charted days, amber = short days or the log is behind.
+  var rl=auto('resp_log')||{},rR=rl.rows||[],rThru=rl.through,r7=rThru?addDays(rThru,-6):null;
+  var in7=function(a){return (a||[]).filter(function(d){return r7&&d>=r7&&d<=rThru})};
+  var span=function(ds){var out=[],s=null,p=null;ds.forEach(function(d){if(p&&addDays(p,1)===d){p=d}else{if(s)out.push(s===p?md(s):md(s)+'–'+md(p));s=p=d}});if(s)out.push(s===p?md(s):md(s)+'–'+md(p));return out.join(', ')};
+  var rByRb={};rR.forEach(function(r){(rByRb[r.room_bed]=rByRb[r.room_bed]||{rb:r.room_bed,code:r.code,tx:[],missed:{},short:0});var g=rByRb[r.room_bed];
+    g.tx.push(r.tx+(r.prn?' as needed':' '+r.expected+'/day'));in7(r.missed).forEach(function(d){g.missed[d]=1});g.short+=in7(r.short).length});
+  var rRes=Object.keys(rByRb).map(function(k){var g=rByRb[k];g.miss=Object.keys(g.missed).sort();return g})
+    .sort(function(a,b){return b.miss.length-a.miss.length||b.short-a.short||a.rb.localeCompare(b.rb,undefined,{numeric:true})});
+  var rMiss=rRes.reduce(function(a,g){return a+g.miss.length},0),rShort=rRes.reduce(function(a,g){return a+g.short},0),
+      rBehind=rThru&&rThru<addDays(S.today,-2);
+  cards.push({title:'Respiratory Treatments',sub:'RT billing log (Quang)'+(rThru?' · charted through '+md(rThru):''),
+    status:rl.as_of?(rMiss?'bad':(rShort||rBehind)?'warn':'good'):null,
+    label:rMiss?rMiss+' missed day'+(rMiss==1?'':'s')+' · 7 days':rBehind?'Log behind':rShort?rShort+' short day'+(rShort==1?'':'s'):'All given',
+    hero:[rRes.length,'on treatment · '+rR.length+' treatment'+(rR.length==1?'':'s')],missing:!rl.as_of,
+    body:rRes.slice(0,6).map(function(g){return '<div class="row'+(g.miss.length?' flag':'')+'"><span class="l">Rm '+esc(g.rb)+(g.code?' · '+esc(g.code):'')+
+      '<small>'+esc(g.tx.join(' · '))+'</small></span><span class="v">'+(g.miss.length?'missed '+span(g.miss):g.short?g.short+' short day'+(g.short==1?'':'s'):'all given')+'</span></div>'}).join('')+more(rRes.length,6),
+    foot:'Last 7 charted days · short = fewer than that resident\'s usual daily count'+(rl.no_units?' · '+rl.no_units+' listed with none this month':'')+
+      ((rl.cpt_flags||[]).length?' · '+rl.cpt_flags.join(' · '):''),
+    stale:rl.as_of&&rl.as_of<addDays(S.today,-3)?rl.as_of:null});
 
   // 12 Google reviews
   var gr=rowsOf('google_review'),g0=gr[0]||{},stars=leadNum(g0.title),grser=gr.slice().reverse().map(function(r){return {v:leadNum(r.title)}});
@@ -645,12 +671,25 @@ function buildCards(){
     body:weekGrid(ROUNDERS.map(function(n){return {name:n.split(' ')[0],days:rg[n]||[]}}))});
 
   // 16 Clinical lists — open items from the nursing / IP tabs
-  var lists=[['isolation','Isolation'],['ebp','Enhanced barrier'],['sitter','Sitters'],['behaviors','Behaviors'],['wound_vac','Wound VAC'],['at_risk_rta','At risk of send-out'],['bedholds','Bed holds'],['medi_cal_pending','Medi-Cal pending']];
+  var lists=[['isolation','Isolation'],['ebp','Enhanced barrier'],['sitter','Sitters'],['behaviors','Behaviors'],['wound_vac','Wound VAC'],['at_risk_rta','At risk of send-out'],['bedholds','Bed holds'],['medi_cal_pending','Medi-Cal pending']]
+    .filter(function(x){return S.byKey[x[0]]});   // bootstrap sends active tabs only, so tabs switched off in standup_tabs drop off (Stephen 11/17)
   var lrows=lists.map(function(x){var t=S.byKey[x[0]],es=entries(x[0]);return {k:x[0],l:x[1],n:es.length,miss:t&&!covered(x[0]),
     rooms:es.map(function(e){return e.room?String(e.room)+(e.bed?'-'+e.bed:''):null}).filter(Boolean)}});
   var lmiss=lrows.filter(function(r){return r.miss}).length;
   cards.push({title:'Open Clinical & BO Lists',sub:'Standup Log entries',status:lmiss?null:'good',label:'Updated',missing:lmiss>0&&pastDeadline(),
     body:lrows.map(function(r){return '<div class="row"><span class="l">'+esc(r.l)+(r.miss?' <span style="color:var(--stale);font-size:13px">not updated</span>':'')+(r.rooms.length?'<small>'+esc(r.rooms.join(', '))+'</small>':'')+'</span><span class="v">'+r.n+'</span></div>'}).join('')});
+
+  // Part B long-term list (Stephen 11/17) — Katie's Part B Residents list matched to today's census (load_partb_list.py).
+  // Room-bed + name code only; "from M/D" = Part B starts on that date.
+  var pb=auto('partb_list')||{},pbR=(pb.rows||[]).slice().sort(function(a,b){return a.room_bed.localeCompare(b.room_bed,undefined,{numeric:true})}),
+      pbLater=pbR.filter(function(r){return r.pending}).length;
+  cards.push({title:'Part B — Long-Term',sub:'Business Office list (Katie)'+(pb.list_month?' · '+pb.list_month+(pb.list_updated?' updated '+md(pb.list_updated):''):''),
+    status:pb.as_of?'good':null,label:pbR.length+' in house'+(pbLater?' · '+pbLater+' starting soon':''),missing:!pb.as_of,
+    hero:[pbR.length,'long-term residents with Part B'],
+    body:pbR.length?pbR.map(function(r){return '<div class="row"><span class="l">Rm '+esc(r.room_bed)+(r.code?' · '+esc(r.code):'')+'</span><span class="v">'+
+      (r.pending?'from '+md(r.since):'eligible')+'</span></div>'}).join(''):'<div class="sub">No one on the list is in house</div>',
+    foot:(pb.not_in_house?pb.not_in_house+' on the list not in house today · ':'')+'matched to PCC census '+md(pb.census_file),
+    stale:pb.as_of&&pb.as_of<addDays(S.today,-3)?pb.as_of:null});
 
   // 17 Department updates (wide) — who has updated their tabs today
   var byRole={};
@@ -676,12 +715,12 @@ function buildCards(){
 
 // ---------- flow: sections in meeting order (Stephen 11/3/26) ----------
 var SECTIONS=[
- {t:'Census & Admissions',cards:['Census','Admissions & Discharges','Arriving','Leaving the Building','Medicare Day-4 Rates']},
+ {t:'Census & Admissions',cards:['Census','LCD Dates','Arriving','Leaving the Building','Medicare Day-4 Rates']},
  {t:'Staffing & Scheduling',cards:['Nursing Hours PPD','Overtime','Call-offs & HR']},
- {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Google Rating']},
+ {t:'Operational Updates',cards:['Floor Rounds & Environment','Repairs & Room Changes','Respiratory Treatments','Google Rating']},
  {t:'Action Items & Escalations',cards:['Needs an Owner Today','Department Updates']},
  {t:'Safety & Compliance',cards:['Falls','Grievances','Care Plan (POC) Compliance','PCC Forms Due']},
- {t:'Clinical Highlights',cards:['Hospital Send-outs','Admission Mini Packets','Open Clinical & BO Lists','Leader Resident Rounds']}
+ {t:'Clinical Highlights',cards:['Hospital Send-outs','Admission Mini Packets','Open Clinical & BO Lists','Part B — Long-Term','Leader Resident Rounds']}
 ];
 var SEC_SECS=100;   // 10 minutes ÷ 6 sections
 var ESC='Needs an Owner Today';
