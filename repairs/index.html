@@ -73,6 +73,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .rep.pickup{border-left-color:var(--primary-light)}
 .rep.long{border-left-color:var(--danger)}
 .rep .acts{display:flex;gap:8px;margin-top:10px}
+.rentTap{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.06)}
+.rentEdit{float:right;margin-left:10px;font-size:12px;font-weight:700;color:var(--primary)}
 .mini{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;font-family:inherit}
 .mini.go{background:var(--success);border-color:var(--success);color:#fff}
 .sumrow{display:flex;gap:8px;margin-bottom:12px}
@@ -358,9 +360,18 @@ var RENT_CATS=[
  {v:'bariatric',l:'Bariatric'},
  {v:'other',l:'Other'}
 ];
+// Contract rates from vendor invoices (Jethro Oct 2026 #4256, Tabor Sept 2026 #4224),
+// ~8.35% sales tax included, rounded to the dollar. Tap one to fill the form.
+var RATE_BOOK=[
+ {item:'Low air loss mattress — standard',cat:'bed_mattress',vendor:'Jethro Medical',rate:5},
+ {item:'Low air loss mattress — bariatric',cat:'bariatric',vendor:'Jethro Medical',rate:15},
+ {item:'BiPAP',cat:'respiratory',vendor:'Jethro Medical',rate:12},
+ {item:'Wound vac (Genadyne)',cat:'wound_vac',vendor:'Tabor Medical',rate:27}
+];
+function pickRate(i){readRent();var b=RATE_BOOK[i];rentForm.item=b.item;rentForm.cat=b.cat;rentForm.vendor=b.vendor;rentForm.rate=String(b.rate);render()}
 var LONG_DAYS=30;
-var rentals=[], rentLoaded=false, rentAdding=false, rentForm=blankRent();
-function blankRent(){return{item:'',cat:'',vendor:'',location:'',rented_on:todayISO(),rate:'',ref:'',notes:''}}
+var rentals=[], rentLoaded=false, rentAdding=false, rentEditId=null, rentForm=blankRent();
+function blankRent(){return{item:'',cat:'',vendor:'',location:'',rented_on:todayISO(),rate:'',ref:'',notes:'',returned_on:''}}
 function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function catLabel(v){var f=RENT_CATS.filter(function(c){return c.v===v})[0];return f?f.l:v}
 function daysOn(r){
@@ -384,12 +395,30 @@ function rentalsView(){
   var act=rentals.filter(function(r){return r.status!=='returned'});
   var back=rentals.filter(function(r){return r.status==='returned'}).reverse();
   var perDay=act.reduce(function(s,r){return s+(Number(r.daily_rate)||0)},0);
+  var soFar=act.reduce(function(s,r){return s+(Number(r.daily_rate)||0)*daysOn(r)},0);
+  var noRate=act.filter(function(r){return r.daily_rate==null}).length;
   var long=act.filter(function(r){return daysOn(r)>=LONG_DAYS}).length;
   h+='<div class="sumrow">'+
      '<div class="sum"><div class="n">'+act.length+'</div><div class="l">On rent</div></div>'+
      '<div class="sum"><div class="n"'+(long?' style="color:var(--danger)"':'')+'>'+long+'</div><div class="l">'+LONG_DAYS+'+ days</div></div>'+
      '<div class="sum"><div class="n">'+(perDay?'$'+perDay.toFixed(2):'—')+'</div><div class="l">Per day</div></div>'+
+     '<div class="sum"><div class="n">'+(soFar?money(soFar):'—')+'</div><div class="l">Cost so far</div></div>'+
      '</div>';
+  // Running total for the calendar month: on-rent and returned rentals, only the days that fall in this month.
+  var mStart=todayISO().slice(0,8)+'01', mName=new Date().toLocaleString('en-US',{month:'long'});
+  var mOn=0,mBack=0;
+  rentals.forEach(function(r){
+    if(r.daily_rate==null)return;
+    var end=r.returned_on||todayISO(); if(end<mStart)return;
+    var start=r.rented_on>mStart?r.rented_on:mStart;
+    var d=Math.max(0,Math.round((new Date(end+'T00:00:00')-new Date(start+'T00:00:00'))/864e5));
+    var c=Number(r.daily_rate)*d; if(r.status==='returned')mBack+=c; else mOn+=c;
+  });
+  h+='<div class="card" style="padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">'+
+     '<div><div style="font-size:12px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.6px">Running total — '+mName+'</div>'+
+     '<div class="hint" style="margin-top:2px">'+money(mOn)+' on rent now + '+money(mBack)+' returned · tax included</div></div>'+
+     '<div style="font-size:24px;font-weight:800">'+money(mOn+mBack)+'</div></div>';
+  if(noRate)h+='<div class="hint" style="margin:-4px 2px 10px;color:var(--danger)"><b>'+noRate+' rental'+(noRate===1?' has':'s have')+' no daily rate</b>, so the cost above leaves '+(noRate===1?'it':'them')+' out. Tap <b>$ Set rate</b> on the card (rate is on the delivery slip or from the vendor).</div>';
   h+='<button class="btn btn-accent" onclick="startRent()">+ Log a Rental</button><div style="height:12px"></div>';
   h+='<div class="card">';
   if(!act.length)h+='<div class="empty">No rented equipment on the floor.</div>';
@@ -408,7 +437,8 @@ function rentCard(r){
   var cls=ret?'fixed':r.status==='pickup_requested'?'pickup':d>=LONG_DAYS?'long':'';
   var cost=r.daily_rate?money(Number(r.daily_rate)*d):'';
   var h='<div class="rep '+cls+'">'+
-   '<div class="txt">'+esc(r.item)+(r.location?' <span style="font-weight:400;color:var(--text-light)">· '+esc(r.location)+'</span>':'')+'</div>'+
+   '<div class="rentTap" role="button" tabindex="0" title="Edit this rental" onclick="editRent(\''+r.id+'\')" onkeydown="if(event.key===\'Enter\')editRent(\''+r.id+'\')">'+
+   '<div class="txt"><span class="rentEdit">Edit ›</span>'+esc(r.item)+(r.location?' <span style="font-weight:400;color:var(--text-light)">· '+esc(r.location)+'</span>':'')+'</div>'+
    '<div class="meta">'+
    (ret?'<span class="tag done">Returned '+fmtDay(r.returned_on)+'</span>'
        :r.status==='pickup_requested'?'<span class="tag">Pickup called '+fmtDate(r.pickup_requested_at)+'</span>'
@@ -416,28 +446,50 @@ function rentCard(r){
    '<span class="tag">'+esc(catLabel(r.category))+'</span>'+
    (r.vendor?'<span>· '+esc(r.vendor)+'</span>':'')+
    '<span>· since '+fmtDay(r.rented_on)+'</span>'+
-   (cost?'<span>· '+cost+(ret?'':' so far')+'</span>':'')+
+   (r.daily_rate!=null?'<span>· $'+Number(r.daily_rate).toFixed(2)+'/day</span>':'<span class="tag hot">Rate needed</span>')+
+   (cost?'<span>· <b>'+cost+'</b>'+(ret?' total':' so far')+'</span>':'')+
    (r.order_ref?'<span>· #'+esc(r.order_ref)+'</span>':'')+
    '</div>'+
-   (r.notes?'<div class="hint" style="margin-top:5px">'+esc(r.notes)+'</div>':'');
+   (r.notes?'<div class="hint" style="margin-top:5px;white-space:pre-line">'+esc(r.notes)+'</div>':'')+
+   '</div>';
   if(!ret){
     h+='<div class="acts">'+
       (r.status==='on_rent'?'<button class="mini" onclick="setRent(\''+r.id+'\',\'pickup_requested\')">📞 Call for pickup</button>'
                            :'<button class="mini" onclick="setRent(\''+r.id+'\',\'on_rent\')">Undo pickup</button>')+
-      '<button class="mini go" onclick="setRent(\''+r.id+'\',\'returned\')">✓ Picked up</button></div>';
+      '<button class="mini go" onclick="setRent(\''+r.id+'\',\'returned\')">✓ Picked up</button>'+
+      '<button class="mini" onclick="setRate(\''+r.id+'\')">$ '+(r.daily_rate!=null?'Change rate':'Set rate')+'</button></div>';
   }else{
-    h+='<div class="acts"><button class="mini" onclick="setRent(\''+r.id+'\',\'on_rent\')">Undo — still here</button></div>';
+    h+='<div class="acts"><button class="mini" onclick="setRent(\''+r.id+'\',\'on_rent\')">Undo — still here</button>'+
+      '<button class="mini" onclick="setRate(\''+r.id+'\')">$ '+(r.daily_rate!=null?'Change rate':'Set rate')+'</button></div>';
   }
+  if(rateEdit===r.id)h+=rateBox(r);
   return h+'</div>';
 }
 function startRent(){
   if(!me.name){view='identity';render();return}
-  rentAdding=true;rentForm=blankRent();render();window.scrollTo(0,0);
+  rentAdding=true;rentEditId=null;rentForm=blankRent();render();window.scrollTo(0,0);
 }
+// Tap a logged rental to fix anything on it (item, room, vendor, dates, rate, notes).
+function editRent(id){
+  if(!me.name){view='identity';render();return}
+  var r=rentals.filter(function(x){return x.id===id})[0]; if(!r)return;
+  rentAdding=true;rentEditId=id;rateEdit=null;
+  rentForm={item:r.item||'',cat:r.category||'',vendor:r.vendor||'',location:r.location||'',
+    rented_on:r.rented_on||todayISO(),rate:r.daily_rate!=null?String(Number(r.daily_rate)):'',
+    ref:r.order_ref||'',notes:r.notes||'',returned_on:r.returned_on||''};
+  render();window.scrollTo(0,0);
+}
+function editingRent(){return rentEditId?rentals.filter(function(x){return x.id===rentEditId})[0]:null}
 function rentFormView(){
   var vendors=[];rentals.forEach(function(r){if(r.vendor&&vendors.indexOf(r.vendor)<0)vendors.push(r.vendor)});
+  var ed=editingRent(), wasBack=ed&&ed.status==='returned';
   return '<div class="card">'+
-   '<div style="font-size:15px;line-height:1.55"><b>Log rented equipment</b> so we can track it and send it back as soon as it\'s not needed.</div>'+
+   (ed?'<div style="font-size:15px;line-height:1.55"><b>Edit this rental.</b> Fix anything that was logged wrong, then save.</div>'
+      :'<div style="font-size:15px;line-height:1.55"><b>Log rented equipment</b> so we can track it and send it back as soon as it\'s not needed.</div>')+
+   '<label>Common rentals <span class="opt">— tap to fill in, rate includes tax</span></label>'+
+   '<div class="cats">'+RATE_BOOK.map(function(b,i){
+     return '<div class="cat'+(rentForm.item===b.item?' on':'')+'" onclick="pickRate('+i+')">'+esc(b.item)+' · $'+b.rate+'/day</div>';
+   }).join('')+'</div>'+
    '<label>What equipment?</label>'+
    '<input id="rItem" value="'+esc(rentForm.item)+'" placeholder="e.g. low air loss mattress, wound vac, Hoyer lift">'+
    '<label>Type</label>'+
@@ -453,21 +505,23 @@ function rentFormView(){
    '<div><label>Delivered on</label><input id="rDate" type="date" max="'+todayISO()+'" value="'+esc(rentForm.rented_on)+'"></div>'+
    '<div><label>Daily rate <span class="opt">— opt.</span></label><input id="rRate" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(rentForm.rate)+'" placeholder="$ / day"></div>'+
    '</div>'+
+   (wasBack?'<label>Picked up on</label><input id="rBack" type="date" max="'+todayISO()+'" value="'+esc(rentForm.returned_on)+'">':'')+
    '<label>Order / ticket # <span class="opt">— optional</span></label>'+
    '<input id="rRef" value="'+esc(rentForm.ref)+'" placeholder="From the delivery slip">'+
    '<label>Notes <span class="opt">— optional</span></label>'+
    '<textarea id="rNotes" placeholder="Why it was ordered, who to call for pickup… (no resident names)">'+esc(rentForm.notes)+'</textarea>'+
    '<div style="height:20px"></div>'+
-   '<button class="btn btn-accent" id="rentBtn" onclick="submitRent()">Save Rental</button>'+
+   '<button class="btn btn-accent" id="rentBtn" onclick="submitRent()">'+(ed?'Save Changes':'Save Rental')+'</button>'+
    '<div style="height:9px"></div>'+
-   '<button class="btn btn-ghost" onclick="rentAdding=false;render()">Cancel</button>'+
-   '<div class="hint" style="text-align:center;margin-top:10px">Logging as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+'</div>'+
+   '<button class="btn btn-ghost" onclick="rentAdding=false;rentEditId=null;render()">Cancel</button>'+
+   '<div class="hint" style="text-align:center;margin-top:10px">'+(ed?'Editing':'Logging')+' as <b>'+esc(me.name)+'</b> · '+esc(me.dept)+'</div>'+
    '</div>';
 }
 function readRent(){
   var g=function(id){var e=document.getElementById(id);return e?e.value:''};
   rentForm.item=g('rItem');rentForm.location=g('rLoc');rentForm.vendor=g('rVendor');
   rentForm.rented_on=g('rDate');rentForm.rate=g('rRate');rentForm.ref=g('rRef');rentForm.notes=g('rNotes');
+  if(document.getElementById('rBack'))rentForm.returned_on=g('rBack');
 }
 function pickRentCat(v){readRent();rentForm.cat=(rentForm.cat===v?'':v);render()}
 async function submitRent(){
@@ -478,6 +532,7 @@ async function submitRent(){
   if(!rentForm.location.trim()){toast('Tell us where it is');return}
   var rate=rentForm.rate===''?null:Number(rentForm.rate);
   if(rate!==null&&(isNaN(rate)||rate<0)){toast('Daily rate should be a dollar amount');return}
+  if(rentEditId)return saveRentEdit(rate);
   busy=true;
   var b=document.getElementById('rentBtn');b.disabled=true;b.textContent='Saving…';
   var r=await sb.rpc('submit_equipment_rental',{
@@ -491,11 +546,56 @@ async function submitRent(){
   if(r.error||!r.data){toast('Could not save — '+((r.error&&r.error.message)||'please try again'));return}
   rentAdding=false;rentLoaded=false;toast('Rental logged');loadRentals();render();
 }
+async function saveRentEdit(rate){
+  var ed=editingRent(), wasBack=ed&&ed.status==='returned';
+  if(!rentForm.rented_on){toast('Pick the delivered date');return}
+  if(wasBack&&!rentForm.returned_on){toast('Pick the picked-up date');return}
+  if(wasBack&&rentForm.returned_on<rentForm.rented_on){toast('Picked-up date is before the delivered date');return}
+  busy=true;
+  var b=document.getElementById('rentBtn');b.disabled=true;b.textContent='Saving…';
+  var r=await sb.rpc('update_equipment_rental',{
+    p_id:rentEditId,p_name:me.name,
+    p_item:rentForm.item.trim(),p_category:rentForm.cat,
+    p_vendor:rentForm.vendor.trim()||null,p_location:rentForm.location.trim(),
+    p_rented_on:rentForm.rented_on,p_daily_rate:rate,
+    p_order_ref:rentForm.ref.trim()||null,p_notes:rentForm.notes.trim()||null,
+    p_returned_on:wasBack?rentForm.returned_on:null
+  });
+  busy=false;b.disabled=false;b.textContent='Save Changes';
+  if(r.error){toast('Could not save — '+(r.error.message||'please try again'));return}
+  rentAdding=false;rentEditId=null;rentLoaded=false;toast('Rental updated');loadRentals();render();
+}
 async function setRent(id,status){
   if(!me.name){view='identity';render();return}
   var r=await sb.rpc('set_equipment_rental_status',{p_id:id,p_status:status,p_name:me.name});
   if(r.error){toast('Could not update — '+r.error.message);return}
   toast(status==='returned'?'Marked picked up':status==='pickup_requested'?'Marked — pickup called':'Back on rent');
+  loadRentals();
+}
+// Inline rate editor (no prompt(): blocked in some embedded browsers / home-screen apps).
+var rateEdit=null;
+function setRate(id){
+  if(!me.name){view='identity';render();return}
+  rateEdit=id;render();
+  setTimeout(function(){var e=document.getElementById('rateIn');if(e){e.focus();e.select()}},30);
+}
+function rateBox(r){
+  return '<div style="margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#f8fafc">'+
+    '<div class="hint" style="margin-bottom:6px">Daily rate, tax included. Contract rates: '+RATE_BOOK.map(function(b){return b.item.replace('Low air loss mattress','LAL')+' $'+b.rate}).join(' · ')+'</div>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+    '<input id="rateIn" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$ / day" value="'+(r.daily_rate!=null?Number(r.daily_rate).toFixed(2):'')+'" style="flex:1;margin:0" onkeydown="if(event.key===\'Enter\')saveRate(\''+r.id+'\')">'+
+    '<button class="mini go" onclick="saveRate(\''+r.id+'\')">Save</button>'+
+    '<button class="mini" onclick="rateEdit=null;render()">Cancel</button></div></div>';
+}
+async function saveRate(id){
+  var e=document.getElementById('rateIn'); if(!e)return;
+  var v=e.value.replace(/[$,\s]/g,'');
+  var rate=v===''?null:Number(v);
+  if(rate!==null&&(isNaN(rate)||rate<0||rate>10000)){toast('Daily rate should be a dollar amount');return}
+  var r=await sb.rpc('set_equipment_rental_rate',{p_id:id,p_daily_rate:rate,p_name:me.name});
+  if(r.error){toast('Could not save — '+r.error.message);return}
+  rateEdit=null;
+  toast(rate===null?'Rate cleared':'Rate saved — $'+rate.toFixed(2)+'/day');
   loadRentals();
 }
 
