@@ -178,7 +178,7 @@ function cardHtml(i){
   return'<div class="card" id="c_'+i.id+'">'+
     '<div class="pills">'+p+'</div>'+
     '<div class="task">'+esc(i.task_name)+'</div>'+
-    '<div class="meta">→ <b>'+esc(i.route_label||i.proposed_assignee)+'</b></div>'+
+    '<div class="meta">→ <b>'+esc(i.route_label||i.proposed_assignee)+'</b>'+(i.resident_ref?' · 🛏️ <b>'+esc(i.resident_ref)+'</b>':'')+'</div>'+
     '<div class="src">'+esc(i.source_meeting||'')+'</div>'+
     (i.notes?'<div class="details">'+esc(i.notes)+'</div><button class="more" onclick="toggle(\''+i.id+'\',this)">Details</button>':'')+
     '<div class="acts"><button class="btn go" onclick="decide(\''+i.id+'\',\'approved\')">Create</button>'+
@@ -187,6 +187,7 @@ function cardHtml(i){
     '<button class="more" onclick="openEdit(\''+i.id+'\')">Edit before creating</button>'+
     '<div class="edit"><label>Task</label><textarea id="t_'+i.id+'">'+esc(i.task_name)+'</textarea>'+
       '<label>Assign to</label><select id="a_'+i.id+'">'+opts+'</select>'+
+      '<label>Resident <span style="text-transform:none;letter-spacing:0;font-weight:400">(room-bed + name code, e.g. 12A SMIJ)</span></label><input id="r_'+i.id+'" value="'+esc(i.resident_ref||'')+'" placeholder="Not about one resident" autocapitalize="characters">'+
       '<label>Due</label><input type="date" id="d_'+i.id+'" value="'+esc(i.due_date||'')+'">'+
       '<label>Add a note <span style="text-transform:none;letter-spacing:0;font-weight:400">(goes in the My Work item)</span></label><textarea id="n_'+i.id+'" placeholder="Optional"></textarea>'+
       '<div class="row2"><button class="btn skip" onclick="closeEdit(\''+i.id+'\')">Cancel</button><button class="btn go" onclick="decide(\''+i.id+'\',\'approved\',true)">Create</button></div></div>'+
@@ -210,8 +211,8 @@ function closeEdit(id){$('c_'+id).classList.remove('editing')}
 /* ---------- actions ---------- */
 async function decide(id,status,edited){
   if(S.busy)return;S.busy=true;
-  var args={p_pin:S.pin,p_id:id,p_status:status,p_route_label:null,p_task_name:null,p_due:null,p_note:null};
-  if(edited){args.p_route_label=$('a_'+id).value;args.p_task_name=$('t_'+id).value;args.p_due=$('d_'+id).value||null;args.p_note=$('n_'+id).value}
+  var args={p_pin:S.pin,p_id:id,p_status:status,p_route_label:null,p_task_name:null,p_due:null,p_note:null,p_resident_ref:null};
+  if(edited){args.p_route_label=$('a_'+id).value;args.p_task_name=$('t_'+id).value;args.p_due=$('d_'+id).value||null;args.p_note=$('n_'+id).value;args.p_resident_ref=$('r_'+id).value.trim()}
   try{
     var row=await rpc('plaud_review_decide',args);
     var c=$('c_'+id);if(c)c.classList.add('gone');
