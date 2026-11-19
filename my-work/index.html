@@ -91,7 +91,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .bgrid{display:grid;grid-template-columns:1fr;gap:0 14px}
 .bgrid>div{min-width:0}
 @media (min-width:820px){.bgrid{grid-template-columns:1fr 1fr}}
-.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 6px}
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:4px 0 6px}
 .tile{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer}
 .tile b{display:block;font-size:24px;font-weight:800;color:var(--text-light)}
 .tile span{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light)}
@@ -141,7 +141,7 @@ var SUPABASE_URL='https://pmnudshutxwidxdtouqj.supabase.co';
 var SUPABASE_KEY='sb_publishable_wzX5nLx18cfErNTRPO671w_sH4ED7ET';
 var sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 var ADMIN='stephen_badger';
-var SOURCE={rounding:'Room Rounds',floor_rounds:'Floor Rounds',qapi:'QAPI',huddle:'Meeting',improvement_idea:'Ideas board',a3:'A3',standup:'Standup',list:'List',grievance:'Grievance',repair:'Repairs',incident:'Incident',survey:'Survey',admin_call:'Admin call',asana:'Asana',my_work:'',manual:'',session:''};
+var SOURCE={rounding:'Room Rounds',floor_rounds:'Floor Rounds',qapi:'QAPI',huddle:'Meeting',improvement_idea:'Ideas board',a3:'A3',standup:'Standup',list:'List',grievance:'Grievance',grievance_review:'Grievance sign-off',repair:'Repairs',incident:'Incident',survey:'Survey',admin_call:'Admin call',asana:'Asana',my_work:'',manual:'',session:''};
 
 var S={pin:null,me:null,roster:null,view:'mine',showProj:false,peek:null,peekData:null,res:null,resFilter:'all',resQ:'',resItem:null,showLeft:false,data:null,deptData:null,allData:null,allOwner:null,list:null,item:null,busy:false,loadedAt:0,showDone:false,showLater:true};
 
@@ -310,14 +310,19 @@ function listRow(l){
   return '<div class="lst" onclick="openList(\''+l.id+'\')"><div class="b"><div class="t">'+esc(l.title)+'</div><div class="m">'+l.done+' of '+l.total+(l.target_date?' · target '+md(l.target_date):'')+(l.overdue?' · <span style="color:var(--danger);font-weight:700">'+l.overdue+' overdue</span>':'')+(l.owner_name?' · '+esc(l.owner_name):'')+'</div><div class="prog"><span style="width:'+pct+'%"></span></div></div><div class="go">›</div></div>';
 }
 
+// Grievances get their own section (Stephen, 11/19/26): Social Services works them; Stephen signs off once closed.
+function isGriev(i){return i.source_type==='grievance'||i.source_type==='grievance_review'}
+function grievTitle(items){return items.some(function(i){return i.source_type==='grievance_review'})&&!items.some(function(i){return i.source_type==='grievance'})?'Grievances to sign off':'Grievances'}
+
 // ---------- Mine ----------
 function renderMine(){
-  var d=S.data, items=d.items;
+  var d=S.data, gv=d.items.filter(isGriev), items=d.items.filter(function(i){return !isGriev(i)});
   var ov=items.filter(function(i){return i.urgency==='overdue'}), td=items.filter(function(i){return i.urgency==='today'}),
       wk=items.filter(function(i){return i.urgency==='week'}), later=items.filter(function(i){return i.urgency==='later'||i.urgency==='none'});
   var h=segHtml();
   h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 6px"><div class="big" style="font-size:20px">'+esc(S.me.display_name.split(' ')[0])+'</div><div class="muted">'+esc(S.me.department)+(d.new_count?'<span class="badge">'+d.new_count+' new</span>':'')+'</div></div>';
-  if(!items.length&&!d.dept_unassigned.length&&!d.lists.length)h+='<div class="card"><div class="empty">Nothing open. Tap <b>+ Add</b> to put something on your list.</div></div>';
+  if(gv.length)h+=group(grievTitle(gv),gv,'',{});
+  if(!items.length&&!gv.length&&!d.dept_unassigned.length&&!d.lists.length)h+='<div class="card"><div class="empty">Nothing open. Tap <b>+ Add</b> to put something on your list.</div></div>';
   h+=group('Overdue',ov,'red')+group('Today',td,'amber')+group('This week',wk,'');
   if(later.length){
     h+='<div class="h2">Later<span class="n">'+later.length+'</span><span class="tog" onclick="S.showLater=!S.showLater;route()">'+(S.showLater?'Hide':'Show')+'</span></div>';
@@ -357,7 +362,8 @@ function boardSection(title,cls,body,count,extra){
 }
 function renderBoard(){
   var peek=S.peek&&S.peekData, d=peek?S.peekData:S.data, items=d.items, who=peek?d.owner:S.me;
-  var loose=items.filter(function(i){return !i.list_id}), steps=items.filter(function(i){return i.list_id});
+  var gv=items.filter(isGriev).sort(function(a,b){return String(a.due_date).localeCompare(String(b.due_date))});
+  var loose=items.filter(function(i){return !i.list_id&&!isGriev(i)}), steps=items.filter(function(i){return i.list_id});
   var byList={};steps.forEach(function(i){(byList[i.list_id]=byList[i.list_id]||[]).push(i)});
   var lists=d.lists.slice().sort(function(a,b){return String(a.target_date||'9').localeCompare(String(b.target_date||'9'))});
   var dc=lists.filter(function(l){return listKind(l)==='dc'}), adm=lists.filter(function(l){return listKind(l)==='adm'}), oth=lists.filter(function(l){return listKind(l)==='other'});
@@ -371,11 +377,13 @@ function renderBoard(){
     '<div class="tile '+(tdAll?'amber':'')+'" onclick="boardJump(\'bFu\')"><b>'+tdAll+'</b><span>Due today</span></div>'+
     '<div class="tile blue" onclick="boardJump(\'bDc\')"><b>'+dc.length+'</b><span>Discharges</span></div>'+
     '<div class="tile blue" onclick="boardJump(\'bAdm\')"><b>'+adm.length+'</b><span>Admissions</span></div>'+
+    '<div class="tile blue" onclick="boardJump(\'bGv\')"><b>'+gv.length+'</b><span>Grievances</span></div>'+
     '<div class="tile" onclick="S.showProj=true;route();boardJump(\'bProj\')"><b>'+proj.length+'</b><span>Projects</span></div></div>';
   // left column: resident checklists; right column: follow-ups
   var left='', right='';
   left+='<div id="bDc"></div>'+boardSection('Discharges','',dc.length?dc.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''):'<div class="empty">No open discharge lists.</div>',dc.length);
   left+='<div id="bAdm"></div>'+boardSection('New admissions','',adm.length?adm.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''):'<div class="empty">No open admission lists.</div>',adm.length);
+  left+='<div id="bGv"></div>'+boardSection(grievTitle(gv),'',gv.length?gv.map(function(i){return itemRow(i)}).join(''):'<div class="empty">No open grievances.</div>',gv.length);
   if(oth.length)left+=boardSection('Other lists','',oth.map(function(l){return boardListCard(l,byList[l.id]||[])}).join(''),oth.length);
   var buckets=[['Overdue','red',function(i){return i.urgency==='overdue'}],['Today','amber',function(i){return i.urgency==='today'}],['This week','',function(i){return i.urgency==='week'}],['Coming up','',function(i){return i.urgency==='later'}]];
   var fuBody=buckets.map(function(b){var its=fu.filter(b[2]).sort(function(x,y){return String(x.due_date).localeCompare(String(y.due_date))});
