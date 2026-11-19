@@ -113,6 +113,50 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-
 .rr .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rr .t.pl{font-weight:400;color:var(--text-light);margin-top:2px}
 .rr .m{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px;align-items:center;font-size:12px;color:var(--text-light)}
+/* Residents bed board (11/19/26) */
+.rseg{display:inline-flex;background:#e3e8ee;border-radius:18px;padding:3px}
+.rseg button{border:0;background:transparent;color:var(--text-light);font:700 13px/1 inherit;font-family:inherit;padding:7px 13px;border-radius:16px;cursor:pointer}
+.rseg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.bb-rib{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin:6px 0 10px}
+.bb-rib .h2{margin:0 0 7px}
+.bb-lanes{display:flex;gap:8px;overflow-x:auto;padding-bottom:3px}
+.bb-lane{min-width:128px;flex:1}
+.bb-lane .d{font-size:12px;font-weight:800;margin-bottom:5px}.bb-lane .d.red{color:var(--danger)}
+.bb-lane .none{font-size:12px;color:var(--text-light)}
+.bb-chip{display:flex;align-items:center;gap:6px;background:#e6f6f7;border-radius:8px;padding:5px 8px;margin-bottom:4px;font-size:12px;cursor:pointer}
+.bb-chip b{font-size:13px}.bb-chip .mi{margin-left:auto;font-weight:800}.bb-chip.risk{background:var(--danger-bg)}
+.bb-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-light);margin:0 2px 10px;align-items:center}
+.bb-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.bb-halls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:10px}
+.bb-hall{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:11px;min-width:0}
+.bb-hall.wide{grid-column:1/-1}
+.bb-hall .h2{margin:0 0 8px}.bb-hall .h2 em{font-style:normal;font-weight:600;text-transform:none;letter-spacing:0}
+.bb-rooms{display:flex;flex-wrap:wrap;gap:8px}
+.bb-room{border:1px solid var(--border);border-radius:10px;padding:6px;background:#f4f6f8;max-width:100%}
+.bb-room .rl{font-size:11px;font-weight:800;color:var(--text-light);margin:0 2px 5px}
+.bb-beds{display:grid;grid-template-columns:repeat(var(--cols,2),116px);gap:6px}
+.bb-bed{position:relative;background:#fff;border-radius:9px;border:1px solid var(--border);border-top:5px solid #009EAD;padding:6px 7px 7px;cursor:pointer;min-height:94px;transition:opacity .15s,box-shadow .15s}
+.bb-bed:hover{box-shadow:0 6px 18px rgba(5,43,73,.12)}
+.bb-bed.l{border-top-color:var(--primary)}
+.bb-bed.bh{border-top-color:#8e44ad;background:#f5eefa}
+.bb-bed.empty{border:1.5px dashed #c9d1da;background:transparent;cursor:default;display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--text-light);font-size:11px}
+.bb-bed.empty b{font-size:15px}
+.bb-bed.red{box-shadow:0 0 0 2px var(--danger)}.bb-bed.amber{box-shadow:0 0 0 2px #e08e0b}
+.bb-bed.dim{opacity:.2}
+.bb-bed .top{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
+.bb-bed .rb{font-weight:800;font-size:15px;color:var(--text)}
+.bb-bed .tg{font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:9px;background:#e6f6f7;color:#007a86}
+.bb-bed.l .tg{background:#e9eef3;color:var(--primary)}.bb-bed.bh .tg{background:#fff;color:#8e44ad}
+.bb-bed .cd{font-size:13px;font-weight:700;letter-spacing:.3px;margin-top:1px}
+.bb-bed .mt{font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-dots{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;max-width:62px}
+.bb-dots i{flex:none;width:9px;height:9px;border-radius:50%;background:#dfe4ea}
+.bb-dots i.ok{background:var(--success)}.bb-dots i.due{background:#e08e0b}.bb-dots i.late{background:var(--danger)}
+.bb-bed .dc{position:absolute;right:6px;bottom:6px;font-size:10px;font-weight:800;padding:1px 5px;border-radius:5px;background:#eef1f4;color:var(--text)}
+.bb-bed .dc.soon{background:var(--warn-bg);color:var(--warn)}.bb-bed .dc.now{background:var(--danger);color:#fff}
+.bb-bed .fl{position:absolute;top:-8px;right:-6px;width:18px;height:18px;border-radius:50%;font:800 11px/18px -apple-system,sans-serif;text-align:center;color:#fff;background:var(--danger)}
+.bb-bed.amber .fl{background:#e08e0b}
+@media (max-width:620px){.bb-beds{grid-template-columns:repeat(min(var(--cols,2),2),1fr)}}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;align-items:center}
 .chip{border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:inherit}
 .chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -473,21 +517,105 @@ function resFiltered(){
   if(q)list=list.filter(function(r){return (r.room_bed+' '+r.code).indexOf(q)>=0});
   return list.sort(function(a,b){return resRank(a)-resRank(b)||(isLT(a)-isLT(b))||String(a.target_dc_date||'9').localeCompare(String(b.target_dc_date||'9'))||roomNum(a)-roomNum(b)||a.room_bed.localeCompare(b.room_bed)});
 }
-function drawResGrid(){var l=resFiltered();document.getElementById('resGrid').innerHTML=l.length?l.map(resRow).join(''):'<div class="empty">No residents match.</div>'}
-function setResFilter(f){S.resFilter=f;route()}
+function drawResGrid(){
+  if(resMode()==='board')return drawBedBoard();
+  var l=resFiltered();document.getElementById('resGrid').innerHTML=l.length?l.map(resRow).join(''):'<div class="empty">No residents match.</div>'}
+function setResFilter(f){S.resFilter=(S.resFilter===f&&f!=='all')?'all':f;route()}
+
+// ---------- Bed board (11/19/26) ----------
+// TeleTracking-style view of the same caseload: every bed by hall and room. Bed list = the 57 licensed beds as they show on
+// the census board; hall grouping from the facility README (Rooms 1–5 south, 6–7 center, 8–10 north-center, 11–12 west,
+// 14–16 southwest). Private rooms 1P–4P are placed with the south wing and Room 18 on its own [VERIFY with Stephen].
+var BB_HALLS=[['South wing','Rooms 1–5',[['1P',['1P']],['2P',['2P']],['3P',['3P']],['4P',['4P']],['5','ABCD']]],
+  ['Center · by the Nurse Station','Rooms 6–7',[['6','ABC'],['7','ABC']]],
+  ['North-center wing','Rooms 8–10',[['8','ABC'],['9','ABC'],['10','ABC']]],
+  ['West wing','Rooms 11–12',[['11','ABCDEFGH'],['12','ABCDEFGH']]],
+  ['Southwest wing','Rooms 14–16',[['14','ABCDEFGH'],['15','ABCD'],['16','ABCD']]],
+  ['Room 18','',[['18','AB']]]];
+function bbRoomBeds(rm){return Array.isArray(rm[1])?rm[1]:rm[1].split('').map(function(b){return rm[0]+b})}
+function bbAllBeds(){var o=[];BB_HALLS.forEach(function(h){h[2].forEach(function(rm){o=o.concat(bbRoomBeds(rm))})});return o}
+function resMode(){return ls('mw_resmode')==='list'?'list':'board'}
+function setResMode(m){ls('mw_resmode',m);route()}
+function bbMatch(r){
+  var f=S.resFilter,t=resToday(),q=(S.resQ||'').trim().toUpperCase();
+  if(q&&(r.room_bed+' '+r.code).toUpperCase().indexOf(q)<0)return false;
+  if(f==='S')return !isLT(r); if(f==='L')return isLT(r); if(f==='attn')return resRank(r)<2;
+  if(f==='soon')return r.target_dc_date&&dDiff(r.target_dc_date,t)>=0&&dDiff(r.target_dc_date,t)<=7;
+  if(f==='empty')return false;
+  return true;
+}
+// dot colour per milestone: green done; red/amber only where the app already has a rule (welcome day 1, plan by day 3,
+// discharge steps when the target date is close or past, long-term plan missing); otherwise grey (not due yet).
+var BB_NEAR_DC={training:1,dme:1,nomnc:1,confirm:1,summary:1};
+function bbDot(r,k){
+  var st=msState(r,k);if(st.done)return 'ok';
+  if(isLT(r))return k==='lt_plan'?'due':'';
+  var day=resDay(r);
+  if(k==='welcome'&&day!==null)return day>1?'late':'due';
+  if(k==='plan'&&day!==null)return day>3?'late':'due';
+  if(BB_NEAR_DC[k]&&r.target_dc_date){var n=dDiff(r.target_dc_date,resToday());return n<0?'late':n<=3?'due':''}
+  return '';
+}
+function bbTile(rb,r){
+  if(!r)return '<div class="bb-bed empty'+(S.resFilter==='all'&&!S.resQ||S.resFilter==='empty'?'':' dim')+'"><b>'+esc(rb)+'</b>Empty</div>';
+  var f=resFlags(r),lv=f.some(function(x){return x[0]==='red'})?'red':f.length?'amber':'',bh=r.payer==='BH',lt=isLT(r);
+  var day=resDay(r),dc='';
+  if(r.target_dc_date){var n=dDiff(r.target_dc_date,resToday());dc='<span class="dc '+(n<=0?'now':n<=3?'soon':'')+'">'+(n===0?'DC today':'DC '+md(r.target_dc_date))+'</span>'}
+  var mt=bh?'Bed hold':[r.payer,lt?'Long-term':(day?'Day '+day:'')].filter(Boolean).map(esc).join(' · ');
+  return '<div class="bb-bed '+(bh?'bh':lt?'l':'s')+(lv?' '+lv:'')+(bbMatch(r)?'':' dim')+'" onclick="openRes(\''+r.id+'\')" title="'+esc(f.map(function(x){return x[1]}).join(' · '))+'">'+
+    (f.length?'<span class="fl">'+f.length+'</span>':'')+
+    '<div class="top"><span class="rb">'+esc(r.room_bed)+'</span><span class="tg">'+(bh?'BH':lt?'LTC':'SKILLED')+'</span></div>'+
+    '<div class="cd">'+esc(r.code)+'</div><div class="mt">'+mt+'</div>'+
+    '<div class="bb-dots">'+msDefs(r).map(function(m){return '<i class="'+bbDot(r,m[0])+'" title="'+esc(m[1])+'"></i>'}).join('')+'</div>'+dc+'</div>';
+}
+function bbRibbon(all){
+  var t=resToday(),h='',chip=function(r,risk,right){return '<div class="bb-chip'+(risk?' risk':'')+'" onclick="openRes(\''+r.id+'\')"><b>'+esc(r.room_bed)+'</b>'+esc(r.code)+'<span class="mi">'+right+'</span></div>'};
+  var left=function(r){var c=msCount(r);return c.total-c.done};
+  var past=all.filter(function(r){return r.target_dc_date&&r.target_dc_date<t});
+  if(past.length)h+='<div class="bb-lane"><div class="d red">Past target date</div>'+past.map(function(r){return chip(r,true,md(r.target_dc_date))}).join('')+'</div>';
+  for(var i=0;i<=7;i++){
+    var dd=new Date(t+'T12:00:00');dd.setDate(dd.getDate()+i);var d=dd.toISOString().slice(0,10);
+    var l=all.filter(function(r){return r.target_dc_date===d});
+    if(!l.length&&i>1)continue;
+    h+='<div class="bb-lane"><div class="d'+(i===0?' red':'')+'">'+(i===0?'Today':i===1?'Tomorrow':dd.toLocaleDateString('en-US',{weekday:'short'})+' '+md(d))+'</div>'+
+      (l.length?l.map(function(r){var n=left(r);return chip(r,n&&i<=1,n?n+' left':'✓')}).join(''):'<div class="none">None</div>')+'</div>';
+  }
+  return '<div class="bb-rib"><div class="h2">Leaving in the next 7 days</div><div class="bb-lanes">'+h+'</div></div>';
+}
+function drawBedBoard(){
+  var all=S.res.residents,by={};all.forEach(function(r){by[String(r.room_bed).toUpperCase()]=r});
+  var known={};bbAllBeds().forEach(function(b){known[b]=1});
+  var halls=BB_HALLS.slice(),extra=all.filter(function(r){return !known[String(r.room_bed).toUpperCase()]});
+  if(extra.length)halls.push(['Other beds','not on the bed map',[['?',extra.map(function(r){return String(r.room_bed).toUpperCase()})]]]);
+  document.getElementById('resGrid').innerHTML=bbRibbon(all)+
+    '<div class="bb-leg"><span><i style="background:#009EAD"></i>Skilled</span><span><i style="background:var(--primary)"></i>Long-term</span><span><i style="background:#8e44ad"></i>Bed hold</span><span><i style="border:1.5px dashed #9aa6b2"></i>Empty</span>'+
+    '<span>Milestones: <i style="background:var(--success);border-radius:50%"></i>done <i style="background:#e08e0b;border-radius:50%"></i>due <i style="background:var(--danger);border-radius:50%"></i>late <i style="background:#dfe4ea;border-radius:50%"></i>not yet</span>'+
+    '<span><i style="box-shadow:0 0 0 2px var(--danger)"></i>Needs attention</span></div>'+
+    '<div class="bb-halls">'+halls.map(function(h){
+      var beds=[];h[2].forEach(function(rm){beds=beds.concat(bbRoomBeds(rm))});
+      var occ=beds.filter(function(b){return by[b]}).length,wide=h[2].some(function(rm){return bbRoomBeds(rm).length>4});
+      return '<section class="bb-hall'+(wide?' wide':'')+'"><div class="h2">'+esc(h[0])+' <em>'+(h[1]?esc(h[1])+' · ':'')+occ+' of '+beds.length+' beds</em></div><div class="bb-rooms">'+
+        h[2].map(function(rm){var rb=bbRoomBeds(rm),n=rb.length,cols=n<=2?n:n===3?3:n<=4?2:4;
+          return '<div class="bb-room"><div class="rl">'+(rm[0]==='?'?'':/P$/.test(rm[0])?'Private':'Room '+esc(rm[0]))+'</div><div class="bb-beds" style="--cols:'+cols+'">'+rb.map(function(b){return bbTile(b,by[b])}).join('')+'</div></div>'}).join('')+
+        '</div></section>'}).join('')+'</div>';
+}
+
 function renderResidents(){
   var d=S.res;if(!d){app().innerHTML=segHtml()+'<div class="load">Loading…</div>';return}
-  var all=d.residents,t=resToday();
+  var all=d.residents,t=resToday(),board=resMode()==='board';
+  if(!board&&S.resFilter==='empty')S.resFilter='all';
   var nS=all.filter(function(r){return !isLT(r)}).length,nL=all.length-nS,nA=all.filter(function(r){return resRank(r)<2}).length,
       nD=all.filter(function(r){return r.target_dc_date&&dDiff(r.target_dc_date,t)>=0&&dDiff(r.target_dc_date,t)<=7}).length;
   var asof=d.as_of?new Date(d.as_of):null;
   var h=segHtml();
-  h+='<div style="display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px"><div class="big" style="font-size:20px">Residents</div><div class="muted">'+(asof?'Census board as of '+(asof.getMonth()+1)+'/'+asof.getDate()+' '+asof.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'No roster loaded yet')+'</div></div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:2px 2px 8px"><div><div class="big" style="font-size:20px">Residents</div><div class="muted">'+(asof?'Census board as of '+(asof.getMonth()+1)+'/'+asof.getDate()+' '+asof.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'No roster loaded yet')+'</div></div>'+
+     '<div class="rseg"><button class="'+(board?'on':'')+'" onclick="setResMode(\'board\')">Bed board</button><button class="'+(board?'':'on')+'" onclick="setResMode(\'list\')">List</button></div></div>';
   var tile=function(f,n,lbl,cls){return '<div class="tile '+(cls||'')+'" onclick="setResFilter(\''+f+'\')"'+(S.resFilter===f?' style="outline:2px solid var(--primary)"':'')+'><b>'+n+'</b><span>'+lbl+'</span></div>'};
-  h+='<div class="tiles">'+tile('all',all.length,'In building','blue')+tile('S',nS,'Skilled','blue')+tile('L',nL,'Long-term','blue')+tile('attn',nA,'Need attention',nA?'red':'')+tile('soon',nD,'Leaving ≤ 7 days',nD?'amber':'')+'</div>';
+  var nE=bbAllBeds().filter(function(b){return !all.some(function(r){return String(r.room_bed).toUpperCase()===b})}).length;
+  h+='<div class="tiles">'+tile('all',all.length,'In building','blue')+tile('S',nS,'Skilled','blue')+tile('L',nL,'Long-term','blue')+tile('attn',nA,'Need attention',nA?'red':'')+tile('soon',nD,'Leaving ≤ 7 days',nD?'amber':'')+(board?tile('empty',nE,'Empty beds',''):'')+'</div>';
   h+='<div class="chips"><input id="resQ" placeholder="Find a room or code" value="'+esc(S.resQ)+'" oninput="S.resQ=this.value;drawResGrid()" autocomplete="off">'+
      (S.resFilter!=='all'?'<button class="chip on" onclick="setResFilter(\'all\')">Show all ✕</button>':'')+'</div>';
-  h+='<div class="rgrid" id="resGrid"></div>';
+  h+='<div class="'+(board?'':'rgrid')+'" id="resGrid"></div>';
   if(d.recent_dc.length){
     h+='<div class="h2">Left in the last 7 days<span class="n">'+d.recent_dc.length+'</span><span class="tog" onclick="S.showLeft=!S.showLeft;route()">'+(S.showLeft?'Hide':'Show')+'</span></div>';
     if(S.showLeft)h+='<div class="rgrid">'+d.recent_dc.map(resRow).join('')+'</div>';
