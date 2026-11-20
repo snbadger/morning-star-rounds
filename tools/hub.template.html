@@ -73,9 +73,10 @@ html.no-icons .secbar .fb{display:block}
 html[data-device="shared"] .secbar .lbl{font-size:13px}
 html[data-device="shared"] .secbar svg{width:24px;height:24px}
 html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
-/* Leaving the building banner (11/5/26): appointments + discharges, today and the next 7 days.
+/* Leaving the building banner (11/5/26; split 11/19/26): Discharges card (7 days) + Appointments card (today + tomorrow).
    Room-bed + name code only. Needs a device key (shared iPads, issued in device setup) or the leadership PIN. */
 .leave{padding:14px 16px;border-left:5px solid var(--g-leader)}
+.leave.dcs{border-left-color:#6741d9}.leave.appts{border-left-color:#0b7285}
 .leave-h{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15.5px}
 .leave-h .cnt{margin-left:auto;display:flex;gap:6px}
 .leave-day{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-foreground);margin:12px 0 4px}
@@ -110,8 +111,9 @@ html[data-device="shared"] .secbar>button{max-width:132px;padding-top:11px}
 
   <div id="whoBar"></div>
 
-  <section class="section" id="leaving" hidden></section>
   <section class="section" id="arriving" hidden></section>
+  <section class="section" id="leaving" hidden></section>
+  <section class="section" id="appts" hidden></section>
 
   <section class="section" id="today" hidden>
     <div class="section-title">Today</div>
@@ -523,8 +525,11 @@ function loadArriving(){
   }).catch(function(){sec.hidden=true});
 }
 var leaveTok=0;
+// 11/19/26 (Stephen): three cards in this order: Arriving (admissions), Discharges (next 7 days),
+// Appointments (today + tomorrow only). One trips_board call feeds both Discharges and Appointments.
 function loadLeaving(){
-  var sec=document.getElementById('leaving'), key=leaveKey(), tok=++leaveTok;
+  var sec=document.getElementById('leaving'), asec=document.getElementById('appts'), key=leaveKey(), tok=++leaveTok;
+  asec.hidden=true;
   if(!key){
     if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>The “leaving the building” list is off on this iPad. A leader can turn it on: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}
     else if(isHousekeeping())hkCard(sec,'');
@@ -535,22 +540,33 @@ function loadLeaving(){
     if(tok!==leaveTok)return;
     if((!b||!b.rows)&&hkRecheck(sec))return;
     if(!b||!b.rows){if(SHARED){sec.innerHTML='<div class="leave-off"><i data-lucide="bus" class="icon-sm"></i>Could not load the “leaving the building” list. If this keeps happening, a leader can redo device setup: tap the address at the bottom 5 times.</div>';sec.hidden=false;icons()}else sec.hidden=true;return}
-    var rows=b.rows, today=b.today, nA=rows.filter(function(r){return r.kind==='appt'}).length, nD=rows.length-nA;
-    var h='<div class="card leave"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Leaving the building · next 7 days'+
-      '<span class="cnt">'+(nA?'<span class="badge info">'+nA+' appt</span>':'')+(nD?'<span class="badge purple">'+nD+' discharge</span>':'')+'</span></div>';
-    if(!rows.length){h+='<div class="muted small mt-1">No appointments or discharges scheduled.</div>'}
-    var days=[];rows.forEach(function(r){if(days.indexOf(r.date)<0)days.push(r.date)});
-    // Today and tomorrow always show; later days fold under "Show the rest of the week" once the list gets long.
-    var near=days.filter(function(d){return d<=addD(today,1)}), far=days.filter(function(d){return d>addD(today,1)});
-    var fold=rows.length>8&&far.length;
-    function block(d){return '<div class="leave-day'+(d===today?' today':'')+'">'+esc(leaveDay(d,today))+'</div>'+rows.filter(function(r){return r.date===d}).map(lvRow).join('')}
-    h+=near.map(block).join('');
-    if(!near.length&&rows.length)h+='<div class="muted small mt-1">Nobody leaving today or tomorrow.</div>';
-    if(fold)h+='<details class="more-days"><summary>Show the rest of the week ('+rows.filter(function(r){return r.date>addD(today,1)}).length+')</summary>'+far.map(block).join('')+'</details>';
-    else h+=far.map(block).join('');
-    if(leaderUnlocked())h+='<a class="btn sm outline mt-2" href="trips/">Open Transportation &amp; Discharges</a>';
-    sec.innerHTML=h+'</div>';sec.hidden=false;icons();
-  }).catch(function(){sec.hidden=true});
+    var today=b.today, tmrw=addD(today,1);
+    var dcs=b.rows.filter(function(r){return r.kind!=='appt'});
+    var appts=b.rows.filter(function(r){return r.kind==='appt'&&r.date<=tmrw});
+    function block(rows,d){return '<div class="leave-day'+(d===today?' today':'')+'">'+esc(leaveDay(d,today))+'</div>'+rows.filter(function(r){return r.date===d}).map(lvRow).join('')}
+    function daysOf(rows){var days=[];rows.forEach(function(r){if(days.indexOf(r.date)<0)days.push(r.date)});return days}
+    var link=leaderUnlocked()?'<a class="btn sm outline mt-2" href="trips/">Open Transportation &amp; Discharges</a>':'';
+
+    // Discharges · next 7 days. Today and tomorrow always show; later days fold once the list gets long.
+    var h='<div class="card leave dcs"><div class="leave-h"><i data-lucide="door-open" class="icon-sm"></i>Discharges · next 7 days'+
+      '<span class="cnt">'+(dcs.length?'<span class="badge purple">'+dcs.length+' discharge'+(dcs.length==1?'':'s')+'</span>':'')+'</span></div>';
+    if(!dcs.length)h+='<div class="muted small mt-1">No discharges scheduled in the next 7 days.</div>';
+    var days=daysOf(dcs), near=days.filter(function(d){return d<=tmrw}), far=days.filter(function(d){return d>tmrw});
+    h+=near.map(function(d){return block(dcs,d)}).join('');
+    if(!near.length&&dcs.length)h+='<div class="muted small mt-1">No discharges today or tomorrow.</div>';
+    var farHtml=far.map(function(d){return block(dcs,d)}).join('');
+    if(dcs.length>8&&far.length)h+='<details class="more-days"><summary>Show the rest of the week ('+dcs.filter(function(r){return r.date>tmrw}).length+')</summary>'+farHtml+'</details>';
+    else h+=farHtml;
+    sec.innerHTML=h+'</div>';sec.hidden=false;
+
+    // Appointments · today and tomorrow only.
+    var g='<div class="card leave appts"><div class="leave-h"><i data-lucide="bus" class="icon-sm"></i>Appointments · today &amp; tomorrow'+
+      '<span class="cnt">'+(appts.length?'<span class="badge info">'+appts.length+' appt'+(appts.length==1?'':'s')+'</span>':'')+'</span></div>';
+    if(!appts.length)g+='<div class="muted small mt-1">No appointments today or tomorrow.</div>';
+    g+=daysOf(appts).map(function(d){return block(appts,d)}).join('');
+    asec.innerHTML=g+link+'</div>';asec.hidden=false;
+    icons();
+  }).catch(function(){sec.hidden=true;asec.hidden=true});
 }
 
 function shareApply(){
