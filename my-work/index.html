@@ -267,15 +267,41 @@ function showWho(){
     os.map(function(o){return '<button onclick="pickWho(\''+o.owner_key+'\')"><b>'+esc(o.display_name)+'</b><span>'+esc(o.department)+'</span></button>'}).join('')+'</div></div>';
 }
 async function pickWho(k){S.me=S.roster.owners.filter(function(o){return o.owner_key===k})[0];ls('mw_owner',k);setWho();S.view=startView();S.list=null;S.item=null;await refresh();route()}
-function switchUser(){if(!S.pin)return;S.me=null;ls('mw_owner',null);setWho();showWho()}
-function logOut(){msSignOut();ls('mw_owner',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+function switchUser(){if(!S.pin)return;S.me=null;S.data=null;S.allData=null;ls('mw_owner',null);ls('mw_apin',null);setWho();showWho()}
+function logOut(){msSignOut();ls('mw_owner',null);ls('mw_apin',null);ls('su_pin',null);location.href=new URL('../',location.href).href}
+
+// ---------- Stephen's personal PIN (11/19/26) ----------
+// Stephen's list and the Everyone view open only with his personal PIN (the one he uses on /plaud/).
+// The server returns admin_pin_required instead of his items until it gets the right PIN.
+function apin(){return isAdmin()?(ls('mw_apin')||null):null}
+function needAdminPin(){return isAdmin()&&S.data&&S.data.admin_pin_required}
+function showAdminPin(msg){
+  document.getElementById('fab').style.display='none';
+  app().classList.remove('wide');
+  app().innerHTML='<div class="card"><div class="big" style="font-size:20px">Your personal PIN</div>'+
+    '<p class="muted" style="margin-top:6px">Your list is private. Enter the PIN you use on the Plaud review page.</p>'+
+    (msg?'<p style="color:var(--danger);font-weight:700;margin-top:8px">'+esc(msg)+'</p>':'')+
+    '<input id="apinIn" type="tel" inputmode="numeric" maxlength="8" autocomplete="off" style="margin-top:12px;font-size:22px;letter-spacing:4px;text-align:center" placeholder="PIN">'+
+    '<button class="btn btn-primary" style="margin-top:12px" onclick="submitAdminPin()">Open my list</button>'+
+    '<button class="btn btn-ghost" style="margin-top:8px" onclick="switchUser()">Not Stephen? Pick your name</button></div>';
+  var i=document.getElementById('apinIn');i.focus();i.onkeydown=function(e){if(e.key==='Enter')submitAdminPin()};
+}
+function submitAdminPin(){
+  var v=(document.getElementById('apinIn').value||'').trim();if(!v)return;
+  ls('mw_apin',v);
+  guard(async function(){await refresh();route()});
+}
 
 // ---------- data ----------
 async function refresh(){
-  S.data=await rpc('work_mine',{p_pin:S.pin,p_owner:S.me.owner_key});
+  S.data=await rpc('work_mine',{p_pin:S.pin,p_owner:S.me.owner_key,p_admin_pin:apin()});
   S.loadedAt=Date.now();
+  if(needAdminPin()){ // wrong or missing PIN: forget it so a stale PIN can't burn the lockout on every refresh
+    S.adminPinMsg=ls('mw_apin')?(S.data.locked?'Too many tries. Wait 15 minutes.':'That PIN did not work.'):(S.data.locked?'Too many tries. Wait 15 minutes.':'');
+    ls('mw_apin',null);S.allData=null;return;
+  }
   if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});
-  if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});
+  if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin,p_admin_pin:apin()});
 }
 async function touch(){try{await rpc('work_touch',{p_pin:S.pin,p_owner:S.me.owner_key})}catch(e){}}
 document.addEventListener('visibilitychange',function(){ // refresh when the tab comes back, at most once a minute
@@ -285,6 +311,7 @@ document.addEventListener('visibilitychange',function(){ // refresh when the tab
 // ---------- routing ----------
 function route(){
   window.scrollTo(0,0);
+  if(needAdminPin())return showAdminPin(S.adminPinMsg);
   if(S.item||S.list||S.resItem)app().classList.remove('wide');
   if(S.item)return renderItem();
   if(S.list)return renderList();
@@ -301,7 +328,7 @@ async function setView(v){
   S.view=v;S.allOwner=null;S.peek=null;S.peekData=null;if(v==='mine'||v==='board')ls('mw_view',v);
   await guard(async function(){
     if(v==='dept'&&!S.deptData)S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});
-    if(v==='all'&&!S.allData)S.allData=await rpc('work_all',{p_pin:S.pin});
+    if(v==='all'&&!S.allData)S.allData=await rpc('work_all',{p_pin:S.pin,p_admin_pin:apin()});
     if(v==='res')S.res=await rpc('caseload_list',{p_pin:S.pin,p_actor:S.me.owner_key});
   });
   route();
@@ -728,7 +755,7 @@ function findItem(id){
   for(var p=0;p<pools.length;p++){var hit=(pools[p]||[]).filter(function(i){return i.id===id})[0];if(hit)return hit}
   return null;
 }
-async function reload(){await refresh();if(S.res)S.res=await rpc('caseload_list',{p_pin:S.pin,p_actor:S.me.owner_key});if(S.peek)S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:S.peek});if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
+async function reload(){await refresh();if(S.res)S.res=await rpc('caseload_list',{p_pin:S.pin,p_actor:S.me.owner_key});if(S.peek)S.peekData=await rpc('work_mine',{p_pin:S.pin,p_owner:S.peek});if(S.list)S.list=await rpc('work_list_get',{p_pin:S.pin,p_admin_pin:apin(),p_id:S.list.id});if(S.view==='dept')S.deptData=await rpc('work_department',{p_pin:S.pin,p_dept:S.me.department});if(S.view==='all'&&isAdmin())S.allData=await rpc('work_all',{p_pin:S.pin});route()}
 function toggle(id,isDone){
   guard(async function(){
     if(isDone){await rpc('work_reopen',{p_pin:S.pin,p_actor:S.me.owner_key,p_id:id});toast('Reopened');}
@@ -832,7 +859,7 @@ function adSave(){
 }
 
 // ---------- list screen ----------
-function openList(id){guard(async function(){S.list=await rpc('work_list_get',{p_pin:S.pin,p_id:id});S.item=null;route()})}
+function openList(id){guard(async function(){S.list=await rpc('work_list_get',{p_pin:S.pin,p_admin_pin:apin(),p_id:id});S.item=null;route()})}
 function closeList(){S.list=null;route()}
 function renderList(){
   var l=S.list; document.getElementById('fab').style.display='none';
