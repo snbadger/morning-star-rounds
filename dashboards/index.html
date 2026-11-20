@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Morning Star — Dashboards</title>
+<link rel="stylesheet" href="../ms-ui.css?v=3">
+<script src="../ms-ui.js?v=1"></script>
+<style>
+.dash-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.tile-icon .fb{display:none;font-size:20px;line-height:1}
+html.no-icons .tile-icon .fb{display:block}
+html.no-icons i[data-lucide]{display:none}
+.tile .src{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);margin-top:auto}
+.note{font-size:12.5px;color:var(--muted-foreground);margin-top:18px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="ms-header">
+  <div><h1><i data-lucide="layout-dashboard"></i>Dashboards</h1><div class="sub"><a href="../" style="color:inherit">← Staff Apps</a> · Morning Star Post Acute</div></div>
+</div>
+<main class="ms-page wide">
+  <!--
+    Add a dashboard: copy one <a class="tile"> below and change href, icon (lucide name), name, desc and src.
+    Jobflo pages live at https://morningstar.jobflolabs.com/p/<portal>/<page>.
+    Each dashboard still checks its own sign-in or PIN; this page is only a list of links.
+  -->
+  <section class="section">
+    <div class="section-title">Daily</div>
+    <div class="grid dash-grid">
+      <a class="tile leader" href="../standup/screen.html" data-group="leader"><span class="tile-icon"><i data-lucide="monitor"></i><span class="fb">🖥️</span></span><span class="name">Standup Screen</span><span class="desc">The 9:30 standup board — census, staffing, safety, clinical</span><span class="src">Staff Apps</span></a>
+      <a class="tile leader" href="https://morningstar.jobflolabs.com/p/jericho-ops/jops-daily-census" target="_blank" rel="noopener" data-group="leader"><span class="tile-icon"><i data-lucide="users"></i><span class="fb">👥</span></span><span class="name">Daily Census</span><span class="desc">Census, admissions and discharges by day</span><span class="src">Jobflo</span></a>
+      <a class="tile leader" href="https://morningstar.jobflolabs.com/p/jericho-ops/daily-labor" target="_blank" rel="noopener" data-group="leader"><span class="tile-icon"><i data-lucide="clock"></i><span class="fb">⏱️</span></span><span class="name">Daily Labor</span><span class="desc">Hours worked by department each day</span><span class="src">Jobflo</span></a>
+      <a class="tile leader" href="https://morningstar.jobflolabs.com/p/morning-star/nhppd" target="_blank" rel="noopener" data-group="leader"><span class="tile-icon"><i data-lucide="stethoscope"></i><span class="fb">🩺</span></span><span class="name">Nursing Hours PPD</span><span class="desc">Nursing hours per patient day against 3.5</span><span class="src">Jobflo</span></a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Weekly</div>
+    <div class="grid dash-grid">
+      <a class="tile leader" href="https://morningstar.jobflolabs.com/p/jericho-ops/jops-weekly-ops" target="_blank" rel="noopener" data-group="leader"><span class="tile-icon"><i data-lucide="clipboard-list"></i><span class="fb">📋</span></span><span class="name">Weekly Ops Report</span><span class="desc">Building-by-building weekly operations report</span><span class="src">Jobflo</span></a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Staffing &amp; overtime</div>
+    <div class="grid dash-grid">
+      <a class="tile leader" href="../reliability/" data-group="leader"><span class="tile-icon"><i data-lucide="shield-check"></i><span class="fb">⭐</span></span><span class="name">Staff Reliability</span><span class="desc">Approve OT · monthly clean-month list</span><span class="src">Staff Apps</span></a>
+      <a class="tile leader" href="https://morningstar.jobflolabs.com/p/jericho-ops/jops-ot-registry" target="_blank" rel="noopener" data-group="leader"><span class="tile-icon"><i data-lucide="dollar-sign"></i><span class="fb">💲</span></span><span class="name">OT, Registry &amp; Nursing Cost</span><span class="desc">Overtime and registry hours and cost</span><span class="src">Jobflo</span></a>
+    </div>
+  </section>
+
+  <p class="note">Jobflo dashboards open in a new tab and ask you to sign in to Jobflo. If one says you don't have access, ask Stephen.</p>
+</main>
+</body>
+</html>

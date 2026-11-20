@@ -64,7 +64,7 @@
     "app": "CNA Assignment Sheet",
     "url": "`/assignments/`",
     "audience": "Charge nurses (roster edit = leadership PIN)",
-    "data": "Supabase `cna_roster` (RPCs `get_cna_roster`, `save_cna_roster`); showers mirror `/showers/` SCHEDULE. Every print (`beforeprint`) logs the sheet — staff, beds, showers, 1:1s; never pending diagnostics — to `cna_assignment_prints` via write-only `log_cna_assignment_print`; `v_cna_assignment_prints_latest` = last print per date/shift (service role only)",
+    "data": "Paycom (`get_cna_roster` = active MS CNA/RNA/LVN/RN from `paycom_employees`, shift from 6 weeks of `paycom_ta_detail` punches) + leader-set groups in `cna_roster_assign` (`cna_roster_save`, leadership PIN checked server-side); old hand-kept `cna_roster` retired 11/17/26; showers mirror `/showers/` SCHEDULE. Every print (`beforeprint`) logs the sheet — staff, beds, showers, 1:1s; never pending diagnostics — to `cna_assignment_prints` via write-only `log_cna_assignment_print`; `v_cna_assignment_prints_latest` = last print per date/shift (service role only)",
     "status": "Live — print log added 10/23/26"
    },
    "tile": {
@@ -82,7 +82,7 @@
     "app": "Deep Cleaning",
     "url": "`/deep-cleaning/`",
     "audience": "Housekeeping (sign in by name, `dc_name`)",
-    "data": "Sebastian's paper Deep Clean Schedule: 26 bed-group slots, day N of the month = slot N, days 27–31 catch-up. Supabase `deep_cleans` (slot + date + checklist, no PHI; upsert on slot/date), `deep_clean_slots` (schedule — mirror of `SLOTS` in the page), `v_deep_clean_status` (this month: done / today / missed / upcoming / paper = before 10/22/26 go-live); every new entry emails Sebastian via `deep-clean-notify` (Resend, `deep_clean_recipients` in improvement_ideas_config, idempotent on `notify_sent_at`)",
+    "data": "Sebastian's paper Deep Clean Schedule: 28 bed-group slots, day N of the month = slot N, days 29–31 catch-up. Supabase `deep_cleans` (slot + date + checklist, no PHI; upsert on slot/date), `deep_clean_slots` (schedule — mirror of `SLOTS` in the page), `v_deep_clean_status` (this month: done / today / missed / upcoming / paper = before 10/22/26 go-live); every new entry emails Sebastian via `deep-clean-notify` (Resend, `deep_clean_recipients` in improvement_ideas_config, idempotent on `notify_sent_at`)",
     "status": "Live — added 10/22/26"
    },
    "tile": {
@@ -372,12 +372,30 @@
    }
   },
   {
+   "id": "dashboards",
+   "registry": {
+    "app": "Dashboards",
+    "url": "`/dashboards/`",
+    "audience": "Leadership (behind the hub's leadership PIN). Jobflo links need a Jobflo sign-in; Standup Screen and Staff Reliability check the leadership PIN",
+    "data": "— (static links: Standup Screen, Staff Reliability, and Jobflo pages Daily Census, Daily Labor, Nursing Hours PPD, Weekly Ops Report, OT/Registry & Nursing Cost)",
+    "status": "Live — added 11/20/26"
+   },
+   "tile": {
+    "group": "leader",
+    "href": "dashboards/",
+    "icon": "layout-dashboard",
+    "fb": "📊",
+    "name": "Dashboards",
+    "desc": "Standup screen, census, labor, nursing hours, OT"
+   }
+  },
+  {
    "id": "reliability",
    "registry": {
     "app": "Staff Reliability",
     "url": "`/reliability/`",
     "audience": "Leadership (PIN on hub; same server-checked PIN as Standup Log, shares `su_pin`; own name key `rl_name`)",
-    "data": "Supabase `ot_approvals` (OT review queue like Plaud review: each OT day found in punches becomes a card the morning after; dept heads see their own dept, DON/HR/Admin all; Randy, Belem, Annie, Valerie, Michael, Lucy view only (Activities OT → Stephen) (approver list enforced server-side in `reliability_config.ot_approvers`); tap a reason = approved, or Not approved, 6-second Undo; `reliability_ot_queue` / `reliability_decide_ot`; status approved/declined, source review/ahead; \"Approve ahead of time\" form kept), `reliability_callout_excuses` (DON/HR/Admin excuse a call-out), `reliability_config`; scoring in `v_reliability_daily` → `v_reliability_monthly` (clean month = ≥8 days worked, 0 unapproved OT, 0 Veras call-outs without a time-off code, 0 meal penalties, ≤1 missed punch from 10/1/26 — `missed_scoring_start` / `max_missed_punches`). Punch facts snapshot hourly (:20) into `reliability_daily_snap` / `reliability_shift_snap` via `reliability_refresh()` — anon RPCs have a 3s timeout. RPCs `reliability_*` (PIN-checked). Never returns Paycom punch comments",
+    "data": "Supabase `ot_approvals` (OT review queue like Plaud review: each OT day found in punches becomes a card the morning after; dept heads see their own dept, DON/HR/Admin all; Randy, Belem, Annie, Valerie, Michael, Lucy view only (Activities OT → Stephen) (approver list enforced server-side in `reliability_config.ot_approvers`); tap a reason = approved, or Not approved, 6-second Undo; `reliability_ot_queue` / `reliability_decide_ot`; status approved/declined, source review/ahead; \"Approve ahead of time\" form kept), `reliability_callout_excuses` (DON/HR/Admin excuse a call-out), `reliability_config`; scoring in `v_reliability_daily` → `v_reliability_monthly` (clean month = ≥8 days worked, 0 unapproved OT, 0 Veras call-outs without a time-off code, 0 meal penalties, ≤1 missed punch from 10/1/26 — `missed_scoring_start` / `max_missed_punches`). Punch facts snapshot hourly (:20) into `reliability_daily_snap` / `reliability_shift_snap` / `reliability_timeoff_snap` (Paycom time-off call-outs, 11/19/26 — live view was 3.5s and broke the month RPC) via `reliability_refresh()` — anon RPCs have a 3s timeout. RPCs `reliability_*` (PIN-checked). Never returns Paycom punch comments",
     "status": "Built 10/29/26 — OT scored from 11/1/26"
    },
    "tile": {
@@ -461,7 +479,7 @@
     "url": "`/eval-review/`",
     "audience": "**Stephen, Donna, Yessi, Kelsey only** — each has a personal PIN (6–8 digits, bcrypt, 5 misses = 1-hour lockout), set with a one-time setup code Stephen issues from the page. PIN kept in sessionStorage only; 15-minute idle lock.",
     "data": "Supabase `hr_eval` schema: cards computed live by `v_eval_cards` (editor: Stephen for dept heads, Donna for LVN/RN, Yessi for CNA/RNA; attendance + Paycom: Kelsey; competencies: Yessi for nursing, Stephen for dept heads; approve + sign: Stephen). Done-state in `card_status`; edits saved as new `evaluation_drafts` versions (`author`). RPCs `eval_review_*`. Raw coworker feedback only on Stephen's approve card.",
-    "status": "Built 11/5/26 — not yet published"
+    "status": "Live — added 11/5/26"
    },
    "tile": {
     "group": "leader",
