@@ -87,17 +87,17 @@ var NOTIFY_URL=SUPABASE_URL+'/functions/v1/deep-clean-notify';
 var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 // Sebastian's Deep Clean Schedule (paper sheet, Housekeeping): day of the month -> bed group.
-// Days 27-31 are "if any missed" catch-up days. Mirrors public.deep_clean_slots — change both together.
+// Days 29-31 are "if any missed" catch-up days (Room 12 split into pairs 11/19/26). Mirrors public.deep_clean_slots — change both together.
 var SLOTS=[
  {key:'1',day:1,label:'Room 1'},{key:'2',day:2,label:'Room 2'},{key:'3',day:3,label:'Room 3'},{key:'4',day:4,label:'Room 4'},
  {key:'5AB',day:5,label:'Room 5 A,B'},{key:'5CD',day:6,label:'Room 5 C,D'},
  {key:'6',day:7,label:'Room 6 A,B,C'},{key:'7',day:8,label:'Room 7 A,B,C'},{key:'8',day:9,label:'Room 8 A,B,C'},
  {key:'9',day:10,label:'Room 9 A,B,C'},{key:'10',day:11,label:'Room 10 A,B,C'},{key:'18',day:12,label:'Room 18 A,B'},
  {key:'11AB',day:13,label:'Room 11 A,B'},{key:'11CD',day:14,label:'Room 11 C,D'},{key:'11EF',day:15,label:'Room 11 E,F'},{key:'11GH',day:16,label:'Room 11 G,H'},
- {key:'12AD',day:17,label:'Room 12 A,B,C,D'},{key:'12EH',day:18,label:'Room 12 E,F,G,H'},
- {key:'14AB',day:19,label:'Room 14 A,B'},{key:'14CD',day:20,label:'Room 14 C,D'},{key:'14EF',day:21,label:'Room 14 E,F'},{key:'14GH',day:22,label:'Room 14 G,H'},
- {key:'15AB',day:23,label:'Room 15 A,B'},{key:'15CD',day:24,label:'Room 15 C,D'},
- {key:'16AB',day:25,label:'Room 16 A,B'},{key:'16CD',day:26,label:'Room 16 C,D'}
+ {key:'12AB',day:17,label:'Room 12 A,B'},{key:'12CD',day:18,label:'Room 12 C,D'},{key:'12EF',day:19,label:'Room 12 E,F'},{key:'12GH',day:20,label:'Room 12 G,H'},
+ {key:'14AB',day:21,label:'Room 14 A,B'},{key:'14CD',day:22,label:'Room 14 C,D'},{key:'14EF',day:23,label:'Room 14 E,F'},{key:'14GH',day:24,label:'Room 14 G,H'},
+ {key:'15AB',day:25,label:'Room 15 A,B'},{key:'15CD',day:26,label:'Room 15 C,D'},
+ {key:'16AB',day:27,label:'Room 16 A,B'},{key:'16CD',day:28,label:'Room 16 C,D'}
 ];
 // App went live mid-month; anything scheduled before this date was tracked on the paper sheet,
 // so it shows as "On paper" instead of "Missed". Mirrors v_deep_clean_status.
@@ -219,7 +219,7 @@ function homeView(){
     }
     var missed=SLOTS.filter(function(s){return slotStatus(s,key).cls==='missed'});
     if(missed.length){
-      h+='<div class="card missed-card"><div class="lbl">Missed this month ('+missed.length+') — catch up days 27–31</div>'+
+      h+='<div class="card missed-card"><div class="lbl">Missed this month ('+missed.length+') — catch up days 29–31</div>'+
         missed.map(function(s){return rowHtml(s,{cls:'missed',log:null})}).join('')+'</div>';
     }
   }
@@ -230,7 +230,7 @@ function homeView(){
     '<div class="hint" style="margin-top:6px"><b>'+done+' of '+SLOTS.length+'</b> scheduled deep cleans done</div></div>';
   h+='<div class="section-title">Deep Clean Schedule — tap a row to log it</div><div class="card" style="padding:6px 12px">';
   SLOTS.forEach(function(s){h+=rowHtml(s,slotStatus(s,key))});
-  for(var cd=27;cd<=31;cd++)h+='<div class="row catchup"><div class="day">'+cd+'</div><div class="area">If any missed</div></div>';
+  for(var cd=29;cd<=31;cd++)h+='<div class="row catchup"><div class="day">'+cd+'</div><div class="area">If any missed</div></div>';
   h+='</div>';
   h+='<div class="hint" style="text-align:center;margin-top:14px" onclick="refresh()">Tap to refresh</div>';
   h+='<div style="text-align:center;margin-top:16px;font-size:14px;color:var(--text-light)">Signed in as <b>'+esc(me.name)+'</b> &nbsp;·&nbsp; '+
