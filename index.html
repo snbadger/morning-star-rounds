@@ -395,7 +395,7 @@ function barOut(){
   if(SHARED){ if(!u){whoPick();return} ID.clear(); location.reload(); return }
   function go(){
     if(ID)ID.clear();
-    ['msHubLeader','msHubHR','su_pin','su_name','rl_name','mw_owner'].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}});
+    ['msHubLeader','msHubHR','su_pin','su_name','rl_name','mw_owner','mw_apin'].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}});
     window.scrollTo(0,0); location.reload();
   }
   var opts={title:'Log out of this phone?',desc:'This clears your name and locks the leadership tools. Next time, tap your name and enter your PIN again.',confirmText:'Log out',cancelText:'Stay signed in',destructive:true};
@@ -475,12 +475,16 @@ function loadToday(){
     countOf('shower_logs?select=id&log_date=eq.'+day+'&shift=eq.'+shift),
     countOf('equipment_repairs?select=id&status=in.(new,in_progress,waiting)'),
     lead?fetch(SB+'v_today_rounding?select=count',{headers:hdrs({})}).then(function(r){return r.ok?r.json():null}).catch(function(){return null}):Promise.resolve(null),
-    (lead&&pin&&owner)?rpc('work_mine',{p_pin:pin,p_owner:owner}):Promise.resolve(null)
+    (lead&&pin&&owner)?rpc('work_mine',{p_pin:pin,p_owner:owner,p_admin_pin:lsGet('mw_apin')}):Promise.resolve(null)
   ];
   Promise.all(jobs).then(function(r){
     if(tok!==todayToken)return;
     var showers=r[0], repairs=r[1], rounds=r[2], work=r[3], h='';
-    if(lead&&work&&work.items){
+    if(lead&&work&&work.admin_pin_required){
+      // Stephen's list needs his personal PIN (11/19/26); My Work saves it as mw_apin after he enters it there.
+      try{localStorage.removeItem('mw_apin')}catch(e){}
+      h+=stat('my-work/','My Work','PIN','Open to enter your PIN','');
+    } else if(lead&&work&&work.items){
       var ov=work.items.filter(function(i){return i.urgency==='overdue'}).length;
       var td=work.items.filter(function(i){return i.urgency==='today'}).length;
       h+=stat('my-work/','My Work · overdue',ov,ov?'Needs attention':'All caught up',ov?'destructive':'success');
